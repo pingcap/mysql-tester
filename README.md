@@ -42,11 +42,11 @@ By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root`
 
 Contributions are welcomed and greatly appreciated. You can help by:
 
-- writing user document about hot to use this framework
-- traiging issues
+- writing user document about how to use this framework
+- triaging issues
 - submitting new test cases
 - fixing bugs of this test framework
-- adding features that mysql test has but this implement does not
+- adding features that mysql test has but this implementation does not
 - ...
 
 In case you have any problem, discuss with us in the [tidbcommunity](https://join.slack.com/t/tidbcommunity/shared_invite/enQtNzc0MzI4ODExMDc4LWYwYmIzMjZkYzJiNDUxMmZlN2FiMGJkZjAyMzQ5NGU0NGY0NzI3NTYwMjAyNGQ1N2I2ZjAxNzc1OGUwYWM0NzE) slack workspace.

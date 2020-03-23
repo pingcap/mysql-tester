@@ -35,7 +35,7 @@ By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root`
 ```sh
 ./mysql-tester # run all the tests
 ./mysql-tester example # run a specified test
-./mysql-tester example1 example2   example3 # seperate different tests with spaces
+./mysql-tester example1 example2   example3 # seperate different tests with one or more spaces
 ```
 
 ## Contributing

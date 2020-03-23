@@ -9,8 +9,8 @@
 
 Anything! You can help by:
 
-- writing user document about hot to use this framework
-- traiging issues
+- writing user document about how to use this framework
+- triaging issues
 - submitting new test cases
 - fixing bugs of this test framework
 - adding features that mysql test has but this implement does not

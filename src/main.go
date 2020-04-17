@@ -600,7 +600,7 @@ func (t *tester) execute(query query) error {
 			// but now we think it is.
 
 			// output expected err
-			t.buf.WriteString(fmt.Sprintf("%s\n", err))
+			fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
 			err = nil
 		}
 		// clear expected errors after we execute the first query

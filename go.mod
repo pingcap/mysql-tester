@@ -1,13 +1,12 @@
 module github.com/pingcap/mysql-tester
 
-go 1.12
+go 1.13
 
 require (
 	github.com/coreos/etcd v3.3.15+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cznic/sortutil v0.0.0-20181122101858-f5f958428db8 // indirect
-	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
-	github.com/go-sql-driver/mysql v0.0.0-20170715192408-3955978caca4
+	github.com/go-sql-driver/mysql v1.3.0
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect

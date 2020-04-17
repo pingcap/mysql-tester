@@ -1,6 +1,6 @@
 module github.com/pingcap/mysql-tester
 
-go 1.13
+go 1.12
 
 require (
 	github.com/coreos/etcd v3.3.15+incompatible // indirect

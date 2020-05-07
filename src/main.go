@@ -32,10 +32,7 @@ import (
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/terror"
-	"github.com/pingcap/tidb/session"
-	"github.com/pingcap/tidb/sessionctx"
-	"github.com/pingcap/tidb/util/logutil"
-	"github.com/pingcap/tidb/util/mock"
+	_ "github.com/pingcap/parser/test_driver"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -105,7 +102,7 @@ type tester struct {
 	// data to check correction.
 	resultFD *os.File
 	// ctx is used for Compile sql statement
-	ctx sessionctx.Context
+	ctx *parser.Parser
 
 	// conns record connection created by test.
 	conn map[string]*Conn
@@ -123,8 +120,8 @@ func newTester(name string) *tester {
 	// are ported wihtout explictly "disablewarning"
 	t.enableWarning = false
 	t.enableConcurrent = false
-	t.ctx = mock.NewContext()
-	t.ctx.GetSessionVars().EnableWindowFunction = true
+	t.ctx = parser.New()
+	t.ctx.EnableWindowFunc(true)
 
 	return t
 }
@@ -295,7 +292,7 @@ func (t *tester) Run() error {
 			}
 			q.Query = q.Query[1 : len(q.Query)-1]
 			args := strings.Split(q.Query, ",")
-			for i, _ := range args {
+			for i := range args {
 				args[i] = strings.TrimSpace(args[i])
 			}
 			for i := 0; i < 4; i++ {
@@ -382,7 +379,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		if len(query.Query) == 0 {
 			return
 		}
-		list, err := session.Parse(tt.ctx, query.Query)
+		list, _, err := tt.ctx.Parse(query.Query, "", "")
 		if err != nil {
 			msgs <- testTask{
 				test: t.name,
@@ -586,7 +583,7 @@ func (t *tester) execute(query query) error {
 	if len(query.Query) == 0 {
 		return nil
 	}
-	list, err := session.Parse(t.ctx, query.Query)
+	list, _, err := t.ctx.Parse(query.Query, "", "")
 	if err != nil {
 		return t.parserErrorHandle(query, err)
 	}
@@ -957,8 +954,6 @@ func consumeError() {
 func main() {
 	flag.Parse()
 	tests := flag.Args()
-
-	logutil.InitLogger(logutil.NewLogConfig(logLevel, logutil.DefaultLogFormat, "", logutil.EmptyFileLogConfig, false))
 
 	// we will run all tests if no tests assigned
 	if len(tests) == 0 {

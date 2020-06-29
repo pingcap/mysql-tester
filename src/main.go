@@ -195,8 +195,8 @@ func (t *tester) preProcess() {
 	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=2\" err[%v]", err)
+	if _, err = mdb.Exec("SET @@tidb_executor_concurrency=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_executor_concurrency=1\" err[%v]", err)
 	}
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}

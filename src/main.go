@@ -127,7 +127,7 @@ func newTester(name string) *tester {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=false&time_zone=%27Asia%2FShanghai%27")
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -137,8 +137,8 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_executor_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_executor_concurrency=1\" err[%v]", err)
+	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
@@ -174,7 +174,7 @@ func (t *tester) disconnect(connName string) {
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=false&time_zone=%27Asia%2FShanghai%27")
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -195,8 +195,8 @@ func (t *tester) preProcess() {
 	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_executor_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_executor_concurrency=1\" err[%v]", err)
+	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
@@ -356,7 +356,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	defer wg.Done()
 	tt := newTester(t.name)
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=false&time_zone=%27Asia%2FShanghai%27")
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -369,8 +369,8 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_executor_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_executor_concurrency=1\" err[%v]", err)
+	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
 	tt.mdb = mdb
 	defer tt.mdb.Close()

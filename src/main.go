@@ -142,7 +142,8 @@ func setHashJoinConcurrency(db *sql.DB) {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	// SQL mode disabled for now due to https://github.com/pingcap/tidb/pull/20206
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27&sql_mode='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'")
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}

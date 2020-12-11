@@ -141,8 +141,11 @@ func setHashJoinConcurrency(db *sql.DB) {
 	}
 }
 
-func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+func (t *tester) addConnection(connName, hostName, userName, password, db, cport string) {
+	if cport == "" {
+		cport = port
+	}
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+cport+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -306,10 +309,10 @@ func (t *tester) Run() error {
 			for i := range args {
 				args[i] = strings.TrimSpace(args[i])
 			}
-			for i := 0; i < 4; i++ {
+			for i := 0; i < 5; i++ {
 				args = append(args, "")
 			}
-			t.addConnection(args[0], args[1], args[2], args[3], args[4])
+			t.addConnection(args[0], args[1], args[2], args[3], args[4], args[5])
 		case Q_CONNECTION:
 			q.Query = strings.TrimSpace(q.Query)
 			if q.Query[len(q.Query)-1] == ';' {

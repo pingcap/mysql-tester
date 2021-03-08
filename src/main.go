@@ -44,6 +44,7 @@ var (
 	passwd   string
 	logLevel string
 	record   bool
+	params   string
 )
 
 func init() {
@@ -53,6 +54,7 @@ func init() {
 	flag.StringVar(&passwd, "passwd", "", "The password for the user.")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
+	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 }
 
 const (
@@ -142,7 +144,7 @@ func setHashJoinConcurrency(db *sql.DB) {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}

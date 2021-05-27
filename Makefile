@@ -6,6 +6,7 @@ build:
 	go build -o mysql-tester ./src
 
 test:
+
 	go test -cover ./...
 
 tidy:

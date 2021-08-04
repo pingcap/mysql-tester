@@ -45,6 +45,7 @@ var (
 	logLevel string
 	record   bool
 	params   string
+	all      bool
 )
 
 func init() {
@@ -55,6 +56,7 @@ func init() {
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
+	flag.BoolVar(&all, "all", false, "run all tests")
 }
 
 const (
@@ -950,6 +952,9 @@ func consumeError() []error {
 		if t, more := <-msgs; more {
 			if t.err != nil {
 				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
+				if !all {
+					log.Fatalln(e)
+				}
 				log.Errorln(e)
 				es = append(es, e)
 			} else {
@@ -984,7 +989,7 @@ func main() {
 		executeTests(convertTestsToTestTasks(tests))
 		close(msgs)
 	}()
-	
+
 	es := consumeError()
 	if len(es) != 0 {
 		println()
@@ -994,6 +999,6 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	
+
 	println("\nGreat, All tests passed")
 }

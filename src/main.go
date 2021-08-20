@@ -45,6 +45,7 @@ var (
 	logLevel string
 	record   bool
 	params   string
+	all      bool
 )
 
 func init() {
@@ -55,6 +56,7 @@ func init() {
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
+	flag.BoolVar(&all, "all", false, "run all tests")
 }
 
 const (
@@ -893,7 +895,6 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 	return
 }
 
-var done = make(chan bool)
 var msgs = make(chan testTask)
 
 type testTask struct {
@@ -945,21 +946,25 @@ func executeTests(tasks []testBatch, have_show, have_is bool) {
 	wg.Wait()
 }
 
-func consumeError() {
+func consumeError() []error {
+	var es []error
 	for {
 		if t, more := <-msgs; more {
 			if t.err != nil {
-				log.Fatalf("run test [%s] err: %v", t.test, t.err)
+				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
+				if !all {
+					log.Fatalln(e)
+				}
+				log.Errorln(e)
+				es = append(es, e)
 			} else {
 				log.Infof("run test [%s] ok", t.test)
 			}
 
 		} else {
-			done <- true
-			return
+			return es
 		}
 	}
-
 }
 
 func main() {
@@ -980,9 +985,20 @@ func main() {
 		log.Infof("recording tests: %v", tests)
 	}
 
-	go consumeError()
-	executeTests(convertTestsToTestTasks(tests))
-	close(msgs)
-	<-done
+	go func() {
+		executeTests(convertTestsToTestTasks(tests))
+		close(msgs)
+	}()
+
+	es := consumeError()
+	if len(es) != 0 {
+		println()
+		log.Errorf("%d tests failed\n", len(es))
+		for _, item := range es {
+			log.Errorln(item)
+		}
+		os.Exit(1)
+	}
+
 	println("\nGreat, All tests passed")
 }

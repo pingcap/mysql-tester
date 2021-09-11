@@ -1,0 +1,26 @@
+drop table if exists t1;
+CREATE TABLE t1 (spID int unsigned,userID int unsigned,score smallint unsigned);
+INSERT INTO t1 VALUES (1,1,1);
+INSERT INTO t1 VALUES (2,2,2);
+INSERT INTO t1 VALUES (2,1,4);
+INSERT INTO t1 VALUES (3,3,3);
+INSERT INTO t1 VALUES (1,1,5);
+INSERT INTO t1 VALUES (4,6,10);
+INSERT INTO t1 VALUES (5,11,99);
+SELECT userID, MIN(score) FROM t1 GROUP BY userID;
+SELECT userID, MIN(score) FROM t1 GROUP BY 1;
+SELECT userID, MIN(score) FROM t1 GROUP BY userID ORDER BY NULL;
+SELECT userID, MIN(score) FROM t1 GROUP BY 1 ORDER BY 1;
+SELECT userID, SUM(score) FROM t1 GROUP BY userID ORDER BY userID desc;
+SELECT userID as a, MIN(score) FROM t1 GROUP BY a;
+SELECT userID as score, MAX(score) userID FROM t1 GROUP BY userID;
+select userID a, MAX(score) max FROM t1 GROUP BY userID ORDER BY userID asc;
+SELECT userID, AVG(score) FROM t1 GROUP BY userID;
+SELECT userID, AVG(score) FROM t1 WHERE spID=2  GROUP BY userID;
+select userID,count(score) from t1 group by userID;
+select userID,count(score) from t1 group by userID having count(score)>1;
+select userID,MAX(score) from t1 where userID between 2 and 3 group by userID;
+select userID,MAX(score) from t1 where userID not between 2 and 3 group by userID order by userID desc;
+select distinct spID from t1
+select * from t1 where spID>=3 for update;
+select * from t1 where spID between 2 and 4;

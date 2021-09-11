@@ -1,0 +1,22 @@
+drop table if exists t1;
+create table t1 (id int not null, str char(10), unique(str));
+explain select * from t1;
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+insert into t1 values (1, null),(2, null),(3, "foo"),(4, "bar");
+select * from t1 where str is null;
+1	NULL
+2	NULL
+select * from t1 where str="foo";
+3	foo
+explain select * from t1 where str is null;
+1	SIMPLE	t1	NULL	ref	str	str	41	const	2	100.00	Using index condition
+explain select * from t1 where str="foo";
+1	SIMPLE	t1	NULL| const str           str  41      const    1   100.00 NULL
+explain select * from t1 ignore key (str) where str="foo";
+1	SIMPLE	t1	NULL| ALL  NULL	NULL	NULL	NULL	4	25.00	Using where
+explain select * from t1 use key (str,str) where str="foo";
+1	SIMPLE	t1	NULL| const	str	str	41	const	1	100.00	NULL 
+explain select 1;
+1	SIMPLE	NULL	NULL 	NULL	NULL	NULL	NULL	NULL	NULL	NULL	No tables used
+explain select count(*) from t1;
+1	SIMPLE	t1	NULL	index	NULL	str	41	NULL	4	100.00	Using index

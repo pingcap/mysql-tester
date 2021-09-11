@@ -1,4 +1,5 @@
 // Copyright 2020 PingCAP, Inc.
+// Modifications copyright (C) 2021 MatrixOrigin.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,20 +46,22 @@ var (
 	logLevel string
 	record   bool
 	params   string
+	useTx	 bool
 )
 
 func init() {
 	flag.StringVar(&host, "host", "127.0.0.1", "The host of the TiDB/MySQL server.")
-	flag.StringVar(&port, "port", "4000", "The listen port of TiDB/MySQL server.")
-	flag.StringVar(&user, "user", "root", "The user for connecting to the database.")
-	flag.StringVar(&passwd, "passwd", "", "The password for the user.")
+	flag.StringVar(&port, "port", "6001", "The listen port of TiDB/MySQL server.")
+	flag.StringVar(&user, "user", "dump", "The user for connecting to the database.")
+	flag.StringVar(&passwd, "passwd", "111", "The password for the user.")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
+	flag.BoolVar(&useTx, "use-transaction", false, "Whether to use transaction.")
 }
 
 const (
-	default_connection = "default"
+	defaultConnection = "default"
 )
 
 type query struct {
@@ -119,7 +122,7 @@ func newTester(name string) *tester {
 	t.name = name
 	t.enableQueryLog = true
 	// disable warning by default since our a lot of test cases
-	// are ported wihtout explictly "disablewarning"
+	// are ported without explicitly "disablewarning"
 	t.enableWarning = false
 	t.enableConcurrent = false
 	t.ctx = parser.New()
@@ -148,13 +151,13 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	setHashJoinConcurrency(mdb)
+	//if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+	//	log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	//}
+	//if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+	//	log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+	//}
+	//setHashJoinConcurrency(mdb)
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
 }
@@ -182,14 +185,14 @@ func (t *tester) disconnect(connName string) {
 		log.Fatal(err)
 	}
 	delete(t.conn, connName)
-	t.mdb = t.conn[default_connection].mdb
-	t.tx = t.conn[default_connection].tx
-	t.currConnName = default_connection
+	t.mdb = t.conn[defaultConnection].mdb
+	t.tx = t.conn[defaultConnection].tx
+	t.currConnName = defaultConnection
 }
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName)
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -204,16 +207,16 @@ func (t *tester) preProcess() {
 	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	setHashJoinConcurrency(mdb)
+	//if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+	//	log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	//}
+	//if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+	//	log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+	//}
+	//setHashJoinConcurrency(mdb)
 	t.mdb = mdb
-	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
-	t.currConnName = default_connection
+	t.conn[defaultConnection] = &Conn{mdb: mdb, tx: nil}
+	t.currConnName = defaultConnection
 }
 
 func (t *tester) postProcess() {
@@ -376,13 +379,13 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	setHashJoinConcurrency(mdb)
+	//if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+	//	log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	//}
+	//if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+	//	log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+	//}
+	//setHashJoinConcurrency(mdb)
 	tt.mdb = mdb
 	defer tt.mdb.Close()
 
@@ -540,21 +543,27 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 	}
 	switch st.(type) {
 	case *ast.BeginStmt:
-		t.tx, err = t.mdb.Begin()
-		if err != nil {
-			t.rollback()
-			break
+		if useTx {
+			t.tx, err = t.mdb.Begin()
+			if err != nil {
+				t.rollback()
+				break
+			}
 		}
 	case *ast.CommitStmt:
-		err = t.commit()
-		if err != nil {
-			t.rollback()
-			break
+		if useTx {
+			err = t.commit()
+			if err != nil {
+				t.rollback()
+				break
+			}
 		}
 	case *ast.RollbackStmt:
-		err = t.rollback()
-		if err != nil {
-			break
+		if useTx {
+			err = t.rollback()
+			if err != nil {
+				break
+			}
 		}
 	default:
 		if t.tx != nil {
@@ -563,26 +572,35 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 				break
 			}
 		} else {
-			// if begin or following commit fails, we don't think
-			// this error is the expected one.
-			if t.tx, err = t.mdb.Begin(); err != nil {
-				t.rollback()
-				break
+			if useTx {
+				// if begin or following commit fails, we don't think
+				// this error is the expected one.
+				if t.tx, err = t.mdb.Begin(); err != nil {
+					t.rollback()
+					break
+				}
 			}
 
 			var warn bool
 			warn, err = filterWarning(t.executeStmt(qText), t.enableWarning)
 			if err != nil && !warn {
-				t.rollback()
-				break
-			} else {
-				warn, commitErr := filterWarning(t.commit(), t.enableWarning)
-				if err == nil && commitErr != nil {
-					err = commitErr
-				}
-				if commitErr != nil && !warn {
+				if !useTx {
+					//t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+					break
+				} else {
 					t.rollback()
 					break
+				}
+			} else {
+				if useTx {
+					warn, commitErr := filterWarning(t.commit(), t.enableWarning)
+					if err == nil && commitErr != nil {
+						err = commitErr
+					}
+					if commitErr != nil && !warn {
+						t.rollback()
+						break
+					}
 				}
 			}
 		}
@@ -627,7 +645,6 @@ func (t *tester) execute(query query) error {
 			if _, err = t.resultFD.ReadAt(buf, int64(offset)); err != nil {
 				return errors.Trace(errors.Errorf("run \"%v\" at line %d err, we got \n%s\nbut read result err %s", st.Text(), query.Line, gotBuf, err))
 			}
-
 			if !bytes.Equal(gotBuf, buf) {
 				return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
 			}
@@ -761,11 +778,14 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 
 func (t *tester) executeStmt(query string) error {
 	if IsQuery(query) {
-		raw, err := t.tx.Query(query)
-		if err != nil {
-			return errors.Trace(err)
+		fmt.Println("Query:\t", query)
+		var raw *sql.Rows
+		var err error
+		if !useTx {
+			raw, err = t.mdb.Query(query)
+		} else {
+			raw, err = t.tx.Query(query)
 		}
-
 		rows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
@@ -778,7 +798,13 @@ func (t *tester) executeStmt(query string) error {
 		return t.writeQueryResult(rows)
 	} else {
 		// TODO: rows affected and last insert id
-		_, err := t.tx.Exec(query)
+		fmt.Println("Non Query:", query)
+		var err error
+		if !useTx {
+			_, err = t.mdb.Exec(query)
+		} else {
+			_, err = t.tx.Exec(query)
+		}
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -851,13 +877,13 @@ func resultExists(name string) bool {
 
 // convertTestsToTestTasks convert all test cases into several testBatches.
 // If we have 11 cases and batchSize is 5, then we will have 4 testBatches.
-func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, have_is bool) {
+func convertTestsToTestTasks(tests []string) (tTasks []testBatch, haveShow, haveIS bool) {
 	batchSize := 30
 	total := (len(tests) / batchSize) + 2
 	// the extra 1 is for sub_query_more test
 	tTasks = make([]testBatch, total+1)
 	testIdx := 0
-	have_subqmore, have_role := false, false
+	haveSubqmore, haveRole := false, false
 	for i := 0; i < total; i++ {
 		tTasks[i] = make(testBatch, 0, batchSize)
 		for j := 0; j <= batchSize && testIdx < len(tests); j++ {
@@ -867,15 +893,15 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 			// we better use a separate goroutine to run it
 			switch tests[testIdx] {
 			case "sub_query_more":
-				have_subqmore = true
+				haveSubqmore = true
 			case "show":
-				have_show = true
+				haveShow = true
 			case "infoschema":
-				have_is = true
+				haveIS = true
 			case "role":
-				have_role = true
+				haveRole = true
 			case "role2":
-				have_role = true
+				haveRole = true
 			default:
 				tTasks[i] = append(tTasks[i], tests[testIdx])
 			}
@@ -883,11 +909,11 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 		}
 	}
 
-	if have_subqmore {
+	if haveSubqmore {
 		tTasks[total-1] = testBatch{"sub_query_more"}
 	}
 
-	if have_role {
+	if haveRole {
 		tTasks[total] = testBatch{"role", "role2"}
 	}
 	return
@@ -918,10 +944,10 @@ func (t testBatch) String() string {
 	return strings.Join([]string(t), ", ")
 }
 
-func executeTests(tasks []testBatch, have_show, have_is bool) {
+func executeTests(tasks []testBatch, haveShow, haveIS bool) {
 	// show and infoschema have to be executed first, since the following
 	// tests will create database using their own name.
-	if have_show {
+	if haveShow {
 		show := newTester("show")
 		msgs <- testTask{
 			test: "show",
@@ -929,7 +955,7 @@ func executeTests(tasks []testBatch, have_show, have_is bool) {
 		}
 	}
 
-	if have_is {
+	if haveIS {
 		infoschema := newTester("infoschema")
 		msgs <- testTask{
 			test: "infoschema",

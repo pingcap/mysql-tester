@@ -1,0 +1,2 @@
+drop database test01;
+drop database IF EXISTS test02;

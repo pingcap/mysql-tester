@@ -1,4 +1,5 @@
 // Copyright 2020 PingCAP, Inc.
+// Modifications copyright (C) 2021 MatrixOrigin.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -176,7 +177,7 @@ func ParseQueries(qs ...string) ([]query, error) {
 	return queries, nil
 }
 
-// for a single query, it has some prefix. Prefix mapps to a query type.
+// for a single query, it has some prefix. Prefix maps to a query type.
 // e.g query_vertical maps to Q_QUERY_VERTICAL
 func (q *query) getQueryType(qu string) error {
 	tp := findType(q.firstWord)

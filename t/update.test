@@ -1,0 +1,36 @@
+drop table if exists test;
+create table test(a int,b varchar(10), c int);
+insert into test values(1,'a',100),(2,'b',136),(1,'c',4581),(3,'d',5996),(4,'f',175),(5,'e',5711),(1,'g',9430);
+update test set a='b' where a=1;
+update test set a=10 where a=1;
+update test set a=1 where a=10 order by b asc limit 1;
+update test set c=999 where a=1;
+select * from test;
+drop table if exists test;
+CREATE TABLE test (
+  gnr INT UNSIGNED primary key AUTO_INCREMENT,
+  url VARCHAR(80) NOT NULL,
+  shortdesc VARCHAR(200) NOT NULL,
+  longdesc text NOT NULL,
+  description VARCHAR(80) NOT NULL,
+  name VARCHAR(80) NOT NULL
+  );
+insert into test (url,shortdesc,longdesc,description,name) VALUES ("http:/test.at", "kurz", "lang","desc", "name");
+insert into test (url,shortdesc,longdesc,description,name) VALUES ("http:/test.at", "kurz", "","desc", "name");
+update test set url='test', description='ddd', name='nam' where gnr=2;
+update test set url='test', shortdesc='ggg', longdesc='mmm';
+select * from test;
+drop table if exists t1,t2,t3;
+create table t1(id1 int not null auto_increment primary key, t char(12));
+create table t2(id2 int not null, t char(12));
+create table t3(id3 int not null, t char(12), index(id3));
+insert into t1(t) values ('1'),('2'),('3'),('4'),('5'),('6'),('7'),('8'),('9'),('10'),('11'),('12'),('13'),('14'),('15');
+insert into t2(id2,t) values (1,'1'),(2,'2'),(3,'3'),(4,'4'),(5,'5'),(6,'6'),(7,'7'),(8,'8'),(9,'9'),(10,'10'),(11,'11');
+insert into t3(id3,t) values (5,'5'),(6,'6'),(7,'7'),(8,'8'),(9,'9'),(10,'10'),(11,'11'),(12,'12');
+update t1,t2,t3 set t1.t="aaa", t2.t="bbb", t3.t="cc" where  t1.id1 = t2.id2 and t2.id2 = t3.id3  and t1.id1 > 10;
+select count(*) from t1 where t = "aaa";
+select count(*) from t1 where id1 > 10;
+select count(*) from t2 where t = "bbb";
+select count(*) from t2 where id2 > 10;
+select count(*) from t3 where t = "cc";
+select count(*) from t3 where id3 > 10;

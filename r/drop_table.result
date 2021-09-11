@@ -1,0 +1,3 @@
+create table table01(a int);
+drop table table01;
+drop table if exists table01;

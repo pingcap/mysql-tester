@@ -1,0 +1,21 @@
+drop database if exists test01;
+drop database if exists `test02 `;
+drop database if exists test03;
+drop database if exists test04;
+drop database if exists test05;
+drop database if exists `测试数据库`;
+drop database if exists t01234567890123456789012345678901234567890123456789012345678901234567890123456789;
+create database test01;
+create database IF NOT EXISTS test01;
+create database `test02 `;
+create database test03 DEFAULT CHARACTER SET utf8 collate utf8_general_ci ENCRYPTION 'Y';
+create database test04 CHARACTER SET=utf8 collate=utf8_general_ci ENCRYPTION='N';
+create database `测试数据库`;
+CREATE DATABASE t01234567890123456789012345678901234567890123456789012345678901234567890123456789;
+show databases;
+test01
+test02 
+test03
+test04
+测试数据库
+t01234567890123456789012345678901234567890123456789012345678901234567890123456789

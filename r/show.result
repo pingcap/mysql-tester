@@ -1,0 +1,13 @@
+drop database if exists `show`;
+drop database if exists test01;
+create database test01;
+use test01;
+create table t1 (id int not null, str char(10));
+create table t2 (a int);
+show tables;
+Table
+t1
+t2
+show tables from test01 where tables_in_test01 like '%t2%';
+Table
+t2

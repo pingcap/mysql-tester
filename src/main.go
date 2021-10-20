@@ -145,18 +145,29 @@ func setHashJoinConcurrency(db *sql.DB) {
 	}
 }
 
+// isTiDB returns true if the DB is confirmed to be TiDB
+func isTiDB(db *sql.DB) bool {
+	if _, err := db.Exec("SELECT tidb_version()"); err != nil {
+		log.Infof("This doesn't look like a TiDB server, err[%v]", err)
+		return false
+	}
+	return true
+}
+
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
 	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	if isTiDB(mdb) {
+		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+		}
+		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+		}
+		setHashJoinConcurrency(mdb)
 	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	setHashJoinConcurrency(mdb)
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
 }
@@ -206,13 +217,15 @@ func (t *tester) preProcess() {
 	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	if isTiDB(mdb) {
+		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+		}
+		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+		}
+		setHashJoinConcurrency(mdb)
 	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	setHashJoinConcurrency(mdb)
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
 	t.currConnName = default_connection
@@ -378,13 +391,15 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	if isTiDB(mdb) {
+		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+		}
+		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+		}
+		setHashJoinConcurrency(mdb)
 	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	setHashJoinConcurrency(mdb)
 	tt.mdb = mdb
 	defer tt.mdb.Close()
 

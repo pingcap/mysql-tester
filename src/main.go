@@ -26,13 +26,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
-	"github.com/pingcap/parser"
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/terror"
-	_ "github.com/pingcap/parser/test_driver"
+	"github.com/pingcap/tidb/parser"
+	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/parser/charset"
+	"github.com/pingcap/tidb/parser/terror"
+	_ "github.com/pingcap/tidb/parser/test_driver"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,6 +53,18 @@ func init() {
 	flag.StringVar(&passwd, "passwd", "", "The password for the user.")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
+
+	c := &charset.Charset{
+		Name:             "gbk",
+		DefaultCollation: "gbk_bin",
+		Collations:       map[string]*charset.Collation{},
+	}
+	charset.AddCharset(c)
+	for _, coll := range charset.GetCollations() {
+		if strings.EqualFold(coll.CharsetName, c.Name) {
+			charset.AddCollation(coll)
+		}
+	}
 }
 
 const (
@@ -127,7 +139,7 @@ func newTester(name string) *tester {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27")
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -174,7 +186,7 @@ func (t *tester) disconnect(connName string) {
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27")
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -356,7 +368,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	defer wg.Done()
 	tt := newTester(t.name)
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27")
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -547,7 +559,7 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 		}
 	default:
 		if t.tx != nil {
-			_, err = filterWarning(t.executeStmt(qText), t.enableWarning)
+			err = t.executeStmt(qText)
 			if err != nil {
 				break
 			}
@@ -559,17 +571,16 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 				break
 			}
 
-			var warn bool
-			warn, err = filterWarning(t.executeStmt(qText), t.enableWarning)
-			if err != nil && !warn {
+			err = t.executeStmt(qText)
+			if err != nil {
 				t.rollback()
 				break
 			} else {
-				warn, commitErr := filterWarning(t.commit(), t.enableWarning)
+				commitErr := t.commit()
 				if err == nil && commitErr != nil {
 					err = commitErr
 				}
-				if commitErr != nil && !warn {
+				if commitErr != nil{
 					t.rollback()
 					break
 				}
@@ -624,21 +635,6 @@ func (t *tester) execute(query query) error {
 	}
 
 	return errors.Trace(err)
-}
-
-func filterWarning(err error, enableWarning bool) (isWarn bool, outErr error) {
-	if err == nil {
-		return false, err
-	}
-	causeErr := errors.Cause(err)
-	_, isWarn = causeErr.(mysql.MySQLWarnings)
-	// enableWarning is enabled by default
-	if !enableWarning {
-		if isWarn {
-			return isWarn, nil
-		}
-	}
-	return isWarn, err
 }
 
 func (t *tester) commit() error {
@@ -772,6 +768,7 @@ func (t *tester) executeStmt(query string) error {
 			return errors.Trace(err)
 		}
 	}
+
 	return nil
 }
 

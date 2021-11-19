@@ -796,7 +796,6 @@ func (t *tester) executeStmt(query string) error {
 			return errors.Trace(err)
 		}
 	}
-
 	return nil
 }
 

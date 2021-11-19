@@ -448,9 +448,9 @@ func (t *tester) loadQueries() ([]query, error) {
 	}
 
 	seps := bytes.Split(data, []byte("\n"))
-	queries := make([]string, 0, len(seps))
+	queries := make([]query, 0, len(seps))
 	newStmt := true
-	for _, v := range seps {
+	for i, v := range seps {
 		v := bytes.TrimSpace(v)
 		s := string(v)
 		// we will skip # comment here
@@ -458,7 +458,7 @@ func (t *tester) loadQueries() ([]query, error) {
 			newStmt = true
 			continue
 		} else if strings.HasPrefix(s, "--") {
-			queries = append(queries, s)
+			queries = append(queries, query{Query: s, Line: i + 1})
 			newStmt = true
 			continue
 		} else if len(s) == 0 {
@@ -466,10 +466,10 @@ func (t *tester) loadQueries() ([]query, error) {
 		}
 
 		if newStmt {
-			queries = append(queries, s)
+			queries = append(queries, query{Query: s, Line: i + 1})
 		} else {
 			lastQuery := queries[len(queries)-1]
-			lastQuery = fmt.Sprintf("%s\n%s", lastQuery, s)
+			lastQuery = query{Query: fmt.Sprintf("%s\n%s", lastQuery.Query, s), Line: lastQuery.Line}
 			queries[len(queries)-1] = lastQuery
 		}
 

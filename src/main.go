@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tidb/parser"
@@ -145,9 +146,9 @@ func newTester(name string) *tester {
 func setHashJoinConcurrency(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
 		var ignoreErr = false
-		if warning, ok := err.(mysql.MySQLWarnings); ok {
+		if warning, ok := err.(*mysql.MySQLError); ok {
 			// code "1287" is ErrWarnDeprecatedSyntax
-			if len(warning) > 0 && warning[0].Code == "1287" {
+			if len(warning.Message) > 0 && warning.Number == 1287 {
 				ignoreErr = true
 			}
 		}
@@ -608,7 +609,7 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 				if err == nil && commitErr != nil {
 					err = commitErr
 				}
-				if commitErr != nil{
+				if commitErr != nil {
 					t.rollback()
 					break
 				}

@@ -144,16 +144,7 @@ func newTester(name string) *tester {
 
 func setHashJoinConcurrency(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
-		var ignoreErr = false
-		if warning, ok := err.(mysql.MySQLWarnings); ok {
-			// code "1287" is ErrWarnDeprecatedSyntax
-			if len(warning) > 0 && warning[0].Code == "1287" {
-				ignoreErr = true
-			}
-		}
-		if !ignoreErr {
-			log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
-		}
+		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
 }
 
@@ -608,7 +599,7 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 				if err == nil && commitErr != nil {
 					err = commitErr
 				}
-				if commitErr != nil{
+				if commitErr != nil {
 					t.rollback()
 					break
 				}

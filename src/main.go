@@ -87,6 +87,11 @@ type Conn struct {
 	tx  *sql.Tx
 }
 
+type ReplaceColumn struct {
+	col     int
+	replace []byte
+}
+
 type tester struct {
 	mdb  *sql.DB
 	name string
@@ -125,6 +130,9 @@ type tester struct {
 
 	// currConnName record current connection name.
 	currConnName string
+
+	// replace output column through --replace_column 1 <static data> 3 #
+	replaceColumn []ReplaceColumn
 }
 
 func newTester(name string) *tester {
@@ -314,8 +322,22 @@ func (t *tester) Run() error {
 			testCnt++
 
 			t.sortedResult = false
+			t.replaceColumn = nil
 		case Q_SORTED_RESULT:
 			t.sortedResult = true
+		case Q_REPLACE_COLUMN:
+			// TODO: Use CSV module or so to handle quoted replacements
+			t.replaceColumn = nil // Only use the latest one!
+			cols := strings.Fields(q.Query)
+			// Require that col + replacement comes in pairs otherwise skip the last column number
+			for i := 0; i < len(cols)-1; i = i + 2 {
+				colNr, err := strconv.Atoi(cols[i])
+				if err != nil {
+					return errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+				}
+
+				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
+			}
 		case Q_CONNECT:
 			q.Query = strings.TrimSpace(q.Query)
 			if q.Query[len(q.Query)-1] == ';' {
@@ -773,6 +795,17 @@ func (t *tester) executeStmt(query string) error {
 		rows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if len(t.replaceColumn) > 0 {
+			for _, row := range rows.data {
+				for _, r := range t.replaceColumn {
+					if len(row.data) < r.col {
+						continue
+					}
+					row.data[r.col-1] = r.replace
+				}
+			}
 		}
 
 		if t.sortedResult {

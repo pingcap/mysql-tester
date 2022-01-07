@@ -1010,6 +1010,11 @@ func consumeError() []error {
 func main() {
 	flag.Parse()
 	tests := flag.Args()
+	intLogLevel, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetLevel(intLogLevel)
 
 	// we will run all tests if no tests assigned
 	if len(tests) == 0 {

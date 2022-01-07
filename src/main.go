@@ -219,7 +219,7 @@ func (t *tester) preProcess() {
 		log.Fatalf("Open db err %v", err)
 	}
 
-	log.Warn("Create new db", mdb)
+	log.Debug("Create new db", mdb)
 
 	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", t.name)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", t.name, err)
@@ -466,12 +466,8 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	}
 	return
 }
-func (t *tester) loadQueries() ([]query, error) {
-	data, err := ioutil.ReadFile(t.testFileName())
-	if err != nil {
-		return nil, err
-	}
 
+func parseQueryLines(data []byte) []query {
 	seps := bytes.Split(data, []byte("\n"))
 	queries := make([]query, 0, len(seps))
 	newStmt := true
@@ -501,7 +497,16 @@ func (t *tester) loadQueries() ([]query, error) {
 		// if the line has a ; in the end, we will treat new line as the new statement.
 		newStmt = strings.HasSuffix(s, ";")
 	}
+	return queries
+}
 
+func (t *tester) loadQueries() ([]query, error) {
+	data, err := ioutil.ReadFile(t.testFileName())
+	if err != nil {
+		return nil, err
+	}
+
+	queries := parseQueryLines(data)
 	return ParseQueries(queries...)
 }
 
@@ -993,7 +998,7 @@ func consumeError() []error {
 				log.Errorln(e)
 				es = append(es, e)
 			} else {
-				log.Infof("run test [%s] ok", t.test)
+				log.Debugf("run test [%s] ok", t.test)
 			}
 
 		} else {

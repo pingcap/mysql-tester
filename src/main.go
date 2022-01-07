@@ -998,7 +998,7 @@ func consumeError() []error {
 				log.Errorln(e)
 				es = append(es, e)
 			} else {
-				log.Debugf("run test [%s] ok", t.test)
+				log.Infof("run test [%s] ok", t.test)
 			}
 
 		} else {

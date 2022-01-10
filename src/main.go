@@ -364,6 +364,11 @@ func (t *tester) Run() error {
 				q.Query = q.Query[:len(q.Query)-1]
 			}
 			t.disconnect(q.Query)
+		case Q_REMOVE_FILE:
+			err = os.Remove(strings.TrimSpace(q.Query))
+			if err != nil {
+				return errors.Annotate(err, "failed to remove file")
+			}
 		}
 	}
 

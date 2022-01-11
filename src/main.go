@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -310,6 +311,11 @@ func (t *tester) Run() error {
 		case Q_ERROR:
 			t.expectedErrs = strings.Split(strings.TrimSpace(s), ",")
 		case Q_ECHO:
+			varSearch := regexp.MustCompile("\\$([A-Za-z]+)( |$)")
+			s := varSearch.ReplaceAllStringFunc(s, func(s string) string {
+				return os.Getenv(varSearch.FindStringSubmatch(s)[1])
+			})
+
 			t.buf.WriteString(s)
 			t.buf.WriteString("\n")
 		case Q_QUERY:
@@ -364,6 +370,16 @@ func (t *tester) Run() error {
 				q.Query = q.Query[:len(q.Query)-1]
 			}
 			t.disconnect(q.Query)
+		case Q_LET:
+			q.Query = strings.TrimSpace(q.Query)
+			eqIdx := strings.Index(q.Query, "=")
+			if eqIdx > 1 {
+				start := 0
+				if q.Query[0] == '$' {
+					start = 1
+				}
+				os.Setenv(q.Query[start:eqIdx], strings.TrimSpace(q.Query[eqIdx+1:]))
+			}
 		}
 	}
 

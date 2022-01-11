@@ -378,7 +378,21 @@ func (t *tester) Run() error {
 				if q.Query[0] == '$' {
 					start = 1
 				}
-				os.Setenv(q.Query[start:eqIdx], strings.TrimSpace(q.Query[eqIdx+1:]))
+				varName := q.Query[start:eqIdx]
+				varValue := strings.TrimSpace(q.Query[eqIdx+1:])
+				varSearch := regexp.MustCompile("`(.*)`")
+				varValue = varSearch.ReplaceAllStringFunc(varValue, func(s string) string {
+					s = strings.Trim(s, "`")
+					r, err := t.executeStmtString(s)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"query": s, "line": q.Line},
+						).Error("failed to perform let query")
+						return ""
+					}
+					return r
+				})
+				os.Setenv(varName, varValue)
 			}
 		}
 	}
@@ -837,6 +851,21 @@ func (t *tester) executeStmt(query string) error {
 		}
 	}
 	return nil
+}
+
+func (t *tester) executeStmtString(query string) (string, error) {
+	var err error
+	if t.tx, err = t.mdb.Begin(); err != nil {
+		t.rollback()
+		return "", err
+	}
+	var result string
+	err = t.tx.QueryRow(query).Scan(&result)
+	if err != nil {
+		return "", err
+	}
+	t.rollback()
+	return result, nil
 }
 
 func (t *tester) openResult() error {

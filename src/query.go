@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/pingcap/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 var ErrInvalidCommand = errors.New("Found line beginning with -- that didn't contain a valid mysqltest command, check your syntax or use # if you intended to write comment")
@@ -193,6 +194,7 @@ func (q *query) getQueryType(qu string) error {
 			q.Query = qu
 			q.tp = Q_QUERY
 		} else {
+			log.WithFields(log.Fields{"line": q.Line, "command": q.firstWord, "arguments": q.Query}).Error("invalid command")
 			return ErrInvalidCommand
 		}
 	}

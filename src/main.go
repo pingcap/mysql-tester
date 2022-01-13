@@ -365,7 +365,7 @@ func (t *tester) Run() error {
 			}
 			t.disconnect(q.Query)
 		default:
-			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("unknown command")
+			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
 	}
 

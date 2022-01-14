@@ -165,10 +165,10 @@ func isTiDB(db *sql.DB) bool {
 	return true
 }
 
-func (t *tester) addConnection(connName, hostName, userName, password, db string) {
+func (t *tester) addConnection(q query, connName, hostName, userName, password, db string) {
 	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27"+params)
 	if err != nil {
-		log.Fatalf("Open db err %v", err)
+		log.Fatalf("addConnection line: %d connect(%s) Open db err %v", q.Line, q.Query, err)
 	}
 	if isTiDB(mdb) {
 		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
@@ -351,7 +351,7 @@ func (t *tester) Run() error {
 			for i := 0; i < 4; i++ {
 				args = append(args, "")
 			}
-			t.addConnection(args[0], args[1], args[2], args[3], args[4])
+			t.addConnection(q, args[0], args[1], args[2], args[3], args[4])
 		case Q_CONNECTION:
 			q.Query = strings.TrimSpace(q.Query)
 			if q.Query[len(q.Query)-1] == ';' {

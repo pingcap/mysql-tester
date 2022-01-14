@@ -3,3 +3,23 @@ insert into t values(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 select * from t where a = 1;
 a	b
 1	1
+drop table t;
+SELECT 1 FROM NON_EXISTING_TABLE;
+Error 1146: Table 'example.NON_EXISTING_TABLE' doesn't exist
+SELECT 2 FROM NON_EXISTING_TABLE;
+SELECT 3 FROM NON_EXISTING_TABLE;
+Got one of the listed errors
+SELECT 4;
+4
+4
+SELECT 5;
+5
+5
+SELECT 6;
+6
+6
+1 SELECT;
+[parser:1064]You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 1 near "1 SELECT;" 
+2 SELECT;
+3 SELECT;
+Got one of the listed errors

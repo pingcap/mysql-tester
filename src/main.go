@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tidb/parser"
 	"github.com/pingcap/tidb/parser/ast"
@@ -444,14 +444,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 
 		for _, st := range list {
 			err = tt.stmtExecute(query, st)
-			if err != nil && len(t.expectedErrs) > 0 {
-				for _, tStr := range t.expectedErrs {
-					if strings.Contains(err.Error(), tStr) {
-						err = nil
-						break
-					}
-				}
-			}
+			err = tt.checkExpectedError(err)
 			t.singleQuery = false
 			if err != nil {
 				msgs <- testTask{
@@ -514,24 +507,79 @@ func (t *tester) writeError(query query, err error) {
 	t.buf.WriteString(fmt.Sprintf("%s\n", err))
 }
 
-// parserErrorHandle handle error from parser.Parse() function
-// 1. If it's a syntax error, and `--error ER_PARSE_ERROR` enabled, record to result file
-// 2. If it's a non-syntax error, and `--error xxxxx` enabled, record to result file
-// 3. Otherwise, throw this error, stop running mysql-test
-func (t *tester) parserErrorHandle(query query, err error) error {
-	offset := t.buf.Len()
-	// TODO: check whether this err is expected.
-	if len(t.expectedErrs) > 0 {
-		switch innerErr := errors.Cause(err).(type) {
-		case *terror.Error:
-			t.writeError(query, innerErr)
-			err = nil
+// checkExpectedError check if error was expected
+// If so, it will handle Buf and return nil
+func (t *tester) checkExpectedError(err error) error {
+	if err == nil {
+		if len(t.expectedErrs) == 0 {
+			return nil
+		}
+		for _, s := range t.expectedErrs {
+			s = strings.TrimSpace(s)
+			if s == "0" {
+				return nil
+			}
+		}
+		return errors.Errorf("Statement succeeded, expected error(s) '%s'", strings.Join(t.expectedErrs, ","))
+	}
+	if err != nil && len(t.expectedErrs) == 0 {
+		return err
+	}
+	// Parse the error to get the mysql error code
+	errNo := 0
+	switch innerErr := errors.Cause(err).(type) {
+	case *terror.Error:
+		errNo = int(innerErr.Code())
+	case *mysql.MySQLError:
+		errNo = int(innerErr.Number)
+	}
+	if errNo == 0 {
+		log.Warn("Could not parse mysql error:", err.Error())
+		return err
+	}
+	for _, s := range t.expectedErrs {
+		s = strings.TrimSpace(s)
+		checkErrNo, err1 := strconv.Atoi(s)
+		if err1 != nil {
+			i, ok := MysqlErrNameToNum[s]
+			if ok {
+				checkErrNo = i
+			} else {
+				log.Warn("Unknown named error in --error:", s)
+				continue
+			}
+		}
+		if errNo == checkErrNo {
+			if len(t.expectedErrs) == 1 {
+				fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+			} else if strings.TrimSpace(t.expectedErrs[0]) != "0" {
+				fmt.Fprintf(&t.buf, "Got one of the listed errors\n")
+			}
+			return nil
 		}
 	}
+	return err
+}
+
+// parserErrorHandle handle error from parser.Parse() function
+// If --error includes ER_PARSE_ERROR ignore the error
+// Otherwise, return a syntax error
+// Check the result if not recording
+func (t *tester) parserErrorHandle(query query, err error) error {
+	offset := t.buf.Len()
 	err = syntaxError(err)
-	for _, expectedErr := range t.expectedErrs {
-		if expectedErr == "ER_PARSE_ERROR" {
-			t.writeError(query, err)
+	for _, s := range t.expectedErrs {
+		s = strings.TrimSpace(s)
+		if s == "ER_PARSE_ERROR" {
+			if len(t.expectedErrs) > 1 {
+				t.buf.WriteString(query.Query)
+				t.buf.WriteString("\n")
+				if strings.TrimSpace(t.expectedErrs[0]) != "0" {
+					t.buf.WriteString("Got one of the listed errors\n")
+				}
+			} else {
+				t.writeError(query, err)
+			}
 			err = nil
 			break
 		}
@@ -644,14 +692,7 @@ func (t *tester) execute(query query) error {
 		offset := t.buf.Len()
 		err = t.stmtExecute(query, st)
 
-		if err != nil && len(t.expectedErrs) > 0 {
-			// TODO: check whether this err is expected.
-			// but now we think it is.
-
-			// output expected err
-			fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
-			err = nil
-		}
+		err = t.checkExpectedError(err)
 		// clear expected errors after we execute the first query
 		t.expectedErrs = nil
 		t.singleQuery = false

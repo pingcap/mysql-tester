@@ -1,12 +1,17 @@
 .PHONY: all build test tidy clean
 
-default: build
+default: mysql-tester
 
-build:
+mysql-tester:
 	go build -o mysql-tester ./src
 
-test:
-	go test -cover ./...
+debug:
+	go build -gcflags="all=-N -l" -o mysql-tester ./src
+
+test: mysql-tester
+	# waiting on pr/46
+	#go test -cover ./...
+	./mysql-tester
 
 tidy:
 	go mod tidy

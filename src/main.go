@@ -378,7 +378,7 @@ func (t *tester) Run() error {
 				if q.Query[0] == '$' {
 					start = 1
 				}
-				varName := q.Query[start:eqIdx]
+				varName := strings.TrimSpace(q.Query[start:eqIdx])
 				varValue := strings.TrimSpace(q.Query[eqIdx+1:])
 				varSearch := regexp.MustCompile("`(.*)`")
 				varValue = varSearch.ReplaceAllStringFunc(varValue, func(s string) string {

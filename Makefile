@@ -20,3 +20,5 @@ clean:
 	go clean -i ./...
 	rm -rf mysql-tester
 
+gen_perror:
+	go build -o gen_perror ./generate_perror

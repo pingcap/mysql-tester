@@ -46,6 +46,7 @@ var (
 	record   bool
 	params   string
 	all      bool
+	checkErr bool
 )
 
 func init() {
@@ -57,6 +58,7 @@ func init() {
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
+	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -291,6 +293,7 @@ func (t *tester) Run() error {
 		case Q_SINGLE_QUERY:
 			t.singleQuery = true
 		case Q_BEGIN_CONCURRENT:
+			// mysql-tester enhancement
 			concurrentQueue = make([]query, 0)
 			t.enableConcurrent = true
 			if s == "" {
@@ -444,7 +447,18 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 
 		for _, st := range list {
 			err = tt.stmtExecute(query, st)
-			err = tt.checkExpectedError(err)
+			// Special handling of expected errors under --begin_concurrent
+			// List of strings that will match the error string for any errors in the concurrent batch!
+			// Meaning all queries in the batch will be allowed to fail with an error that matches one of the
+			// listed strings in t.expectedErrs. It is also ok for any query to succeed.
+			if err != nil && len(t.expectedErrs) > 0 {
+				for _, tStr := range t.expectedErrs {
+					if strings.Contains(err.Error(), tStr) {
+						err = nil
+						break
+					}
+				}
+			}
 			t.singleQuery = false
 			if err != nil {
 				msgs <- testTask{
@@ -509,7 +523,7 @@ func (t *tester) writeError(query query, err error) {
 
 // checkExpectedError check if error was expected
 // If so, it will handle Buf and return nil
-func (t *tester) checkExpectedError(err error) error {
+func (t *tester) checkExpectedError(q query, err error) error {
 	if err == nil {
 		if len(t.expectedErrs) == 0 {
 			return nil
@@ -519,6 +533,11 @@ func (t *tester) checkExpectedError(err error) error {
 			if s == "0" {
 				return nil
 			}
+		}
+		if !checkErr {
+			log.Warnf("%s:%d query succeeded, but expected error(s)! (expected errors: %s) (query: %s)",
+				t.name, q.Line, strings.Join(t.expectedErrs, ","), q.Query)
+			return nil
 		}
 		return errors.Errorf("Statement succeeded, expected error(s) '%s'", strings.Join(t.expectedErrs, ","))
 	}
@@ -534,7 +553,7 @@ func (t *tester) checkExpectedError(err error) error {
 		errNo = int(innerErr.Number)
 	}
 	if errNo == 0 {
-		log.Warn("Could not parse mysql error:", err.Error())
+		log.Warnf("%s:%d Could not parse mysql error: %s", t.name, q.Line, err.Error())
 		return err
 	}
 	for _, s := range t.expectedErrs {
@@ -545,18 +564,41 @@ func (t *tester) checkExpectedError(err error) error {
 			if ok {
 				checkErrNo = i
 			} else {
-				log.Warn("Unknown named error in --error:", s)
+				if len(t.expectedErrs) > 1 {
+					log.Warnf("%s:%d Unknown named error %s in --error %s", t.name, q.Line, s, strings.Join(t.expectedErrs, ","))
+				} else {
+					log.Warnf("%s:%d Unknown named --error %s", t.name, q.Line, s)
+				}
 				continue
 			}
 		}
 		if errNo == checkErrNo {
-			if len(t.expectedErrs) == 1 {
+			if len(t.expectedErrs) == 1 || !checkErr {
+				// !checkErr - Also keep old behavior, i.e. not use "Got one of the listed errors"
 				fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
 			} else if strings.TrimSpace(t.expectedErrs[0]) != "0" {
 				fmt.Fprintf(&t.buf, "Got one of the listed errors\n")
 			}
 			return nil
 		}
+	}
+	if !checkErr {
+		gotErrCode := strconv.Itoa(errNo)
+		for k, v := range MysqlErrNameToNum {
+			if v == errNo {
+				gotErrCode = k
+				break
+			}
+		}
+		if len(t.expectedErrs) > 1 {
+			log.Warnf("%s:%d query failed with non expected error(s)! (%s not in %s) (err: %s) (query: %s)",
+				t.name, q.Line, gotErrCode, strings.Join(t.expectedErrs, ","), err.Error(), q.Query)
+		} else {
+			log.Warnf("%s:%d query failed with non expected error(s)! (%s != %s) (err: %s) (query: %s)",
+				t.name, q.Line, gotErrCode, t.expectedErrs[0], err.Error(), q.Query)
+		}
+		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+		return nil
 	}
 	return err
 }
@@ -567,21 +609,32 @@ func (t *tester) checkExpectedError(err error) error {
 // Check the result if not recording
 func (t *tester) parserErrorHandle(query query, err error) error {
 	offset := t.buf.Len()
+	orgErr := err
 	err = syntaxError(err)
 	for _, s := range t.expectedErrs {
 		s = strings.TrimSpace(s)
 		if s == "ER_PARSE_ERROR" {
-			if len(t.expectedErrs) > 1 {
+			if len(t.expectedErrs) > 1 && checkErr {
 				t.buf.WriteString(query.Query)
 				t.buf.WriteString("\n")
 				if strings.TrimSpace(t.expectedErrs[0]) != "0" {
 					t.buf.WriteString("Got one of the listed errors\n")
 				}
 			} else {
+				// !checkErr - Also keep old behavior, i.e. not use "Got one of the listed errors"
 				t.writeError(query, err)
 			}
 			err = nil
 			break
+		}
+	}
+	if err != nil && !checkErr && len(t.expectedErrs) > 0 {
+		// !checkErr - Also keep old behavior, i.e. accept any error
+		switch innerErr := errors.Cause(orgErr).(type) {
+		case *terror.Error:
+			log.Warnf("%s:%d got error while parsing when not expecting! error: %s", t.name, query.Line, innerErr.Error())
+			t.writeError(query, innerErr)
+			err = nil
 		}
 	}
 
@@ -692,7 +745,7 @@ func (t *tester) execute(query query) error {
 		offset := t.buf.Len()
 		err = t.stmtExecute(query, st)
 
-		err = t.checkExpectedError(err)
+		err = t.checkExpectedError(query, err)
 		// clear expected errors after we execute the first query
 		t.expectedErrs = nil
 		t.singleQuery = false
@@ -1061,6 +1114,9 @@ func main() {
 		log.Infof("recording tests: %v", tests)
 	}
 
+	if !checkErr {
+		log.Warn("--error will simply accept zero or more errors! (i.e. not even check for errors!)")
+	}
 	go func() {
 		executeTests(convertTestsToTestTasks(tests))
 		close(msgs)

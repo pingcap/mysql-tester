@@ -127,13 +127,14 @@ const (
 
 // ParseQueries parses an array of string into an array of query object.
 // Note: a query statement may reside in several lines.
-func ParseQueries(qs ...string) ([]query, error) {
+func ParseQueries(qs ...query) ([]query, error) {
 	queries := make([]query, 0, len(qs))
-	for i, s := range qs {
-		realS := s
+	for _, rs := range qs {
+		realS := rs.Query
+		s := rs.Query
 		q := query{}
 		q.tp = Q_UNKNOWN
-		q.Line = i
+		q.Line = rs.Line
 		// a valid query's length should be at least 3.
 		if len(s) < 3 {
 			continue

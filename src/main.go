@@ -37,15 +37,16 @@ import (
 )
 
 var (
-	wg       sync.WaitGroup
-	host     string
-	port     string
-	user     string
-	passwd   string
-	logLevel string
-	record   bool
-	params   string
-	all      bool
+	wg            sync.WaitGroup
+	host          string
+	port          string
+	user          string
+	passwd        string
+	logLevel      string
+	record        bool
+	params        string
+	all           bool
+	reserveSchema bool
 )
 
 func init() {
@@ -57,6 +58,7 @@ func init() {
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
+	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -243,7 +245,9 @@ func (t *tester) preProcess() {
 }
 
 func (t *tester) postProcess() {
-	t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+	if !reserveSchema {
+		t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+	}
 	for _, v := range t.conn {
 		v.mdb.Close()
 	}

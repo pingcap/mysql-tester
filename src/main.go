@@ -26,13 +26,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
-	"github.com/pingcap/parser"
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/terror"
-	_ "github.com/pingcap/parser/test_driver"
+	"github.com/pingcap/tidb/parser"
+	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/parser/charset"
+	"github.com/pingcap/tidb/parser/terror"
+	_ "github.com/pingcap/tidb/parser/test_driver"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,6 +44,8 @@ var (
 	passwd   string
 	logLevel string
 	record   bool
+	params   string
+	all      bool
 )
 
 func init() {
@@ -53,6 +55,20 @@ func init() {
 	flag.StringVar(&passwd, "passwd", "", "The password for the user.")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
+	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
+	flag.BoolVar(&all, "all", false, "run all tests")
+
+	c := &charset.Charset{
+		Name:             "gbk",
+		DefaultCollation: "gbk_bin",
+		Collations:       map[string]*charset.Collation{},
+	}
+	charset.AddCharset(c)
+	for _, coll := range charset.GetCollations() {
+		if strings.EqualFold(coll.CharsetName, c.Name) {
+			charset.AddCollation(coll)
+		}
+	}
 }
 
 const (
@@ -69,6 +85,11 @@ type query struct {
 type Conn struct {
 	mdb *sql.DB
 	tx  *sql.Tx
+}
+
+type ReplaceColumn struct {
+	col     int
+	replace []byte
 }
 
 type tester struct {
@@ -109,6 +130,9 @@ type tester struct {
 
 	// currConnName record current connection name.
 	currConnName string
+
+	// replace output column through --replace_column 1 <static data> 3 #
+	replaceColumn []ReplaceColumn
 }
 
 func newTester(name string) *tester {
@@ -126,19 +150,34 @@ func newTester(name string) *tester {
 	return t
 }
 
+func setHashJoinConcurrency(db *sql.DB) {
+	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
+	}
+}
+
+// isTiDB returns true if the DB is confirmed to be TiDB
+func isTiDB(db *sql.DB) bool {
+	if _, err := db.Exec("SELECT tidb_version()"); err != nil {
+		log.Infof("This doesn't look like a TiDB server, err[%v]", err)
+		return false
+	}
+	return true
+}
+
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=2\" err[%v]", err)
+	if isTiDB(mdb) {
+		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+		}
+		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+		}
+		setHashJoinConcurrency(mdb)
 	}
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
@@ -174,7 +213,7 @@ func (t *tester) disconnect(connName string) {
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -189,14 +228,14 @@ func (t *tester) preProcess() {
 	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=2\" err[%v]", err)
+	if isTiDB(mdb) {
+		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+		}
+		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+		}
+		setHashJoinConcurrency(mdb)
 	}
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
@@ -283,8 +322,22 @@ func (t *tester) Run() error {
 			testCnt++
 
 			t.sortedResult = false
+			t.replaceColumn = nil
 		case Q_SORTED_RESULT:
 			t.sortedResult = true
+		case Q_REPLACE_COLUMN:
+			// TODO: Use CSV module or so to handle quoted replacements
+			t.replaceColumn = nil // Only use the latest one!
+			cols := strings.Fields(q.Query)
+			// Require that col + replacement comes in pairs otherwise skip the last column number
+			for i := 0; i < len(cols)-1; i = i + 2 {
+				colNr, err := strconv.Atoi(cols[i])
+				if err != nil {
+					return errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+				}
+
+				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
+			}
 		case Q_CONNECT:
 			q.Query = strings.TrimSpace(q.Query)
 			if q.Query[len(q.Query)-1] == ';' {
@@ -356,21 +409,21 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	defer wg.Done()
 	tt := newTester(t.name)
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?strict=true&time_zone=%27Asia%2FShanghai%27")
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
 	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
-	if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-	}
-	if _, err = mdb.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=2\" err[%v]", err)
+	if isTiDB(mdb) {
+		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+		}
+		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+		}
+		setHashJoinConcurrency(mdb)
 	}
 	tt.mdb = mdb
 	defer tt.mdb.Close()
@@ -420,9 +473,9 @@ func (t *tester) loadQueries() ([]query, error) {
 	}
 
 	seps := bytes.Split(data, []byte("\n"))
-	queries := make([]string, 0, len(seps))
+	queries := make([]query, 0, len(seps))
 	newStmt := true
-	for _, v := range seps {
+	for i, v := range seps {
 		v := bytes.TrimSpace(v)
 		s := string(v)
 		// we will skip # comment here
@@ -430,7 +483,7 @@ func (t *tester) loadQueries() ([]query, error) {
 			newStmt = true
 			continue
 		} else if strings.HasPrefix(s, "--") {
-			queries = append(queries, s)
+			queries = append(queries, query{Query: s, Line: i + 1})
 			newStmt = true
 			continue
 		} else if len(s) == 0 {
@@ -438,10 +491,10 @@ func (t *tester) loadQueries() ([]query, error) {
 		}
 
 		if newStmt {
-			queries = append(queries, s)
+			queries = append(queries, query{Query: s, Line: i + 1})
 		} else {
 			lastQuery := queries[len(queries)-1]
-			lastQuery = fmt.Sprintf("%s\n%s", lastQuery, s)
+			lastQuery = query{Query: fmt.Sprintf("%s\n%s", lastQuery.Query, s), Line: lastQuery.Line}
 			queries[len(queries)-1] = lastQuery
 		}
 
@@ -547,7 +600,7 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 		}
 	default:
 		if t.tx != nil {
-			_, err = filterWarning(t.executeStmt(qText), t.enableWarning)
+			err = t.executeStmt(qText)
 			if err != nil {
 				break
 			}
@@ -559,17 +612,16 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 				break
 			}
 
-			var warn bool
-			warn, err = filterWarning(t.executeStmt(qText), t.enableWarning)
-			if err != nil && !warn {
+			err = t.executeStmt(qText)
+			if err != nil {
 				t.rollback()
 				break
 			} else {
-				warn, commitErr := filterWarning(t.commit(), t.enableWarning)
+				commitErr := t.commit()
 				if err == nil && commitErr != nil {
 					err = commitErr
 				}
-				if commitErr != nil && !warn {
+				if commitErr != nil {
 					t.rollback()
 					break
 				}
@@ -627,21 +679,6 @@ func (t *tester) execute(query query) error {
 	}
 
 	return errors.Trace(err)
-}
-
-func filterWarning(err error, enableWarning bool) (isWarn bool, outErr error) {
-	if err == nil {
-		return false, err
-	}
-	causeErr := errors.Cause(err)
-	_, isWarn = causeErr.(mysql.MySQLWarnings)
-	// enableWarning is enabled by default
-	if !enableWarning {
-		if isWarn {
-			return isWarn, nil
-		}
-	}
-	return isWarn, err
 }
 
 func (t *tester) commit() error {
@@ -761,6 +798,17 @@ func (t *tester) executeStmt(query string) error {
 		rows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if len(t.replaceColumn) > 0 {
+			for _, row := range rows.data {
+				for _, r := range t.replaceColumn {
+					if len(row.data) < r.col {
+						continue
+					}
+					row.data[r.col-1] = r.replace
+				}
+			}
 		}
 
 		if t.sortedResult {
@@ -885,7 +933,6 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 	return
 }
 
-var done = make(chan bool)
 var msgs = make(chan testTask)
 
 type testTask struct {
@@ -937,21 +984,25 @@ func executeTests(tasks []testBatch, have_show, have_is bool) {
 	wg.Wait()
 }
 
-func consumeError() {
+func consumeError() []error {
+	var es []error
 	for {
 		if t, more := <-msgs; more {
 			if t.err != nil {
-				log.Fatalf("run test [%s] err: %v", t.test, t.err)
+				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
+				if !all {
+					log.Fatalln(e)
+				}
+				log.Errorln(e)
+				es = append(es, e)
 			} else {
 				log.Infof("run test [%s] ok", t.test)
 			}
 
 		} else {
-			done <- true
-			return
+			return es
 		}
 	}
-
 }
 
 func main() {
@@ -972,9 +1023,20 @@ func main() {
 		log.Infof("recording tests: %v", tests)
 	}
 
-	go consumeError()
-	executeTests(convertTestsToTestTasks(tests))
-	close(msgs)
-	<-done
+	go func() {
+		executeTests(convertTestsToTestTasks(tests))
+		close(msgs)
+	}()
+
+	es := consumeError()
+	if len(es) != 0 {
+		println()
+		log.Errorf("%d tests failed\n", len(es))
+		for _, item := range es {
+			log.Errorln(item)
+		}
+		os.Exit(1)
+	}
+
 	println("\nGreat, All tests passed")
 }

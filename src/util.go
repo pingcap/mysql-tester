@@ -53,7 +53,7 @@ func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error)
 }
 
 // copied from https://github.com/pingcap/tidb/blob/4995fe741ea527b3870731a6873d34a92403d3de/cmd/explaintest/main.go#L699
-var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin"}
+var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin", "with"}
 
 func trimSQL(sql string) string {
 	// Trim space.

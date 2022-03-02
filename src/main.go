@@ -46,6 +46,7 @@ var (
 	record   bool
 	params   string
 	all      bool
+	xmlPath  string
 )
 
 func init() {
@@ -57,6 +58,7 @@ func init() {
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
+	flag.StringVar(&xmlPath, "junitfile", "", "The xml file path to record testing results.")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -73,6 +75,7 @@ func init() {
 
 const (
 	default_connection = "default"
+	xmlNameFormat      = "20220302150102"
 )
 
 type query struct {
@@ -254,11 +257,23 @@ func (t *tester) Run() error {
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		testSuite.Failures = append(testSuite.Failures, JUnitFailure{
+			Name:      time.Now().Format(xmlNameFormat),
+			Classname: t.testFileName(),
+			Message:   err.Error(),
+		})
+		return err
 	}
 
 	if err = t.openResult(); err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		testSuite.Failures = append(testSuite.Failures, JUnitFailure{
+			Name:      time.Now().Format(xmlNameFormat),
+			Classname: t.testFileName(),
+			Message:   err.Error(),
+		})
+		return err
 	}
 
 	var s string
@@ -298,13 +313,25 @@ func (t *tester) Run() error {
 			} else {
 				concurrentSize, err = strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
-					return errors.Annotate(err, "Atoi failed")
+					err = errors.Annotate(err, "Atoi failed")
+					testSuite.Failures = append(testSuite.Failures, JUnitFailure{
+						Name:      time.Now().Format(xmlNameFormat),
+						Classname: t.testFileName(),
+						Message:   err.Error(),
+					})
+					return err
 				}
 			}
 		case Q_END_CONCURRENT:
 			t.enableConcurrent = false
 			if err = t.concurrentRun(concurrentQueue, concurrentSize); err != nil {
-				return errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
+				err = errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
+				testSuite.Failures = append(testSuite.Failures, JUnitFailure{
+					Name:      time.Now().Format(xmlNameFormat),
+					Classname: t.testFileName(),
+					Message:   err.Error(),
+				})
+				return err
 			}
 			t.expectedErrs = nil
 		case Q_ERROR:
@@ -316,7 +343,13 @@ func (t *tester) Run() error {
 			if t.enableConcurrent {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
-				return errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				testSuite.Failures = append(testSuite.Failures, JUnitFailure{
+					Name:      time.Now().Format(xmlNameFormat),
+					Classname: t.testFileName(),
+					Message:   err.Error(),
+				})
+				return err
 			}
 
 			testCnt++
@@ -333,7 +366,13 @@ func (t *tester) Run() error {
 			for i := 0; i < len(cols)-1; i = i + 2 {
 				colNr, err := strconv.Atoi(cols[i])
 				if err != nil {
-					return errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+					testSuite.Failures = append(testSuite.Failures, JUnitFailure{
+						Name:      time.Now().Format(xmlNameFormat),
+						Classname: t.testFileName(),
+						Message:   err.Error(),
+					})
+					return err
 				}
 
 				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
@@ -368,6 +407,17 @@ func (t *tester) Run() error {
 	}
 
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
+
+	if xmlPath != "" {
+		testSuite.Successes = append(testSuite.Successes, JUnitSuccess{
+			Name:       time.Now().Format(xmlNameFormat),
+			Classname:  t.testFileName(),
+			Time:       fmt.Sprintf("%fs", time.Since(startTime).Seconds()),
+			QueryCount: testCnt,
+			Message:    "Success.",
+		})
+		testSuite.SuccessCasesCount++
+	}
 
 	return t.flushResult()
 }
@@ -931,6 +981,8 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 }
 
 var msgs = make(chan testTask)
+var xmlFile *os.File
+var testSuite JUnitTestSuite
 
 type testTask struct {
 	err  error
@@ -987,15 +1039,11 @@ func consumeError() []error {
 		if t, more := <-msgs; more {
 			if t.err != nil {
 				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
-				if !all {
-					log.Fatalln(e)
-				}
 				log.Errorln(e)
 				es = append(es, e)
 			} else {
 				log.Infof("run test [%s] ok", t.test)
 			}
-
 		} else {
 			return es
 		}
@@ -1005,6 +1053,48 @@ func consumeError() []error {
 func main() {
 	flag.Parse()
 	tests := flag.Args()
+	startTime := time.Now()
+
+	if xmlPath != "" {
+		_, err := os.Stat(xmlPath)
+		if err == nil {
+			err = os.Remove(xmlPath)
+			if err != nil {
+				log.Errorf("drop previous junit file fail:", err)
+				return
+			}
+		}
+
+		xmlFile, err = os.Create(xmlPath)
+		if err != nil {
+			log.Errorf("create junit file fail:", err)
+			return
+		}
+		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			log.Errorf("open junit file fail:", err)
+			return
+		}
+
+		testSuite = JUnitTestSuite{
+			Name:              time.Now().Format(xmlNameFormat),
+			TotalCasesCount:   0,
+			SuccessCasesCount: 0,
+			Successes:         make([]JUnitSuccess, 0),
+			Failures:          make([]JUnitFailure, 0),
+		}
+
+		defer func() {
+			if xmlFile != nil {
+				testSuite.TotalCasesCount = len(tests)
+				testSuite.Time = fmt.Sprintf("%fs", time.Since(startTime).Seconds())
+				err := Write(xmlFile, testSuite)
+				if err != nil {
+					log.Errorf("Write junit file fail:", err)
+				}
+			}
+		}()
+	}
 
 	// we will run all tests if no tests assigned
 	if len(tests) == 0 {
@@ -1026,14 +1116,14 @@ func main() {
 	}()
 
 	es := consumeError()
+	println()
 	if len(es) != 0 {
-		println()
 		log.Errorf("%d tests failed\n", len(es))
 		for _, item := range es {
 			log.Errorln(item)
 		}
-		os.Exit(1)
+	} else {
+		println("Great, All tests passed")
 	}
 
-	println("\nGreat, All tests passed")
 }

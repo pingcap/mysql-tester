@@ -37,17 +37,17 @@ import (
 )
 
 var (
-	wg       sync.WaitGroup
-	host     string
-	port     string
-	user     string
-	passwd   string
-	logLevel string
-	record   bool
-	params   string
-	all      bool
+	wg            sync.WaitGroup
+	host          string
+	port          string
+	user          string
+	passwd        string
+	logLevel      string
+	record        bool
+	params        string
+	all           bool
 	reserveSchema bool
-	xmlPath  string
+	xmlPath       string
 )
 
 func init() {
@@ -262,20 +262,24 @@ func (t *tester) Run() error {
 	queries, err := t.loadQueries()
 	if err != nil {
 		err = errors.Trace(err)
-		testSuite.Failures = append(testSuite.Failures, JUnitFailure{
-			Name:      time.Now().Format(xmlNameFormat),
-			Classname: t.testFileName(),
-			Message:   err.Error(),
+		testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+			Classname:  "",
+			Name:       t.testFileName(),
+			Time:       "",
+			QueryCount: 0,
+			Failure:    err.Error(),
 		})
 		return err
 	}
 
 	if err = t.openResult(); err != nil {
 		err = errors.Trace(err)
-		testSuite.Failures = append(testSuite.Failures, JUnitFailure{
-			Name:      time.Now().Format(xmlNameFormat),
-			Classname: t.testFileName(),
-			Message:   err.Error(),
+		testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+			Classname:  "",
+			Name:       t.testFileName(),
+			Time:       "",
+			QueryCount: 0,
+			Failure:    err.Error(),
 		})
 		return err
 	}
@@ -318,10 +322,12 @@ func (t *tester) Run() error {
 				concurrentSize, err = strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
 					err = errors.Annotate(err, "Atoi failed")
-					testSuite.Failures = append(testSuite.Failures, JUnitFailure{
-						Name:      time.Now().Format(xmlNameFormat),
-						Classname: t.testFileName(),
-						Message:   err.Error(),
+					testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+						Classname:  "",
+						Name:       t.testFileName(),
+						Time:       "",
+						QueryCount: testCnt,
+						Failure:    err.Error(),
 					})
 					return err
 				}
@@ -330,10 +336,12 @@ func (t *tester) Run() error {
 			t.enableConcurrent = false
 			if err = t.concurrentRun(concurrentQueue, concurrentSize); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
-				testSuite.Failures = append(testSuite.Failures, JUnitFailure{
-					Name:      time.Now().Format(xmlNameFormat),
-					Classname: t.testFileName(),
-					Message:   err.Error(),
+				testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+					Classname:  "",
+					Name:       t.testFileName(),
+					Time:       "",
+					QueryCount: testCnt,
+					Failure:    err.Error(),
 				})
 				return err
 			}
@@ -348,10 +356,12 @@ func (t *tester) Run() error {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				testSuite.Failures = append(testSuite.Failures, JUnitFailure{
-					Name:      time.Now().Format(xmlNameFormat),
-					Classname: t.testFileName(),
-					Message:   err.Error(),
+				testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+					Classname:  "",
+					Name:       t.testFileName(),
+					Time:       "",
+					QueryCount: testCnt,
+					Failure:    err.Error(),
 				})
 				return err
 			}
@@ -371,10 +381,12 @@ func (t *tester) Run() error {
 				colNr, err := strconv.Atoi(cols[i])
 				if err != nil {
 					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
-					testSuite.Failures = append(testSuite.Failures, JUnitFailure{
-						Name:      time.Now().Format(xmlNameFormat),
-						Classname: t.testFileName(),
-						Message:   err.Error(),
+					testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+						Classname:  "",
+						Name:       t.testFileName(),
+						Time:       "",
+						QueryCount: testCnt,
+						Failure:    err.Error(),
 					})
 					return err
 				}
@@ -413,14 +425,13 @@ func (t *tester) Run() error {
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
 
 	if xmlPath != "" {
-		testSuite.Successes = append(testSuite.Successes, JUnitSuccess{
-			Name:       time.Now().Format(xmlNameFormat),
-			Classname:  t.testFileName(),
+		testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+			Classname:  "",
+			Name:       t.testFileName(),
 			Time:       fmt.Sprintf("%fs", time.Since(startTime).Seconds()),
 			QueryCount: testCnt,
-			Message:    "Success.",
 		})
-		testSuite.SuccessCasesCount++
+		testSuite.Failures++
 	}
 
 	return t.flushResult()
@@ -1081,17 +1092,22 @@ func main() {
 		}
 
 		testSuite = JUnitTestSuite{
-			Name:              time.Now().Format(xmlNameFormat),
-			TotalCasesCount:   0,
-			SuccessCasesCount: 0,
-			Successes:         make([]JUnitSuccess, 0),
-			Failures:          make([]JUnitFailure, 0),
+			Name:       "",
+			Tests:      0,
+			Failures:   0,
+			Properties: make([]JUnitProperty, 0),
+			TestCases:  make([]JUnitTestCase, 0),
 		}
 
 		defer func() {
 			if xmlFile != nil {
-				testSuite.TotalCasesCount = len(tests)
+				testSuite.Tests = len(tests)
+				testSuite.Failures = testSuite.Tests - testSuite.Failures
 				testSuite.Time = fmt.Sprintf("%fs", time.Since(startTime).Seconds())
+				testSuite.Properties = append(testSuite.Properties, JUnitProperty{
+					Name:  "go.version",
+					Value: goVersion(),
+				})
 				err := Write(xmlFile, testSuite)
 				if err != nil {
 					log.Errorf("Write junit file fail:", err)

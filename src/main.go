@@ -46,6 +46,7 @@ var (
 	record   bool
 	params   string
 	all      bool
+	reserveSchema bool
 	xmlPath  string
 )
 
@@ -58,6 +59,7 @@ func init() {
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
+	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
 	flag.StringVar(&xmlPath, "junitfile", "", "The xml file path to record testing results.")
 
 	c := &charset.Charset{
@@ -75,7 +77,7 @@ func init() {
 
 const (
 	default_connection = "default"
-	xmlNameFormat      = "20220302150102"
+	xmlNameFormat      = "2006-01-02 15:04:05"
 )
 
 type query struct {
@@ -246,7 +248,9 @@ func (t *tester) preProcess() {
 }
 
 func (t *tester) postProcess() {
-	t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+	if !reserveSchema {
+		t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+	}
 	for _, v := range t.conn {
 		v.mdb.Close()
 	}
@@ -1123,7 +1127,6 @@ func main() {
 			log.Errorln(item)
 		}
 	} else {
-		println("Great, All tests passed")
+		println("\nGreat, All tests passed")
 	}
-
 }

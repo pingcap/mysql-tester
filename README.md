@@ -27,6 +27,8 @@ Usage of ./mysql-tester:
         The listen port of TiDB/MySQL server. (default "4000")
   -record
         Whether to record the test output to the result file.
+  -reserve-schema
+    	Reserve schema after each test
   -user string
         The user for connecting to the database. (default "root")
 ```

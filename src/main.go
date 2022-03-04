@@ -77,7 +77,6 @@ func init() {
 
 const (
 	default_connection = "default"
-	xmlNameFormat      = "2006-01-02 15:04:05"
 )
 
 type query struct {
@@ -1143,6 +1142,6 @@ func main() {
 			log.Errorln(item)
 		}
 	} else {
-		println("\nGreat, All tests passed")
+		println("Great, All tests passed")
 	}
 }

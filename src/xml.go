@@ -61,7 +61,7 @@ func Write(out io.Writer, testSuite JUnitTestSuite) error {
 		Suites: make([]JUnitTestSuite, 0),
 	}
 	testSuites.Suites = append(testSuites.Suites, testSuite)
-	_, err := xmlFile.Write([]byte(xml.Header))
+	_, err := out.Write([]byte(xml.Header))
 	if err != nil {
 		log.Errorf("write junit file fail:", err)
 		return err

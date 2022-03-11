@@ -22,26 +22,26 @@ import (
 	"strings"
 )
 
-// JUnitTestSuites is a set of mysqltest suite.
-type JUnitTestSuites struct {
+// XUnitTestSuites is a set of mysqltest suite.
+type XUnitTestSuites struct {
 	XMLName xml.Name `xml:"testsuites"`
-	Suites  []JUnitTestSuite
+	Suites  []XUnitTestSuite
 }
 
-// JUnitTestSuite is a single mysqltest suite which may contain many
+// XUnitTestSuite is a single mysqltest suite which may contain many
 // testcases in a directory
-type JUnitTestSuite struct {
+type XUnitTestSuite struct {
 	XMLName    xml.Name        `xml:"testsuite"`
 	Tests      int             `xml:"tests,attr"`
 	Failures   int             `xml:"failures,attr"`
 	Name       string          `xml:"name,attr"`
 	Time       string          `xml:"time,attr"`
-	Properties []JUnitProperty `xml:"properties>property,omitempty"`
-	TestCases  []JUnitTestCase
+	Properties []XUnitProperty `xml:"properties>property,omitempty"`
+	TestCases  []XUnitTestCase
 }
 
-// JUnitTestCase is a single test case with its result.
-type JUnitTestCase struct {
+// XUnitTestCase is a single test case with its result.
+type XUnitTestCase struct {
 	XMLName    xml.Name `xml:"testcase"`
 	Classname  string   `xml:"classname,attr"`
 	Name       string   `xml:"name,attr"`
@@ -50,15 +50,15 @@ type JUnitTestCase struct {
 	Failure    string   `xml:"failure,omitempty"`
 }
 
-// JUnitProperty represents a key/value pair used to define properties.
-type JUnitProperty struct {
+// XUnitProperty represents a key/value pair used to define properties.
+type XUnitProperty struct {
 	Name  string `xml:"name,attr"`
 	Value string `xml:"value,attr"`
 }
 
-func Write(out io.Writer, testSuite JUnitTestSuite) error {
-	testSuites := JUnitTestSuites{
-		Suites: make([]JUnitTestSuite, 0),
+func Write(out io.Writer, testSuite XUnitTestSuite) error {
+	testSuites := XUnitTestSuites{
+		Suites: make([]XUnitTestSuite, 0),
 	}
 	testSuites.Suites = append(testSuites.Suites, testSuite)
 	_, err := out.Write([]byte(xml.Header))

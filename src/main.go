@@ -261,7 +261,7 @@ func (t *tester) Run() error {
 	queries, err := t.loadQueries()
 	if err != nil {
 		err = errors.Trace(err)
-		testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+		testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 			Classname:  "",
 			Name:       t.testFileName(),
 			Time:       "",
@@ -273,7 +273,7 @@ func (t *tester) Run() error {
 
 	if err = t.openResult(); err != nil {
 		err = errors.Trace(err)
-		testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+		testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 			Classname:  "",
 			Name:       t.testFileName(),
 			Time:       "",
@@ -321,7 +321,7 @@ func (t *tester) Run() error {
 				concurrentSize, err = strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
 					err = errors.Annotate(err, "Atoi failed")
-					testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+					testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 						Classname:  "",
 						Name:       t.testFileName(),
 						Time:       "",
@@ -335,7 +335,7 @@ func (t *tester) Run() error {
 			t.enableConcurrent = false
 			if err = t.concurrentRun(concurrentQueue, concurrentSize); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
-				testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+				testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 					Classname:  "",
 					Name:       t.testFileName(),
 					Time:       "",
@@ -355,7 +355,7 @@ func (t *tester) Run() error {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+				testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 					Classname:  "",
 					Name:       t.testFileName(),
 					Time:       "",
@@ -380,7 +380,7 @@ func (t *tester) Run() error {
 				colNr, err := strconv.Atoi(cols[i])
 				if err != nil {
 					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
-					testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+					testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 						Classname:  "",
 						Name:       t.testFileName(),
 						Time:       "",
@@ -424,7 +424,7 @@ func (t *tester) Run() error {
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
 
 	if xmlPath != "" {
-		testSuite.TestCases = append(testSuite.TestCases, JUnitTestCase{
+		testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
 			Classname:  "",
 			Name:       t.testFileName(),
 			Time:       fmt.Sprintf("%fs", time.Since(startTime).Seconds()),
@@ -996,7 +996,7 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 
 var msgs = make(chan testTask)
 var xmlFile *os.File
-var testSuite JUnitTestSuite
+var testSuite XUnitTestSuite
 
 type testTask struct {
 	err  error
@@ -1090,12 +1090,12 @@ func main() {
 			return
 		}
 
-		testSuite = JUnitTestSuite{
+		testSuite = XUnitTestSuite{
 			Name:       "",
 			Tests:      0,
 			Failures:   0,
-			Properties: make([]JUnitProperty, 0),
-			TestCases:  make([]JUnitTestCase, 0),
+			Properties: make([]XUnitProperty, 0),
+			TestCases:  make([]XUnitTestCase, 0),
 		}
 
 		defer func() {
@@ -1103,7 +1103,7 @@ func main() {
 				testSuite.Tests = len(tests)
 				testSuite.Failures = testSuite.Tests - testSuite.Failures
 				testSuite.Time = fmt.Sprintf("%fs", time.Since(startTime).Seconds())
-				testSuite.Properties = append(testSuite.Properties, JUnitProperty{
+				testSuite.Properties = append(testSuite.Properties, XUnitProperty{
 					Name:  "go.version",
 					Value: goVersion(),
 				})

@@ -255,31 +255,39 @@ func (t *tester) postProcess() {
 	}
 }
 
+func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
+	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
+		Classname:  "",
+		Name:       t.testFileName(),
+		Time:       "",
+		QueryCount: cnt,
+		Failure:    (*err).Error(),
+	})
+}
+
+func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
+	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
+		Classname:  "",
+		Name:       t.testFileName(),
+		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
+		QueryCount: cnt,
+	})
+	testSuite.Failures++ // Actually count the SUCCESS testcases, and finally get the FAILURE by (TOTAL-SUCCESS)
+}
+
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
 		err = errors.Trace(err)
-		testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-			Classname:  "",
-			Name:       t.testFileName(),
-			Time:       "",
-			QueryCount: 0,
-			Failure:    err.Error(),
-		})
+		t.addFailure(&testSuite, &err, 0)
 		return err
 	}
 
 	if err = t.openResult(); err != nil {
 		err = errors.Trace(err)
-		testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-			Classname:  "",
-			Name:       t.testFileName(),
-			Time:       "",
-			QueryCount: 0,
-			Failure:    err.Error(),
-		})
+		t.addFailure(&testSuite, &err, 0)
 		return err
 	}
 
@@ -321,13 +329,7 @@ func (t *tester) Run() error {
 				concurrentSize, err = strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
 					err = errors.Annotate(err, "Atoi failed")
-					testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-						Classname:  "",
-						Name:       t.testFileName(),
-						Time:       "",
-						QueryCount: testCnt,
-						Failure:    err.Error(),
-					})
+					t.addFailure(&testSuite, &err, testCnt)
 					return err
 				}
 			}
@@ -335,13 +337,7 @@ func (t *tester) Run() error {
 			t.enableConcurrent = false
 			if err = t.concurrentRun(concurrentQueue, concurrentSize); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
-				testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-					Classname:  "",
-					Name:       t.testFileName(),
-					Time:       "",
-					QueryCount: testCnt,
-					Failure:    err.Error(),
-				})
+				t.addFailure(&testSuite, &err, testCnt)
 				return err
 			}
 			t.expectedErrs = nil
@@ -355,13 +351,7 @@ func (t *tester) Run() error {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-					Classname:  "",
-					Name:       t.testFileName(),
-					Time:       "",
-					QueryCount: testCnt,
-					Failure:    err.Error(),
-				})
+				t.addFailure(&testSuite, &err, testCnt)
 				return err
 			}
 
@@ -380,13 +370,7 @@ func (t *tester) Run() error {
 				colNr, err := strconv.Atoi(cols[i])
 				if err != nil {
 					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
-					testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-						Classname:  "",
-						Name:       t.testFileName(),
-						Time:       "",
-						QueryCount: testCnt,
-						Failure:    err.Error(),
-					})
+					t.addFailure(&testSuite, &err, testCnt)
 					return err
 				}
 
@@ -424,13 +408,7 @@ func (t *tester) Run() error {
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
 
 	if xmlPath != "" {
-		testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-			Classname:  "",
-			Name:       t.testFileName(),
-			Time:       fmt.Sprintf("%fs", time.Since(startTime).Seconds()),
-			QueryCount: testCnt,
-		})
-		testSuite.Failures++
+		t.addSuccess(&testSuite, &startTime, testCnt)
 	}
 
 	return t.flushResult()

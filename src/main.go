@@ -60,7 +60,7 @@ func init() {
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
-	flag.StringVar(&xmlPath, "junitfile", "", "The xml file path to record testing results.")
+	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -1074,20 +1074,20 @@ func main() {
 		if err == nil {
 			err = os.Remove(xmlPath)
 			if err != nil {
-				log.Errorf("drop previous junit file fail:", err)
-				return
+				log.Errorf("drop previous xunit file fail: ", err)
+				os.Exit(1)
 			}
 		}
 
 		xmlFile, err = os.Create(xmlPath)
 		if err != nil {
-			log.Errorf("create junit file fail:", err)
-			return
+			log.Errorf("create xunit file fail:", err)
+			os.Exit(2)
 		}
 		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
-			log.Errorf("open junit file fail:", err)
-			return
+			log.Errorf("open xunit file fail:", err)
+			os.Exit(3)
 		}
 
 		testSuite = XUnitTestSuite{
@@ -1109,7 +1109,7 @@ func main() {
 				})
 				err := Write(xmlFile, testSuite)
 				if err != nil {
-					log.Errorf("Write junit file fail:", err)
+					log.Errorf("Write xunit file fail:", err)
 				}
 			}
 		}()

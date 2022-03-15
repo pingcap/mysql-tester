@@ -1060,12 +1060,12 @@ func main() {
 		xmlFile, err = os.Create(xmlPath)
 		if err != nil {
 			log.Errorf("create xunit file fail:", err)
-			os.Exit(2)
+			os.Exit(1)
 		}
 		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			log.Errorf("open xunit file fail:", err)
-			os.Exit(3)
+			os.Exit(1)
 		}
 
 		testSuite = XUnitTestSuite{

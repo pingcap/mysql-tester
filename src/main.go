@@ -263,6 +263,7 @@ func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
 		QueryCount: cnt,
 		Failure:    (*err).Error(),
 	})
+	testSuite.Failures++
 }
 
 func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
@@ -272,7 +273,6 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
 		QueryCount: cnt,
 	})
-	testSuite.Failures++ // Actually count the SUCCESS testcases, and finally get the FAILURE by (TOTAL-SUCCESS)
 }
 
 func (t *tester) Run() error {
@@ -1079,7 +1079,6 @@ func main() {
 		defer func() {
 			if xmlFile != nil {
 				testSuite.Tests = len(tests)
-				testSuite.Failures = testSuite.Tests - testSuite.Failures
 				testSuite.Time = fmt.Sprintf("%fs", time.Since(startTime).Seconds())
 				testSuite.Properties = append(testSuite.Properties, XUnitProperty{
 					Name:  "go.version",

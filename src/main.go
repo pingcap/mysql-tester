@@ -47,6 +47,7 @@ var (
 	params        string
 	all           bool
 	reserveSchema bool
+	xmlPath       string
 )
 
 func init() {
@@ -59,6 +60,7 @@ func init() {
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
+	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -253,16 +255,40 @@ func (t *tester) postProcess() {
 	}
 }
 
+func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
+	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
+		Classname:  "",
+		Name:       t.testFileName(),
+		Time:       "",
+		QueryCount: cnt,
+		Failure:    (*err).Error(),
+	})
+	testSuite.Failures++
+}
+
+func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
+	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
+		Classname:  "",
+		Name:       t.testFileName(),
+		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
+		QueryCount: cnt,
+	})
+}
+
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		t.addFailure(&testSuite, &err, 0)
+		return err
 	}
 
 	if err = t.openResult(); err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		t.addFailure(&testSuite, &err, 0)
+		return err
 	}
 
 	var s string
@@ -302,13 +328,17 @@ func (t *tester) Run() error {
 			} else {
 				concurrentSize, err = strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
-					return errors.Annotate(err, "Atoi failed")
+					err = errors.Annotate(err, "Atoi failed")
+					t.addFailure(&testSuite, &err, testCnt)
+					return err
 				}
 			}
 		case Q_END_CONCURRENT:
 			t.enableConcurrent = false
 			if err = t.concurrentRun(concurrentQueue, concurrentSize); err != nil {
-				return errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
+				err = errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
+				t.addFailure(&testSuite, &err, testCnt)
+				return err
 			}
 			t.expectedErrs = nil
 		case Q_ERROR:
@@ -320,7 +350,9 @@ func (t *tester) Run() error {
 			if t.enableConcurrent {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
-				return errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				t.addFailure(&testSuite, &err, testCnt)
+				return err
 			}
 
 			testCnt++
@@ -337,7 +369,9 @@ func (t *tester) Run() error {
 			for i := 0; i < len(cols)-1; i = i + 2 {
 				colNr, err := strconv.Atoi(cols[i])
 				if err != nil {
-					return errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+					t.addFailure(&testSuite, &err, testCnt)
+					return err
 				}
 
 				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
@@ -372,6 +406,10 @@ func (t *tester) Run() error {
 	}
 
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
+
+	if xmlPath != "" {
+		t.addSuccess(&testSuite, &startTime, testCnt)
+	}
 
 	return t.flushResult()
 }
@@ -935,6 +973,8 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 }
 
 var msgs = make(chan testTask)
+var xmlFile *os.File
+var testSuite XUnitTestSuite
 
 type testTask struct {
 	err  error
@@ -991,15 +1031,11 @@ func consumeError() []error {
 		if t, more := <-msgs; more {
 			if t.err != nil {
 				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
-				if !all {
-					log.Fatalln(e)
-				}
 				log.Errorln(e)
 				es = append(es, e)
 			} else {
 				log.Infof("run test [%s] ok", t.test)
 			}
-
 		} else {
 			return es
 		}
@@ -1009,6 +1045,52 @@ func consumeError() []error {
 func main() {
 	flag.Parse()
 	tests := flag.Args()
+	startTime := time.Now()
+
+	if xmlPath != "" {
+		_, err := os.Stat(xmlPath)
+		if err == nil {
+			err = os.Remove(xmlPath)
+			if err != nil {
+				log.Errorf("drop previous xunit file fail: ", err)
+				os.Exit(1)
+			}
+		}
+
+		xmlFile, err = os.Create(xmlPath)
+		if err != nil {
+			log.Errorf("create xunit file fail:", err)
+			os.Exit(1)
+		}
+		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			log.Errorf("open xunit file fail:", err)
+			os.Exit(1)
+		}
+
+		testSuite = XUnitTestSuite{
+			Name:       "",
+			Tests:      0,
+			Failures:   0,
+			Properties: make([]XUnitProperty, 0),
+			TestCases:  make([]XUnitTestCase, 0),
+		}
+
+		defer func() {
+			if xmlFile != nil {
+				testSuite.Tests = len(tests)
+				testSuite.Time = fmt.Sprintf("%fs", time.Since(startTime).Seconds())
+				testSuite.Properties = append(testSuite.Properties, XUnitProperty{
+					Name:  "go.version",
+					Value: goVersion(),
+				})
+				err := Write(xmlFile, testSuite)
+				if err != nil {
+					log.Errorf("Write xunit file fail:", err)
+				}
+			}
+		}()
+	}
 
 	// we will run all tests if no tests assigned
 	if len(tests) == 0 {
@@ -1030,14 +1112,13 @@ func main() {
 	}()
 
 	es := consumeError()
+	println()
 	if len(es) != 0 {
-		println()
 		log.Errorf("%d tests failed\n", len(es))
 		for _, item := range es {
 			log.Errorln(item)
 		}
-		os.Exit(1)
+	} else {
+		println("Great, All tests passed")
 	}
-
-	println("\nGreat, All tests passed")
 }

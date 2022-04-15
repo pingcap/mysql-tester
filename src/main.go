@@ -627,55 +627,44 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 		t.tx, err = t.mdb.Begin()
 		if err != nil {
 			t.rollback()
-			break
 		}
+		return err
 	case *ast.CommitStmt:
 		err = t.commit()
 		if err != nil {
 			t.rollback()
-			break
 		}
+		return err
 	case *ast.RollbackStmt:
 		if x.SavepointName == "" {
-			err = t.rollback()
-			if err != nil {
-				break
-			}
-		}else {
-			if t.tx != nil {
-				err = t.executeStmt(qText)
-				if err != nil {
-					break
-				}
-			}
+			return t.rollback()
 		}
-	default:
-		if t.tx != nil {
-			err = t.executeStmt(qText)
-			if err != nil {
-				break
-			}
-		} else {
-			// if begin or following commit fails, we don't think
-			// this error is the expected one.
-			if t.tx, err = t.mdb.Begin(); err != nil {
-				t.rollback()
-				break
-			}
+	}
+	if t.tx != nil {
+		err = t.executeStmt(qText)
+		if err != nil {
+			return err
+		}
+	} else {
+		// if begin or following commit fails, we don't think
+		// this error is the expected one.
+		if t.tx, err = t.mdb.Begin(); err != nil {
+			t.rollback()
+			return err
+		}
 
-			err = t.executeStmt(qText)
-			if err != nil {
+		err = t.executeStmt(qText)
+		if err != nil {
+			t.rollback()
+			return err
+		} else {
+			commitErr := t.commit()
+			if err == nil && commitErr != nil {
+				err = commitErr
+			}
+			if commitErr != nil {
 				t.rollback()
-				break
-			} else {
-				commitErr := t.commit()
-				if err == nil && commitErr != nil {
-					err = commitErr
-				}
-				if commitErr != nil {
-					t.rollback()
-					break
-				}
+				return err
 			}
 		}
 	}

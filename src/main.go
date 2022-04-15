@@ -622,7 +622,7 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 		t.buf.WriteString(qText)
 		t.buf.WriteString("\n")
 	}
-	switch st.(type) {
+	switch x := st.(type) {
 	case *ast.BeginStmt:
 		t.tx, err = t.mdb.Begin()
 		if err != nil {
@@ -636,9 +636,18 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 			break
 		}
 	case *ast.RollbackStmt:
-		err = t.rollback()
-		if err != nil {
-			break
+		if x.SavepointName == "" {
+			err = t.rollback()
+			if err != nil {
+				break
+			}
+		}else {
+			if t.tx != nil {
+				err = t.executeStmt(qText)
+				if err != nil {
+					break
+				}
+			}
 		}
 	default:
 		if t.tx != nil {

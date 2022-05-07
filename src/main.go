@@ -1118,6 +1118,8 @@ func main() {
 		for _, item := range es {
 			log.Errorln(item)
 		}
+		// Can't delete this statement.
+		os.Exit(1)
 	} else {
 		println("Great, All tests passed")
 	}

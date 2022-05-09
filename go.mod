@@ -14,3 +14,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
+
+replace github.com/pingcap/tidb/parser => github.com/crazycs520/tidb/parser v0.0.0-20220509054701-d2476a9fa8f2

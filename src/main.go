@@ -170,7 +170,7 @@ func isTiDB(db *sql.DB) bool {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -217,7 +217,7 @@ func (t *tester) disconnect(connName string) {
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -451,7 +451,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	defer wg.Done()
 	tt := newTester(t.name)
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}

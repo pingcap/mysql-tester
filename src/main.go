@@ -719,6 +719,9 @@ func (t *tester) execute(query query) error {
 }
 
 func (t *tester) commit() error {
+	if t.tx == nil {
+		return nil
+	}
 	err := t.tx.Commit()
 	if err != nil {
 		return err

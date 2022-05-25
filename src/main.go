@@ -154,9 +154,12 @@ func newTester(name string) *tester {
 	return t
 }
 
-func setHashJoinConcurrency(db *sql.DB) {
+func setSessionVariable(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
+	}
+	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
 }
 
@@ -181,7 +184,7 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
@@ -239,7 +242,7 @@ func (t *tester) preProcess() {
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
@@ -465,7 +468,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	tt.mdb = mdb
 	defer tt.mdb.Close()

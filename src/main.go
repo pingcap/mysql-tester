@@ -37,7 +37,6 @@ import (
 )
 
 var (
-	wg            sync.WaitGroup
 	host          string
 	port          string
 	user          string
@@ -987,7 +986,6 @@ type testTask struct {
 type testBatch []string
 
 func (t testBatch) Run() {
-	defer wg.Done()
 	for _, test := range t {
 		tr := newTester(test)
 		msgs <- testTask{
@@ -1020,12 +1018,9 @@ func executeTests(tasks []testBatch, have_show, have_is bool) {
 		}
 	}
 
-	wg.Add(len(tasks))
 	for _, t := range tasks {
-		go t.Run()
+		t.Run()
 	}
-
-	wg.Wait()
 }
 
 func consumeError() []error {

@@ -4,9 +4,6 @@ go 1.12
 
 require (
 	github.com/benbjohnson/clock v1.3.0 // indirect
-	github.com/cznic/golex v0.0.0-20181122101858-9c343928389c // indirect
-	github.com/cznic/parser v0.0.0-20160622100904-31edd927e5b1 // indirect
-	github.com/cznic/y v0.0.0-20170802143616-045f81c6662a // indirect
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/pingcap/errors v0.11.5-0.20211009033009-93128226aaa3
 	github.com/pingcap/log v1.1.0 // indirect

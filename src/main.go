@@ -37,7 +37,6 @@ import (
 )
 
 var (
-	wg            sync.WaitGroup
 	host          string
 	port          string
 	user          string
@@ -154,9 +153,12 @@ func newTester(name string) *tester {
 	return t
 }
 
-func setHashJoinConcurrency(db *sql.DB) {
+func setSessionVariable(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
+	}
+	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
 }
 
@@ -170,7 +172,7 @@ func isTiDB(db *sql.DB) bool {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -181,7 +183,7 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
@@ -217,7 +219,7 @@ func (t *tester) disconnect(connName string) {
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -239,7 +241,7 @@ func (t *tester) preProcess() {
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
@@ -451,7 +453,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	defer wg.Done()
 	tt := newTester(t.name)
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -465,7 +467,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	tt.mdb = mdb
 	defer tt.mdb.Close()
@@ -985,7 +987,6 @@ type testTask struct {
 type testBatch []string
 
 func (t testBatch) Run() {
-	defer wg.Done()
 	for _, test := range t {
 		tr := newTester(test)
 		msgs <- testTask{
@@ -1018,12 +1019,9 @@ func executeTests(tasks []testBatch, have_show, have_is bool) {
 		}
 	}
 
-	wg.Add(len(tasks))
 	for _, t := range tasks {
-		go t.Run()
+		t.Run()
 	}
-
-	wg.Wait()
 }
 
 func consumeError() []error {
@@ -1119,6 +1117,8 @@ func main() {
 		for _, item := range es {
 			log.Errorln(item)
 		}
+		// Can't delete this statement.
+		os.Exit(1)
 	} else {
 		println("Great, All tests passed")
 	}

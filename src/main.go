@@ -646,7 +646,7 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 			return err
 		}
 	} else {
-		// if begin or following commit fails, we don't think
+		// if begin or the succeeding commit fails, we don't think
 		// this error is the expected one.
 		if t.tx, err = t.mdb.Begin(); err != nil {
 			t.rollback()

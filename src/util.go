@@ -27,8 +27,8 @@ import (
 func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error) {
 	startTime := time.Now()
 	sleepTime := time.Millisecond * 500
-	retryCnt := 60
-	// The max retry interval is 30 s.
+	retryCnt := 120
+	// The max retry interval is 60 s.
 	for i := 0; i < retryCnt; i++ {
 		mdb, err = sql.Open(driverName, dataSourceName)
 		if err != nil {
@@ -52,8 +52,7 @@ func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error)
 	return
 }
 
-// copied from https://github.com/pingcap/tidb/blob/4995fe741ea527b3870731a6873d34a92403d3de/cmd/explaintest/main.go#L699
-var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin", "trace"}
+var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin", "with", "trace"}
 
 func trimSQL(sql string) string {
 	// Trim space.

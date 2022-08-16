@@ -27,12 +27,11 @@ import (
 func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error) {
 	startTime := time.Now()
 	sleepTime := time.Millisecond * 500
-	retryCnt := 120
 	// The max retry interval is 60 s.
-	for i := 0; i < retryCnt; i++ {
+	for i := 0; i < retryConnCount; i++ {
 		mdb, err = sql.Open(driverName, dataSourceName)
 		if err != nil {
-			log.Warnf("open db failed, retry count %d err %v", i, err)
+			log.Warnf("open db failed, retry count %d (remain %d) err %v", i, retryConnCount-i, err)
 			time.Sleep(sleepTime)
 			continue
 		}
@@ -40,7 +39,7 @@ func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error)
 		if err == nil {
 			break
 		}
-		log.Warnf("ping db failed, retry count %d err %v", i, err)
+		log.Warnf("ping db failed, retry count %d (remain %d) err %v", i, retryConnCount-i, err)
 		mdb.Close()
 		time.Sleep(sleepTime)
 	}

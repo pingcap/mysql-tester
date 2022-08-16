@@ -37,16 +37,17 @@ import (
 )
 
 var (
-	host          string
-	port          string
-	user          string
-	passwd        string
-	logLevel      string
-	record        bool
-	params        string
-	all           bool
-	reserveSchema bool
-	xmlPath       string
+	host           string
+	port           string
+	user           string
+	passwd         string
+	logLevel       string
+	record         bool
+	params         string
+	all            bool
+	reserveSchema  bool
+	xmlPath        string
+	retryConnCount int
 )
 
 func init() {
@@ -60,6 +61,7 @@ func init() {
 	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
 	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
+	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -173,6 +175,14 @@ func isTiDB(db *sql.DB) bool {
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
 	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
+	if err != nil {
+		for _, tStr := range t.expectedErrs {
+			if strings.Contains(err.Error(), tStr) {
+				err = nil
+				break
+			}
+		}
+	}
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}

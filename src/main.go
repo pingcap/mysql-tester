@@ -182,9 +182,10 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 				break
 			}
 		}
-	}
-	if err != nil {
-		log.Fatalf("Open db err %v", err)
+		if err != nil {
+			log.Fatalf("Open db err %v", err)
+		}
+		return
 	}
 	if isTiDB(mdb) {
 		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {

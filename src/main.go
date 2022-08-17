@@ -176,13 +176,7 @@ func isTiDB(db *sql.DB) bool {
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
 	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params)
 	if err != nil {
-		for _, tStr := range t.expectedErrs {
-			if strings.Contains(err.Error(), tStr) {
-				err = nil
-				break
-			}
-		}
-		if err != nil {
+		if t.expectedErrs == nil {
 			log.Fatalf("Open db err %v", err)
 		}
 		return

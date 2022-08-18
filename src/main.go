@@ -160,6 +160,7 @@ func setSessionVariable(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
+	// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
 	if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_analyze_snapshot=1\" err[%v]", err)
 	}

@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/benbjohnson/clock v1.3.0 // indirect
+	github.com/coreos/go-semver v0.3.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/pingcap/errors v0.11.5-0.20211009033009-93128226aaa3
 	github.com/pingcap/log v1.1.0 // indirect

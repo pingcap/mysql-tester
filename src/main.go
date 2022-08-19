@@ -175,11 +175,11 @@ func setSessionVariable(db *sql.DB) {
 			log.Fatalf("Executing \"select version from INFORMATION_SCHEMA.CLUSTER_INFO where type = 'tidb' limit 1;\" err[%v]", err)
 		}
 	}
-	isVersionAble, err := checkVersion(version)
+	isSupportedVersion, err := checkVersion(version)
 	if err != nil {
 		log.Fatalf("Comparing version failed, err[%v]", err)
 	}
-	if isVersionAble {
+	if isSupportedVersion {
 		log.Infof("setting tidb_enable_analyze_snapshot due to valid tidb version[%s]", version)
 		// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
 		if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {

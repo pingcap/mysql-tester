@@ -163,44 +163,50 @@ func setSessionVariable(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
-	rows, err := db.Query("select version from INFORMATION_SCHEMA.CLUSTER_INFO where type = 'tidb' limit 1;")
-	if err != nil {
-		log.Fatalf("Executing \"select version from INFORMATION_SCHEMA.CLUSTER_INFO where type = 'tidb' limit 1;\" err[%v]", err)
-	}
-	defer rows.Close()
-	var version string
-	for rows.Next() {
-		err := rows.Scan(&version)
-		if err != nil {
-			log.Fatalf("Executing \"select version from INFORMATION_SCHEMA.CLUSTER_INFO where type = 'tidb' limit 1;\" err[%v]", err)
-		}
-	}
-	isSupportedVersion, err := checkVersion(version)
+	tidbVersion, isSupportedVersion, err := checkVersion(db)
 	if err != nil {
 		log.Fatalf("Comparing version failed, err[%v]", err)
 	}
 	if isSupportedVersion {
-		log.Infof("setting tidb_enable_analyze_snapshot due to valid tidb version[%s]", version)
+		log.Infof("setting tidb_enable_analyze_snapshot due to valid tidb version[%s]", tidbVersion)
 		// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
 		if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_enable_analyze_snapshot=1\" err[%v]", err)
 		}
 	} else {
-		log.Infof("skip setting tidb_enable_analyze_snapshot due to lower tidb version[%s]", version)
+		log.Infof("skip setting tidb_enable_analyze_snapshot due to lower tidb version[%s]", tidbVersion)
 	}
 }
 
-func checkVersion(version string) (bool, error) {
-	minVersion := *semver.New("6.2.0-alpha")
-	ver, err := semver.NewVersion(version)
+func checkVersion(db *sql.DB) (string, bool, error) {
+	rs, err := db.Query("select tidb_version();")
 	if err != nil {
-		return false, fmt.Errorf("invalid version: %s", version)
+		log.Fatalf("Executing \"select tidb_version();\" err[%v]", err)
+	}
+	var version string
+	for rs.Next() {
+		err := rs.Scan(&version)
+		if err != nil {
+			log.Fatalf("Executing \"select tidb_version();\" err[%v]", err)
+		}
+	}
+	defer rs.Close()
+	prefix := "Release Version: "
+	rows := strings.Split(version, "\n")
+	if len(rows[0]) <= len("Release Version: ") {
+		log.Fatalf("Executing \"select tidb_version();\" get wrong result[%s]", version)
+	}
+	tidbVersion := rows[0][len(prefix):]
+	minVersion := *semver.New("6.2.0-alpha")
+	ver, err := semver.NewVersion(tidbVersion)
+	if err != nil {
+		return tidbVersion, false, fmt.Errorf("invalid version: %s", tidbVersion)
 	}
 	v := ver.Compare(minVersion)
 	if v < 0 {
-		return false, nil
+		return tidbVersion, false, nil
 	}
-	return true, nil
+	return tidbVersion, true, nil
 }
 
 // isTiDB returns true if the DB is confirmed to be TiDB

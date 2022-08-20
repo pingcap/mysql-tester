@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -196,7 +197,7 @@ func checkVersion(db *sql.DB) (string, bool, error) {
 	if len(rows[0]) <= len("Release Version: ") {
 		log.Fatalf("Executing \"select tidb_version();\" get wrong result[%s]", version)
 	}
-	tidbVersion := rows[0][len(prefix):]
+	tidbVersion := removeVAndHash(rows[0][len(prefix):])
 	minVersion := *semver.New("6.2.0-alpha")
 	ver, err := semver.NewVersion(tidbVersion)
 	if err != nil {
@@ -207,6 +208,16 @@ func checkVersion(db *sql.DB) (string, bool, error) {
 		return tidbVersion, false, nil
 	}
 	return tidbVersion, true, nil
+}
+
+func removeVAndHash(v string) string {
+	if v == "" {
+		return v
+	}
+	versionHash := regexp.MustCompile("-[0-9]+-g[0-9a-f]{7,}(-dev)?")
+	v = versionHash.ReplaceAllLiteralString(v, "")
+	v = strings.TrimSuffix(v, "-dirty")
+	return strings.TrimPrefix(v, "v")
 }
 
 // isTiDB returns true if the DB is confirmed to be TiDB

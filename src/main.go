@@ -165,15 +165,14 @@ func setSessionVariable(db *sql.DB) {
 		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
 	tidbVersion, isSupportedVersion, err := checkVersion(db)
-	if err != nil {
-		log.Fatalf("Comparing version failed, err[%v]", err)
-	}
-	if isSupportedVersion {
+	if isSupportedVersion && err == nil {
 		log.Infof("setting tidb_enable_analyze_snapshot due to valid tidb version[%s]", tidbVersion)
 		// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
 		if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_enable_analyze_snapshot=1\" err[%v]", err)
+			log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)
 		}
+	} else if err != nil {
+		log.Warnf("skip setting tidb_enable_analyze_snapshot due to comparing version failed, err[%v]", err)
 	} else {
 		log.Infof("skip setting tidb_enable_analyze_snapshot due to lower tidb version[%s]", tidbVersion)
 	}
@@ -182,20 +181,20 @@ func setSessionVariable(db *sql.DB) {
 func checkVersion(db *sql.DB) (string, bool, error) {
 	rs, err := db.Query("select tidb_version();")
 	if err != nil {
-		log.Fatalf("Executing \"select tidb_version();\" err[%v]", err)
+		return "", false, errors.Errorf("Executing \"select tidb_version();\" err[%v]", err)
 	}
+	defer rs.Close()
 	var version string
 	for rs.Next() {
 		err := rs.Scan(&version)
 		if err != nil {
-			log.Fatalf("Executing \"select tidb_version();\" err[%v]", err)
+			return "", false, errors.Errorf("Executing \"select tidb_version();\" err[%v]", err)
 		}
 	}
-	defer rs.Close()
 	prefix := "Release Version: "
 	rows := strings.Split(version, "\n")
 	if len(rows[0]) <= len("Release Version: ") {
-		log.Fatalf("Executing \"select tidb_version();\" get wrong result[%s]", version)
+		return "", false, errors.Errorf("Executing \"select tidb_version();\" get wrong result[%s]", version)
 	}
 	tidbVersion := removeVAndHash(rows[0][len(prefix):])
 	minVersion := *semver.New("6.2.0-alpha")

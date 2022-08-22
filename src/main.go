@@ -20,14 +20,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/coreos/go-semver/semver"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tidb/parser"
@@ -164,60 +162,12 @@ func setSessionVariable(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
-	tidbVersion, isSupportedVersion, err := checkVersion(db)
-	if err != nil {
-		log.Fatalf("Comparing version failed, err[%v]", err)
-	}
-	if isSupportedVersion {
-		log.Infof("setting tidb_enable_analyze_snapshot due to valid tidb version[%s]", tidbVersion)
-		// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
-		if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_enable_analyze_snapshot=1\" err[%v]", err)
-		}
+	// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
+	if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
+		log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)
 	} else {
-		log.Infof("skip setting tidb_enable_analyze_snapshot due to lower tidb version[%s]", tidbVersion)
+		log.Info("enable tidb_enable_analyze_snapshot")
 	}
-}
-
-func checkVersion(db *sql.DB) (string, bool, error) {
-	rs, err := db.Query("select tidb_version();")
-	if err != nil {
-		log.Fatalf("Executing \"select tidb_version();\" err[%v]", err)
-	}
-	var version string
-	for rs.Next() {
-		err := rs.Scan(&version)
-		if err != nil {
-			log.Fatalf("Executing \"select tidb_version();\" err[%v]", err)
-		}
-	}
-	defer rs.Close()
-	prefix := "Release Version: "
-	rows := strings.Split(version, "\n")
-	if len(rows[0]) <= len("Release Version: ") {
-		log.Fatalf("Executing \"select tidb_version();\" get wrong result[%s]", version)
-	}
-	tidbVersion := removeVAndHash(rows[0][len(prefix):])
-	minVersion := *semver.New("6.2.0-alpha")
-	ver, err := semver.NewVersion(tidbVersion)
-	if err != nil {
-		return tidbVersion, false, fmt.Errorf("invalid version: %s", tidbVersion)
-	}
-	v := ver.Compare(minVersion)
-	if v < 0 {
-		return tidbVersion, false, nil
-	}
-	return tidbVersion, true, nil
-}
-
-func removeVAndHash(v string) string {
-	if v == "" {
-		return v
-	}
-	versionHash := regexp.MustCompile("-[0-9]+-g[0-9a-f]{7,}(-dev)?")
-	v = versionHash.ReplaceAllLiteralString(v, "")
-	v = strings.TrimSuffix(v, "-dirty")
-	return strings.TrimPrefix(v, "v")
 }
 
 // isTiDB returns true if the DB is confirmed to be TiDB

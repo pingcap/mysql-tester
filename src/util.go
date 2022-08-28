@@ -24,14 +24,14 @@ import (
 
 // OpenDBWithRetry opens a database specified by its database driver name and a
 // driver-specific data source name. And it will do some retries if the connection fails.
-func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error) {
+func OpenDBWithRetry(driverName, dataSourceName string, retryCount int) (mdb *sql.DB, err error) {
 	startTime := time.Now()
 	sleepTime := time.Millisecond * 500
 	// The max retry interval is 60 s.
-	for i := 0; i < retryConnCount; i++ {
+	for i := 0; i < retryCount; i++ {
 		mdb, err = sql.Open(driverName, dataSourceName)
 		if err != nil {
-			log.Warnf("open db failed, retry count %d (remain %d) err %v", i, retryConnCount-i, err)
+			log.Warnf("open db failed, retry count %d (remain %d) err %v", i, retryCount-i, err)
 			time.Sleep(sleepTime)
 			continue
 		}
@@ -39,7 +39,7 @@ func OpenDBWithRetry(driverName, dataSourceName string) (mdb *sql.DB, err error)
 		if err == nil {
 			break
 		}
-		log.Warnf("ping db failed, retry count %d (remain %d) err %v", i, retryConnCount-i, err)
+		log.Warnf("ping db failed, retry count %d (remain %d) err %v", i, retryCount-i, err)
 		mdb.Close()
 		time.Sleep(sleepTime)
 	}

@@ -168,6 +168,12 @@ func setSessionVariable(db *sql.DB) {
 	} else {
 		log.Info("enable tidb_enable_analyze_snapshot")
 	}
+	if _, err := db.Exec("SET @@tidb_enable_clustered_index='int_only'"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
+	}
+	if _, err := db.Exec("SET @@global.tidb_enable_clustered_index='int_only'"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
+	}
 }
 
 // isTiDB returns true if the DB is confirmed to be TiDB

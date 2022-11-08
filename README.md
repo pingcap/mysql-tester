@@ -17,18 +17,28 @@ make
 Basic usage:
 ```
 Usage of ./mysql-tester:
+  -all
+        run all tests
   -host string
         The host of the TiDB/MySQL server. (default "127.0.0.1")
   -log-level string
         The log level of mysql-tester: info, warn, error, debug. (default "error")
+  -params string
+        Additional params pass as DSN(e.g. session variable)
   -passwd string
         The password for the user.
   -port string
         The listen port of TiDB/MySQL server. (default "4000")
   -record
         Whether to record the test output to the result file.
+  -reserve-schema
+        Reserve schema after each test
+  -retry-connection-count int
+        The max number to retry to connect to the database. (default 120)
   -user string
         The user for connecting to the database. (default "root")
+  -xunitfile string
+        The xml file path to record testing results.
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:

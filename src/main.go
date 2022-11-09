@@ -37,15 +37,17 @@ import (
 )
 
 var (
-	wg       sync.WaitGroup
-	host     string
-	port     string
-	user     string
-	passwd   string
-	logLevel string
-	record   bool
-	params   string
-	all      bool
+	host           string
+	port           string
+	user           string
+	passwd         string
+	logLevel       string
+	record         bool
+	params         string
+	all            bool
+	reserveSchema  bool
+	xmlPath        string
+	retryConnCount int
 )
 
 func init() {
@@ -57,6 +59,9 @@ func init() {
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
+	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
+	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
+	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -150,9 +155,21 @@ func newTester(name string) *tester {
 	return t
 }
 
-func setHashJoinConcurrency(db *sql.DB) {
+func setSessionVariable(db *sql.DB) {
 	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
+	}
+	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
+	}
+	// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
+	if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
+		log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)
+	} else {
+		log.Info("enable tidb_enable_analyze_snapshot")
+	}
+	if _, err := db.Exec("SET @@tidb_enable_clustered_index='int_only'"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
 	}
 }
 
@@ -166,9 +183,21 @@ func isTiDB(db *sql.DB) bool {
 }
 
 func (t *tester) addConnection(connName, hostName, userName, password, db string) {
-	mdb, err := OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27"+params)
+	var (
+		mdb *sql.DB
+		err error
+	)
+	if t.expectedErrs == nil {
+		mdb, err = OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
+	} else {
+		mdb, err = OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, 1)
+	}
 	if err != nil {
-		log.Fatalf("Open db err %v", err)
+		if t.expectedErrs == nil {
+			log.Fatalf("Open db err %v", err)
+		}
+		t.expectedErrs = nil
+		return
 	}
 	if isTiDB(mdb) {
 		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
@@ -177,7 +206,7 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
 	t.switchConnection(connName)
@@ -213,7 +242,7 @@ func (t *tester) disconnect(connName string) {
 
 func (t *tester) preProcess() {
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
 	t.conn = make(map[string]*Conn)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -235,7 +264,7 @@ func (t *tester) preProcess() {
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	t.mdb = mdb
 	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
@@ -243,10 +272,32 @@ func (t *tester) preProcess() {
 }
 
 func (t *tester) postProcess() {
-	t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+	if !reserveSchema {
+		t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+	}
 	for _, v := range t.conn {
 		v.mdb.Close()
 	}
+}
+
+func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
+	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
+		Classname:  "",
+		Name:       t.testFileName(),
+		Time:       "",
+		QueryCount: cnt,
+		Failure:    (*err).Error(),
+	})
+	testSuite.Failures++
+}
+
+func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
+	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
+		Classname:  "",
+		Name:       t.testFileName(),
+		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
+		QueryCount: cnt,
+	})
 }
 
 func (t *tester) Run() error {
@@ -254,11 +305,15 @@ func (t *tester) Run() error {
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		t.addFailure(&testSuite, &err, 0)
+		return err
 	}
 
 	if err = t.openResult(); err != nil {
-		return errors.Trace(err)
+		err = errors.Trace(err)
+		t.addFailure(&testSuite, &err, 0)
+		return err
 	}
 
 	var s string
@@ -298,13 +353,17 @@ func (t *tester) Run() error {
 			} else {
 				concurrentSize, err = strconv.Atoi(strings.TrimSpace(s))
 				if err != nil {
-					return errors.Annotate(err, "Atoi failed")
+					err = errors.Annotate(err, "Atoi failed")
+					t.addFailure(&testSuite, &err, testCnt)
+					return err
 				}
 			}
 		case Q_END_CONCURRENT:
 			t.enableConcurrent = false
 			if err = t.concurrentRun(concurrentQueue, concurrentSize); err != nil {
-				return errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
+				err = errors.Annotate(err, fmt.Sprintf("concurrent test failed in %v", t.name))
+				t.addFailure(&testSuite, &err, testCnt)
+				return err
 			}
 			t.expectedErrs = nil
 		case Q_ERROR:
@@ -316,7 +375,9 @@ func (t *tester) Run() error {
 			if t.enableConcurrent {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
-				return errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				t.addFailure(&testSuite, &err, testCnt)
+				return err
 			}
 
 			testCnt++
@@ -333,7 +394,9 @@ func (t *tester) Run() error {
 			for i := 0; i < len(cols)-1; i = i + 2 {
 				colNr, err := strconv.Atoi(cols[i])
 				if err != nil {
-					return errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
+					t.addFailure(&testSuite, &err, testCnt)
+					return err
 				}
 
 				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
@@ -364,10 +427,19 @@ func (t *tester) Run() error {
 				q.Query = q.Query[:len(q.Query)-1]
 			}
 			t.disconnect(q.Query)
+		case Q_REMOVE_FILE:
+			err = os.Remove(strings.TrimSpace(q.Query))
+			if err != nil {
+				return errors.Annotate(err, "failed to remove file")
+			}
 		}
 	}
 
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
+
+	if xmlPath != "" {
+		t.addSuccess(&testSuite, &startTime, testCnt)
+	}
 
 	return t.flushResult()
 }
@@ -409,7 +481,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	defer wg.Done()
 	tt := newTester(t.name)
 	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27"+params)
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
@@ -423,7 +495,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setHashJoinConcurrency(mdb)
+		setSessionVariable(mdb)
 	}
 	tt.mdb = mdb
 	defer tt.mdb.Close()
@@ -585,51 +657,49 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 		t.buf.WriteString(qText)
 		t.buf.WriteString("\n")
 	}
-	switch st.(type) {
+	switch x := st.(type) {
 	case *ast.BeginStmt:
 		t.tx, err = t.mdb.Begin()
 		if err != nil {
 			t.rollback()
-			break
 		}
+		return err
 	case *ast.CommitStmt:
 		err = t.commit()
 		if err != nil {
 			t.rollback()
-			break
 		}
+		return err
 	case *ast.RollbackStmt:
-		err = t.rollback()
-		if err != nil {
-			break
+		if x.SavepointName == "" {
+			return t.rollback()
 		}
-	default:
-		if t.tx != nil {
-			err = t.executeStmt(qText)
-			if err != nil {
-				break
-			}
-		} else {
-			// if begin or following commit fails, we don't think
-			// this error is the expected one.
-			if t.tx, err = t.mdb.Begin(); err != nil {
-				t.rollback()
-				break
-			}
+	}
+	if t.tx != nil {
+		err = t.executeStmt(qText)
+		if err != nil {
+			return err
+		}
+	} else {
+		// if begin or the succeeding commit fails, we don't think
+		// this error is the expected one.
+		if t.tx, err = t.mdb.Begin(); err != nil {
+			t.rollback()
+			return err
+		}
 
-			err = t.executeStmt(qText)
-			if err != nil {
+		err = t.executeStmt(qText)
+		if err != nil {
+			t.rollback()
+			return err
+		} else {
+			commitErr := t.commit()
+			if err == nil && commitErr != nil {
+				err = commitErr
+			}
+			if commitErr != nil {
 				t.rollback()
-				break
-			} else {
-				commitErr := t.commit()
-				if err == nil && commitErr != nil {
-					err = commitErr
-				}
-				if commitErr != nil {
-					t.rollback()
-					break
-				}
+				return err
 			}
 		}
 	}
@@ -684,6 +754,9 @@ func (t *tester) execute(query query) error {
 }
 
 func (t *tester) commit() error {
+	if t.tx == nil {
+		return nil
+	}
 	err := t.tx.Commit()
 	if err != nil {
 		return err
@@ -936,6 +1009,8 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 }
 
 var msgs = make(chan testTask)
+var xmlFile *os.File
+var testSuite XUnitTestSuite
 
 type testTask struct {
 	err  error
@@ -945,7 +1020,6 @@ type testTask struct {
 type testBatch []string
 
 func (t testBatch) Run() {
-	defer wg.Done()
 	for _, test := range t {
 		tr := newTester(test)
 		msgs <- testTask{
@@ -978,12 +1052,9 @@ func executeTests(tasks []testBatch, have_show, have_is bool) {
 		}
 	}
 
-	wg.Add(len(tasks))
 	for _, t := range tasks {
-		go t.Run()
+		t.Run()
 	}
-
-	wg.Wait()
 }
 
 func consumeError() []error {
@@ -992,15 +1063,11 @@ func consumeError() []error {
 		if t, more := <-msgs; more {
 			if t.err != nil {
 				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
-				if !all {
-					log.Fatalln(e)
-				}
 				log.Errorln(e)
 				es = append(es, e)
 			} else {
 				log.Infof("run test [%s] ok", t.test)
 			}
-
 		} else {
 			return es
 		}
@@ -1015,6 +1082,52 @@ func main() {
 		log.Fatal(err)
 	}
 	log.SetLevel(intLogLevel)
+	startTime := time.Now()
+
+	if xmlPath != "" {
+		_, err := os.Stat(xmlPath)
+		if err == nil {
+			err = os.Remove(xmlPath)
+			if err != nil {
+				log.Errorf("drop previous xunit file fail: ", err)
+				os.Exit(1)
+			}
+		}
+
+		xmlFile, err = os.Create(xmlPath)
+		if err != nil {
+			log.Errorf("create xunit file fail:", err)
+			os.Exit(1)
+		}
+		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			log.Errorf("open xunit file fail:", err)
+			os.Exit(1)
+		}
+
+		testSuite = XUnitTestSuite{
+			Name:       "",
+			Tests:      0,
+			Failures:   0,
+			Properties: make([]XUnitProperty, 0),
+			TestCases:  make([]XUnitTestCase, 0),
+		}
+
+		defer func() {
+			if xmlFile != nil {
+				testSuite.Tests = len(tests)
+				testSuite.Time = fmt.Sprintf("%fs", time.Since(startTime).Seconds())
+				testSuite.Properties = append(testSuite.Properties, XUnitProperty{
+					Name:  "go.version",
+					Value: goVersion(),
+				})
+				err := Write(xmlFile, testSuite)
+				if err != nil {
+					log.Errorf("Write xunit file fail:", err)
+				}
+			}
+		}()
+	}
 
 	// we will run all tests if no tests assigned
 	if len(tests) == 0 {
@@ -1036,14 +1149,15 @@ func main() {
 	}()
 
 	es := consumeError()
+	println()
 	if len(es) != 0 {
-		println()
 		log.Errorf("%d tests failed\n", len(es))
 		for _, item := range es {
 			log.Errorln(item)
 		}
+		// Can't delete this statement.
 		os.Exit(1)
+	} else {
+		println("Great, All tests passed")
 	}
-
-	println("\nGreat, All tests passed")
 }

@@ -457,6 +457,11 @@ func (t *tester) Run() error {
 				})
 				os.Setenv(varName, varValue)
 			}
+		case Q_REMOVE_FILE:
+			err = os.Remove(strings.TrimSpace(q.Query))
+			if err != nil {
+				return errors.Annotate(err, "failed to remove file")
+			}
 		}
 	}
 

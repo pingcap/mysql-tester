@@ -1,0 +1,6 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/pingcap/mysql_tester
+gazelle(name = "gazelle")
+
+package(default_visibility = ["//visibility:public"])

@@ -63,7 +63,7 @@ func Write(out io.Writer, testSuite XUnitTestSuite) error {
 	testSuites.Suites = append(testSuites.Suites, testSuite)
 	_, err := out.Write([]byte(xml.Header))
 	if err != nil {
-		log.Errorf("write xunit file fail:", err)
+		log.Errorf("write xunit file fail: %v", err)
 		return err
 	}
 	doc, err := xml.MarshalIndent(testSuites, "", "\t")

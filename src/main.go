@@ -1089,19 +1089,19 @@ func main() {
 		if err == nil {
 			err = os.Remove(xmlPath)
 			if err != nil {
-				log.Errorf("drop previous xunit file fail: ", err)
+				log.Errorf("drop previous xunit file fail: %v", err)
 				os.Exit(1)
 			}
 		}
 
 		xmlFile, err = os.Create(xmlPath)
 		if err != nil {
-			log.Errorf("create xunit file fail:", err)
+			log.Errorf("create xunit file fail: %v", err)
 			os.Exit(1)
 		}
 		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
-			log.Errorf("open xunit file fail:", err)
+			log.Errorf("open xunit file fail: %v", err)
 			os.Exit(1)
 		}
 
@@ -1123,7 +1123,7 @@ func main() {
 				})
 				err := Write(xmlFile, testSuite)
 				if err != nil {
-					log.Errorf("Write xunit file fail:", err)
+					log.Errorf("Write xunit file fail: %v", err)
 				}
 			}
 		}()

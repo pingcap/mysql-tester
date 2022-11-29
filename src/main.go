@@ -927,17 +927,11 @@ func (t *tester) executeStmt(query string) error {
 }
 
 func (t *tester) executeStmtString(query string) (string, error) {
-	var err error
-	if t.tx, err = t.mdb.Begin(); err != nil {
-		t.rollback()
-		return "", err
-	}
 	var result string
-	err = t.tx.QueryRow(query).Scan(&result)
+	err := t.mdb.QueryRow(query).Scan(&result)
 	if err != nil {
 		return "", err
 	}
-	t.rollback()
 	return result, nil
 }
 

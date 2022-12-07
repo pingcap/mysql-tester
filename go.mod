@@ -1,18 +1,25 @@
 module github.com/pingcap/mysql-tester
 
-go 1.12
+go 1.19
+
+require (
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/pingcap/errors v0.11.5-0.20221009092201-b66cddb77c32
+	github.com/pingcap/tidb/parser v0.0.0-20221207064004-d7d059cea14b
+	github.com/sirupsen/logrus v1.8.1
+)
 
 require (
 	github.com/benbjohnson/clock v1.3.0 // indirect
-	github.com/go-sql-driver/mysql v1.6.0
-	github.com/pingcap/errors v0.11.5-0.20211009033009-93128226aaa3
+	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/pingcap/log v1.1.0 // indirect
-	github.com/pingcap/tidb/parser v0.0.0-20220603021027-173dd005cc34
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/sirupsen/logrus v1.8.1
+	github.com/remyoudompheng/bigfft v0.0.0-20220927061507-ef77025ab5aa // indirect
+	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	go.uber.org/zap v1.21.0 // indirect
+	go.uber.org/zap v1.24.0 // indirect
+	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/sys v0.2.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	golang.org/x/text v0.5.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )

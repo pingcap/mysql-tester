@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/pingcap/errors v0.11.5-0.20221009092201-b66cddb77c32
-	github.com/pingcap/tidb/parser v0.0.0-20221207064004-d7d059cea14b
+	github.com/pingcap/tidb/parser v0.0.0-20230110040624-3f223b3ada95
 	github.com/sirupsen/logrus v1.8.1
 )
 

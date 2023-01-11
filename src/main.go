@@ -199,6 +199,9 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		t.expectedErrs = nil
 		return
 	}
+	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
+		log.Fatalf("Executing Use test err[%v]", err)
+	}
 	if isTiDB(mdb) {
 		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)

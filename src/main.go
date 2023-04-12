@@ -432,6 +432,8 @@ func (t *tester) Run() error {
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
+		default:
+			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
 	}
 

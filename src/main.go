@@ -548,6 +548,7 @@ func (t *tester) loadQueries() ([]query, error) {
 
 	seps := bytes.Split(data, []byte("\n"))
 	queries := make([]query, 0, len(seps))
+	splitSQL := ";"
 	newStmt := true
 	for i, v := range seps {
 		v := bytes.TrimSpace(v)
@@ -564,6 +565,12 @@ func (t *tester) loadQueries() ([]query, error) {
 			continue
 		}
 
+		strs := strings.Fields(s)
+		if strings.EqualFold(strs[0], "delimiter") && len(strs) == 2 && strings.HasSuffix(strs[1], splitSQL) {
+			splitSQL = strs[1][:len(strs[1])-len(splitSQL)]
+			newStmt = true
+			continue
+		}
 		if newStmt {
 			queries = append(queries, query{Query: s, Line: i + 1})
 		} else {
@@ -573,7 +580,14 @@ func (t *tester) loadQueries() ([]query, error) {
 		}
 
 		// if the line has a ; in the end, we will treat new line as the new statement.
-		newStmt = strings.HasSuffix(s, ";")
+		newStmt = strings.HasSuffix(s, splitSQL)
+		if newStmt {
+			if splitSQL == ";" {
+				queries[len(queries)-1].Query = queries[len(queries)-1].Query[:len(queries[len(queries)-1].Query)]
+			} else {
+				queries[len(queries)-1].Query = queries[len(queries)-1].Query[:len(queries[len(queries)-1].Query)-len(splitSQL)]
+			}
+		}
 	}
 
 	return ParseQueries(queries...)

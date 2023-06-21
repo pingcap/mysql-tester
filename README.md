@@ -1,24 +1,26 @@
-# MySQL Tester
+## Usage
+```bash
+# build the mysql-tester binary
+make build-mysql-tester
 
-This is a golang implementation of [MySQL Test Framework](https://github.com/mysql/mysql-server/tree/8.0/mysql-test).
+# run the mysql-tester binary
+make run-mysql-tester
 
-## Requirements
+# run the mysql-tester binary with Program Arguments
+make run-mysql-tester args='-port 15306 -path go/test/mysql-tester'
 
-- All the tests should be put in [`t`](./t), take [t/example.test](./t/example.test) as an example.
-- All the expected test results should be put in [`r`](./r). Result file has the same file name with the corresponding test file, but with a `.result` file suffix, take [r/example.result](./r/example.result) as an examle.
-
-## How to use
-
-Build the `mysql-tester` binary:
-```sh
-make
+# record the test output to the result file
+make run-mysql-tester args='-port 15306 -path go/test/mysql-tester -record'
 ```
 
-Basic usage:
-```
-Usage of ./mysql-tester:
+## Program Arguments
+```bash
+./bin/mysql-tester -h
+Usage of ./bin/mysql-tester:
   -all
         run all tests
+  -dbName string
+        The database name that firstly connect to. (default "mysql")
   -host string
         The host of the TiDB/MySQL server. (default "127.0.0.1")
   -log-level string
@@ -27,8 +29,10 @@ Usage of ./mysql-tester:
         Additional params pass as DSN(e.g. session variable)
   -passwd string
         The password for the user.
+  -path string
+        The Base Path of testcase. (default ".")
   -port string
-        The listen port of TiDB/MySQL server. (default "4000")
+        The listen port of TiDB/MySQL server. (default "3306")
   -record
         Whether to record the test output to the result file.
   -reserve-schema
@@ -39,33 +43,10 @@ Usage of ./mysql-tester:
         The user for connecting to the database. (default "root")
   -xunitfile string
         The xml file path to record testing results.
+        
 ```
 
-By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:
-```sh
-./mysql-tester # run all the tests
-./mysql-tester example # run a specified test
-./mysql-tester example1 example2   example3 # seperate different tests with one or more spaces
-```
-
-For more details about how to run and write test cases, see the [Wiki](https://github.com/pingcap/mysql-tester/wiki) page.
-
-## Contributing
-
-Contributions are welcomed and greatly appreciated. You can help by:
-
-- writing user document about how to use this framework
-- triaging issues
-- submitting new test cases
-- fixing bugs of this test framework
-- adding features that mysql test has but this implementation does not
-- ...
-
-In case you have any problem, discuss with us in the [tidbcommunity](https://join.slack.com/t/tidbcommunity/shared_invite/enQtNzc0MzI4ODExMDc4LWYwYmIzMjZkYzJiNDUxMmZlN2FiMGJkZjAyMzQ5NGU0NGY0NzI3NTYwMjAyNGQ1N2I2ZjAxNzc1OGUwYWM0NzE) slack workspace.
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
-
-## License
-
-MySQL Tester is under the Apache 2.0 license. See the [LICENSE](./LICENSE) file for details.
-
+## Add Testcase Best Practice
+1. Write a test file under the t directory, using example.test as a reference.
+2. Set up a MySQL database, then run the test with the -record parameter to generate an example.result file.
+3. Set up a wesql-scale environment, and use example.test and example.result to test the functionality.

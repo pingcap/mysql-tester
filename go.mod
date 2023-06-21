@@ -1,6 +1,10 @@
-module github.com/pingcap/mysql-tester
+// Copyright ApeCloud, Inc.
+// Licensed under the Apache v2(found in the LICENSE file in the root directory).
 
-go 1.19
+
+module github.com/apecloud/mysql-tester
+
+go 1.20
 
 require (
 	github.com/go-sql-driver/mysql v1.6.0

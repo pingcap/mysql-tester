@@ -1,8 +1,8 @@
 ## Add Testcase Best Practice
 
 1. Write a test file under the t directory, using example.test as a reference.
-2. Set up a MySQL database, then run the test with the -record parameter to generate an example.result file.
-3. Set up a wesql-scale environment, and use example.test and example.result to test the functionality.
+2. Set up a MySQL database, then run the mysql-tester with the `-record` parameter to generate an example.result file.
+3. Set up a Test environment, and run the mysql-tester to test the functionality. It will compare the result with the example.result file.
 
 
 ## Usage

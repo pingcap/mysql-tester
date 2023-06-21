@@ -1,21 +1,21 @@
 ## Usage
 ```bash
 # build the mysql-tester binary
-make build-mysql-tester
+make build
 
 # run the mysql-tester binary
-make run-mysql-tester
+make run
 
 # run the mysql-tester binary with Program Arguments
-make run-mysql-tester args='-port 15306 -path go/test/mysql-tester'
+make run args='-port 15306 -path .'
 
 # record the test output to the result file
-make run-mysql-tester args='-port 15306 -path go/test/mysql-tester -record'
+make run args='-port 15306 -path . -record'
 ```
 
 ## Program Arguments
 ```bash
-./bin/mysql-tester -h
+./mysql-tester -h
 Usage of ./bin/mysql-tester:
   -all
         run all tests

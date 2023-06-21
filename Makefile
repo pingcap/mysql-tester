@@ -15,3 +15,9 @@ clean:
 	go clean -i ./...
 	rm -rf mysql-tester
 
+run:
+	@if [ -z "${args}" ]; then \
+    	./mysql-tester -port 15306 -path .; \
+	else \
+		./mysql-tester ${args}; \
+	fi

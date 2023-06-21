@@ -1,16 +1,22 @@
+## Add Testcase Best Practice
+
+1. Write a test file under the t directory, using example.test as a reference.
+2. Set up a MySQL database, then run the test with the -record parameter to generate an example.result file.
+3. Set up a wesql-scale environment, and use example.test and example.result to test the functionality.
+
+
 ## Usage
+
 ```bash
 # build the mysql-tester binary
 make build
 
-# run the mysql-tester binary
-make run
+# record the test output to the result file
+make run args='-port 15306 -record'
 
 # run the mysql-tester binary with Program Arguments
-make run args='-port 15306 -path .'
+make run args='-port 15306'
 
-# record the test output to the result file
-make run args='-port 15306 -path . -record'
 ```
 
 ## Program Arguments
@@ -45,8 +51,3 @@ Usage of ./bin/mysql-tester:
         The xml file path to record testing results.
         
 ```
-
-## Add Testcase Best Practice
-1. Write a test file under the t directory, using example.test as a reference.
-2. Set up a MySQL database, then run the test with the -record parameter to generate an example.result file.
-3. Set up a wesql-scale environment, and use example.test and example.result to test the functionality.

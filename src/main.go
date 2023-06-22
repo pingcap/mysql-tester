@@ -24,6 +24,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/apecloud/mysql-tester"
+	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -857,8 +859,34 @@ func (t *tester) openResult() error {
 	}
 
 	var err error
-	t.resultFD, err = os.Open(t.resultFileName())
+	resultFile, err := mysql_tester.Testcase.Open(t.resultFileName())
+	defer resultFile.Close()
+
+	t.resultFD, err = fsFileToOsFile(resultFile)
 	return err
+}
+
+func fsFileToOsFile(file fs.File) (*os.File, error) {
+	tempFile, err := os.CreateTemp("", "temp-")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = io.Copy(tempFile, file)
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+		return nil, err
+	}
+
+	_, err = tempFile.Seek(0, io.SeekStart)
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+		return nil, err
+	}
+
+	return tempFile, nil
 }
 
 func (t *tester) flushResult() error {

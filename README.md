@@ -12,10 +12,10 @@
 make build
 
 # record the test output to the result file
-make test args='-port 15306 -record'
+make test args='-port 15306 -path testcase -record'
 
 # run the mysql-tester binary with Program Arguments
-make test args='-port 15306'
+make test args='-port 15306 -path testcase'
 
 ```
 

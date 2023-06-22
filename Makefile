@@ -18,7 +18,7 @@ clean:
 
 run:
 	@if [ -z "${args}" ]; then \
-    	./mysql-tester -port 15306 -path .; \
+    	./bin/mysql-tester -port 15306 -path .; \
 	else \
-		./mysql-tester ${args}; \
+		./bin/mysql-tester ${args}; \
 	fi

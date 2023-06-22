@@ -23,6 +23,9 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/apecloud/mysql-tester"
+	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -67,7 +70,7 @@ func init() {
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
-	flag.StringVar(&path, "path", ".", "The Base Path of testcase.")
+	flag.StringVar(&path, "path", "testcase", "The Base Path of testcase.")
 	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.StringVar(&dbName, "dbName", "mysql", "The database name that firstly connect to.")
@@ -493,7 +496,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	return
 }
 func (t *tester) loadQueries() ([]query, error) {
-	data, err := ioutil.ReadFile(t.testFileName())
+	data, err := mysql_tester.Testcase.ReadFile(t.testFileName())
 	if err != nil {
 		return nil, err
 	}
@@ -856,8 +859,34 @@ func (t *tester) openResult() error {
 	}
 
 	var err error
-	t.resultFD, err = os.Open(t.resultFileName())
+	resultFile, err := mysql_tester.Testcase.Open(t.resultFileName())
+	defer resultFile.Close()
+
+	t.resultFD, err = fsFileToOsFile(resultFile)
 	return err
+}
+
+func fsFileToOsFile(file fs.File) (*os.File, error) {
+	tempFile, err := os.CreateTemp("", "temp-")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = io.Copy(tempFile, file)
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+		return nil, err
+	}
+
+	_, err = tempFile.Seek(0, io.SeekStart)
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+		return nil, err
+	}
+
+	return tempFile, nil
 }
 
 func (t *tester) flushResult() error {
@@ -879,7 +908,7 @@ func (t *tester) resultFileName() string {
 
 func loadAllTests() ([]string, error) {
 	// tests must be in t folder
-	files, err := ioutil.ReadDir(fmt.Sprintf("%s/t", path))
+	files, err := mysql_tester.Testcase.ReadDir(fmt.Sprintf("%s/t", path))
 	if err != nil {
 		return nil, err
 	}

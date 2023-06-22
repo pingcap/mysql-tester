@@ -12,10 +12,13 @@
 make build
 
 # record the test output to the result file
-make run args='-port 15306 -record'
+./bin/mysql-tester -port 3306 -user root -passwd 123123 -path testcase -record
 
-# run the mysql-tester binary with Program Arguments
-make run args='-port 15306'
+# run all the testcases, and record the result to result.xml
+./bin/mysql-tester -port 3306 -user root -passwd 123123 -path testcase -xunitfile result.xml
+
+# run the testcases test1 and test2, and record the result to result.xml
+./bin/mysql-tester -port 3306 -user root -passwd 123123 -path testcase -xunitfile result.xml test1 test2
 
 ```
 
@@ -36,7 +39,7 @@ Usage of ./bin/mysql-tester:
   -passwd string
         The password for the user.
   -path string
-        The Base Path of testcase. (default ".")
+        The Base Path of testcase. (default "testcase")
   -port string
         The listen port of TiDB/MySQL server. (default "3306")
   -record
@@ -49,5 +52,5 @@ Usage of ./bin/mysql-tester:
         The user for connecting to the database. (default "root")
   -xunitfile string
         The xml file path to record testing results.
-        
+
 ```

@@ -1,23 +1,14 @@
-.PHONY: all build test tidy clean
+.PHONY: all build tidy clean
 
 default: build
 
 build:
-	go build -o mysql-tester ./src
-
-test:
-	go test -cover ./...
+	go build -o ./bin ./...
+	mv bin/src bin/mysql-tester
 
 tidy:
 	go mod tidy
 
 clean:
 	go clean -i ./...
-	rm -rf mysql-tester
-
-run:
-	@if [ -z "${args}" ]; then \
-    	./mysql-tester -port 15306 -path .; \
-	else \
-		./mysql-tester ${args}; \
-	fi
+	rm -rf ./bin/mysql-tester

@@ -4,8 +4,9 @@
 2. Set up a MySQL database, then run the mysql-tester with the `-record` parameter to generate an example.result file.
 3. Set up a Test environment, and run the mysql-tester to test the functionality. It will compare the result with the example.result file.
 
-*note*
+### Notes
 Please maintain testcases in this repository, including test files and result files.
+
 testcases are packaged into the binary file, so you can run the mysql-tester anywhere without the need to copy the testcase directory.
 
 ## Usage

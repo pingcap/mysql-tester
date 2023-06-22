@@ -3,7 +3,8 @@
 default: build
 
 build:
-	go build -o mysql-tester ./src
+	go build -o ./bin ./...
+	mv bin/src bin/mysql-tester
 
 test:
 	go test -cover ./...

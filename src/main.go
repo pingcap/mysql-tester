@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/apecloud/mysql-tester"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -493,7 +494,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	return
 }
 func (t *tester) loadQueries() ([]query, error) {
-	data, err := ioutil.ReadFile(t.testFileName())
+	data, err := mysql_tester.Testcase.ReadFile(t.testFileName())
 	if err != nil {
 		return nil, err
 	}
@@ -879,7 +880,7 @@ func (t *tester) resultFileName() string {
 
 func loadAllTests() ([]string, error) {
 	// tests must be in t folder
-	files, err := ioutil.ReadDir(fmt.Sprintf("%s/t", path))
+	files, err := mysql_tester.Testcase.ReadDir(fmt.Sprintf("%s/t", path))
 	if err != nil {
 		return nil, err
 	}

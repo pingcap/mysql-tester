@@ -70,7 +70,7 @@ func init() {
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
-	flag.StringVar(&path, "path", ".", "The Base Path of testcase.")
+	flag.StringVar(&path, "path", "testcase", "The Base Path of testcase.")
 	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.StringVar(&dbName, "dbName", "mysql", "The database name that firstly connect to.")

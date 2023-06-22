@@ -1,4 +1,4 @@
-.PHONY: all build test tidy clean
+.PHONY: all build tidy clean
 
 default: build
 
@@ -12,10 +12,3 @@ tidy:
 clean:
 	go clean -i ./...
 	rm -rf ./bin/mysql-tester
-
-test:
-	@if [ -z "${args}" ]; then \
-    	./bin/mysql-tester -port 15306 -path .; \
-	else \
-		./bin/mysql-tester ${args}; \
-	fi

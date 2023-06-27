@@ -23,7 +23,6 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/apecloud/mysql-tester"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -225,7 +224,7 @@ func (t *tester) preProcess() {
 
 	log.Warn("Create new db", mdb)
 
-	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", t.name)); err != nil {
+	if _, err = mdb.Exec(fmt.Sprintf("create database if not exists `%s`", t.name)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", t.name, err)
 	}
 
@@ -496,7 +495,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	return
 }
 func (t *tester) loadQueries() ([]query, error) {
-	data, err := mysql_tester.Testcase.ReadFile(t.testFileName())
+	data, err := ioutil.ReadFile(t.testFileName())
 	if err != nil {
 		return nil, err
 	}
@@ -859,10 +858,11 @@ func (t *tester) openResult() error {
 	}
 
 	var err error
-	resultFile, err := mysql_tester.Testcase.Open(t.resultFileName())
-	defer resultFile.Close()
-
-	t.resultFD, err = fsFileToOsFile(resultFile)
+	//resultFile, err := mysql_tester.Testcase.Open(t.resultFileName())
+	//defer resultFile.Close()
+	//
+	//t.resultFD, err = fsFileToOsFile(resultFile)
+	t.resultFD, err = os.Open(t.resultFileName())
 	return err
 }
 
@@ -908,7 +908,7 @@ func (t *tester) resultFileName() string {
 
 func loadAllTests() ([]string, error) {
 	// tests must be in t folder
-	files, err := mysql_tester.Testcase.ReadDir(fmt.Sprintf("%s/t", path))
+	files, err := ioutil.ReadDir(fmt.Sprintf("%s/t", path))
 	if err != nil {
 		return nil, err
 	}

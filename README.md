@@ -4,11 +4,6 @@
 2. Set up a MySQL database, then run the mysql-tester with the `-record` parameter to generate an example.result file.
 3. Set up a Test environment, and run the mysql-tester to test the functionality. It will compare the result with the example.result file.
 
-### Notes
-Please maintain testcases in this repository, including test files and result files.
-
-testcases are packaged into the binary file, so you can run the mysql-tester anywhere without the need to copy the testcase directory.
-
 ## Usage
 
 ```bash
@@ -16,13 +11,13 @@ testcases are packaged into the binary file, so you can run the mysql-tester any
 make build
 
 # record the test output to the result file
-./bin/mysql-tester -port 3306 -user root -passwd 123123 -path testcase -record
+./bin/mysql-tester -port 15306 -user root -path testcase -record -reserve-schema
 
 # run all the testcases, and record the result to result.xml
-./bin/mysql-tester -port 3306 -user root -passwd 123123 -path testcase -xunitfile result.xml
+./bin/mysql-tester -port 15306 -user root -path testcase -xunitfile result.xml
 
 # run the testcases test1 and test2, and record the result to result.xml
-./bin/mysql-tester -port 3306 -user root -passwd 123123 -path testcase -xunitfile result.xml test1 test2
+./bin/mysql-tester -port 15306 -user root -path testcase -xunitfile result.xml test1 test2
 
 ```
 

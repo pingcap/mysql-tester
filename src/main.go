@@ -224,7 +224,7 @@ func (t *tester) preProcess() {
 
 	log.Warn("Create new db", mdb)
 
-	if _, err = mdb.Exec(fmt.Sprintf("create database if not exists `%s`", t.name)); err != nil {
+	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", t.name)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", t.name, err)
 	}
 

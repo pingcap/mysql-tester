@@ -1705,7 +1705,7 @@ insert into t1 values (null, 1);
 analyze table t1;
 show table status;
 Name	Engine	Version	Row_format	Rows	Avg_row_length	Data_length	Max_data_length	Index_length	Data_free	Auto_increment	Create_time	Update_time	Check_time	Collation	Checksum	Create_options	Comment
-t1	InnoDB	10	Dynamic	1	32768	32768	0	0	0	2	2023-06-28 13:34:18	2023-06-28 13:34:18	NULL	utf8mb4_0900_ai_ci	NULL	partitioned	
+t1	InnoDB	10	Dynamic	1	32768	32768	0	0	0	2	2023-06-28 14:07:35	2023-06-28 14:07:35	NULL	utf8mb4_0900_ai_ci	NULL	partitioned	
 drop table t1;
 create table t1(a int auto_increment primary key)
 partition by key(a) partitions 2;
@@ -1713,7 +1713,7 @@ insert into t1 values (null), (null), (null);
 analyze table t1;
 show table status;
 Name	Engine	Version	Row_format	Rows	Avg_row_length	Data_length	Max_data_length	Index_length	Data_free	Auto_increment	Create_time	Update_time	Check_time	Collation	Checksum	Create_options	Comment
-t1	InnoDB	10	Dynamic	3	10922	32768	0	0	0	4	2023-06-28 13:34:18	2023-06-28 13:34:18	NULL	utf8mb4_0900_ai_ci	NULL	partitioned	
+t1	InnoDB	10	Dynamic	3	10922	32768	0	0	0	4	2023-06-28 14:07:35	2023-06-28 14:07:35	NULL	utf8mb4_0900_ai_ci	NULL	partitioned	
 drop table t1;
 CREATE TABLE t1(a INT NOT NULL, b TINYBLOB, KEY(a))
 PARTITION BY RANGE(a) ( PARTITION p0 VALUES LESS THAN (32));

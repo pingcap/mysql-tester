@@ -1669,14 +1669,12 @@ create table t1(a int auto_increment, b int, primary key (a, b))
   partition by hash(b) partitions 2;
 insert into t1 values (null, 1);
 analyze table t1;
-show table status;
 drop table t1;
 
 create table t1(a int auto_increment primary key)
   partition by key(a) partitions 2;
 insert into t1 values (null), (null), (null);
 analyze table t1;
-show table status;
 drop table t1;
 # Bug #28488: Incorrect information in file: './test/t1_test#.frm'
 #

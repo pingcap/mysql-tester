@@ -726,14 +726,14 @@ func (t *tester) rollback() error {
 }
 
 func (t *tester) writeQueryResult(rows *byteRows) error {
-	cols := rows.cols
-	for i, c := range cols {
-		t.buf.WriteString(c)
-		if i != len(cols)-1 {
-			t.buf.WriteString("\t")
-		}
-	}
-	t.buf.WriteString("\n")
+	//cols := rows.cols
+	//for i, c := range cols {
+	//	t.buf.WriteString(c)
+	//	if i != len(cols)-1 {
+	//		t.buf.WriteString("\t")
+	//	}
+	//}
+	//t.buf.WriteString("\n")
 
 	for _, row := range rows.data {
 		var value string

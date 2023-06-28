@@ -2218,7 +2218,8 @@ create table t1 (f1 int not null auto_increment primary key, f2 varchar(10));
 create table t11 like t1;
 insert into t1 values(1,""),(2,"");
 analyze table t1, t11;
-show table status like 't1%';
+#time relevant 
+#skip show table status like 't1%';
 select 123 as a from t1 where f1 is null;
 drop table t1,t11;
 

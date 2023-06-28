@@ -3740,10 +3740,6 @@ create table t1 (f1 int not null auto_increment primary key, f2 varchar(10));
 create table t11 like t1;
 insert into t1 values(1,""),(2,"");
 analyze table t1, t11;
-show table status like 't1%';
-Name	Engine	Version	Row_format	Rows	Avg_row_length	Data_length	Max_data_length	Index_length	Data_free	Auto_increment	Create_time	Update_time	Check_time	Collation	Checksum	Create_options	Comment
-t1	InnoDB	10	Dynamic	2	8192	16384	0	0	0	3	2023-06-28 07:23:47	2023-06-28 07:23:47	NULL	utf8mb4_0900_ai_ci	NULL		
-t11	InnoDB	10	Dynamic	0	0	16384	0	0	0	1	2023-06-28 07:23:47	NULL	NULL	utf8mb4_0900_ai_ci	NULL		
 select 123 as a from t1 where f1 is null;
 a
 drop table t1,t11;

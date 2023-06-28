@@ -1386,7 +1386,6 @@ PARTITION BY RANGE(id)
 PARTITION p1 VALUES LESS THAN (20),
 PARTITION p2 VALUES LESS THAN (30));
 analyze table t1;
-SHOW TABLE STATUS;
 DROP TABLE t1;
 
 #
@@ -1470,13 +1469,10 @@ drop table t1;
 CREATE TABLE t1 (a int) PARTITION BY KEY(a);
 INSERT into t1 values (1), (2);
 analyze table t1;
-SHOW TABLE STATUS;
 DELETE from t1 where a = 1;
 analyze table t1;
-SHOW TABLE STATUS;
 ALTER TABLE t1 OPTIMIZE PARTITION p0;
 analyze table t1;
-SHOW TABLE STATUS;
 DROP TABLE t1;
 
 #

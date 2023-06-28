@@ -815,8 +815,8 @@ a	b	a	a
 explain select * from t1, t2, t3 where t3.a=t1.a and t2.a=t1.b;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	Using where
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.b	1	100.00	Using index
-1	SIMPLE	t3	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.a	1	100.00	Using index
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.b	1	100.00	Using index
+1	SIMPLE	t3	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.a	1	100.00	Using index
 show status like 'Handler_read%';
 Variable_name	Value
 Handler_read_first	1
@@ -838,7 +838,7 @@ ANALYZE TABLE t1, t2, t3;
 explain select * from t2,t3 where t2.a < 400 and t2.b=t3.b;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t2	NULL	ALL	a,b	NULL	NULL	NULL	1000	40.00	Using where
-1	SIMPLE	t3	NULL	ref	b	b	5	join.t2.b	1	100.00	NULL
+1	SIMPLE	t3	NULL	ref	b	b	5	join2.t2.b	1	100.00	NULL
 drop table t1, t2, t3;
 create table t1 (a int);
 insert into t1 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
@@ -860,8 +860,8 @@ vv: Following query must use ALL(t1), eq_ref(A), eq_ref(B): vv
 explain select * from t1, t2 a, t2 b where a.a = t1.a and b.a=a.b;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	Using where
-1	SIMPLE	a	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.a	1	100.00	Using where
-1	SIMPLE	b	NULL	eq_ref	PRIMARY	PRIMARY	4	join.a.b	1	100.00	NULL
+1	SIMPLE	a	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.a	1	100.00	Using where
+1	SIMPLE	b	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.a.b	1	100.00	NULL
 show status like '%cost%';
 Variable_name	Value
 Last_query_cost	8.249000
@@ -882,11 +882,11 @@ ANALYZE TABLE t1, t2;
 EXPLAIN SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	2	100.00	Using where
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.b	1	100.00	NULL
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.b	1	100.00	NULL
 EXPLAIN SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	index	PRIMARY	PRIMARY	4	NULL	2	100.00	NULL
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.a	1	100.00	NULL
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.a	1	100.00	NULL
 SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
 a	b	c	d
 SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
@@ -896,11 +896,11 @@ a	b	c	d
 EXPLAIN SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	128	100.00	Using where
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.b	1	100.00	NULL
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.b	1	100.00	NULL
 EXPLAIN SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	index	PRIMARY	PRIMARY	4	NULL	128	100.00	NULL
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.a	1	100.00	NULL
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.a	1	100.00	NULL
 SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
 a	b	c	d
 SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
@@ -1065,7 +1065,7 @@ ON t1.a = t3.a;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
 1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	10	10.00	Using where; Using join buffer (hash join)
-1	SIMPLE	t3	NULL	ref	a	a	5	join.t1.a	10	100.00	Using where; Using index
+1	SIMPLE	t3	NULL	ref	a	a	5	join2.t1.a	10	100.00	Using where; Using index
 1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 1	SIMPLE	t5	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 1	SIMPLE	t6	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
@@ -1186,13 +1186,13 @@ explain SELECT t2.pk, t2.c1 FROM t2, t1
 WHERE t2.pk = t1.c1 AND t2.pk >= 2;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.c1	1	100.00	NULL
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.c1	1	100.00	NULL
 CREATE VIEW v_t2 AS SELECT * FROM t2;
 explain SELECT v_t2.pk, v_t2.c1 FROM v_t2, t1
 WHERE v_t2.pk = t1.c1 AND v_t2.pk >= 2;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join.t1.c1	1	100.00	Using where
+1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	join2.t1.c1	1	100.00	Using where
 DROP VIEW v_t2;
 DROP TABLE t1, t2;
 CREATE TABLE t1 (
@@ -1323,7 +1323,7 @@ EXPLAIN
           "used_columns": [
             "b"
           ],
-          "attached_condition": "(`join`.`parent`.`b` is not null)"
+          "attached_condition": "(`join2`.`parent`.`b` is not null)"
         }
       },
       {
@@ -1340,8 +1340,8 @@ EXPLAIN
           ],
           "key_length": "8",
           "ref": [
-            "join.parent.b",
-            "join.parent.b"
+            "join2.parent.b",
+            "join2.parent.b"
           ],
           "rows_examined_per_scan": 1,
           "rows_produced_per_join": 1,
@@ -1373,8 +1373,8 @@ EXPLAIN
           ],
           "key_length": "8",
           "ref": [
-            "join.parent.b",
-            "join.parent.b"
+            "join2.parent.b",
+            "join2.parent.b"
           ],
           "rows_examined_per_scan": 1,
           "rows_produced_per_join": 1,
@@ -1406,8 +1406,8 @@ EXPLAIN
           ],
           "key_length": "8",
           "ref": [
-            "join.parent.b",
-            "join.parent.b"
+            "join2.parent.b",
+            "join2.parent.b"
           ],
           "rows_examined_per_scan": 1,
           "rows_produced_per_join": 1,
@@ -1439,8 +1439,8 @@ EXPLAIN
           ],
           "key_length": "8",
           "ref": [
-            "join.parent.b",
-            "join.parent.b"
+            "join2.parent.b",
+            "join2.parent.b"
           ],
           "rows_examined_per_scan": 1,
           "rows_produced_per_join": 1,
@@ -1480,7 +1480,7 @@ ANALYZE TABLE t;
 EXPLAIN  SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	PRIMARY	t1	NULL	index	NULL	j	5	NULL	4096	100.00	Using index
-2	DEPENDENT SUBQUERY	t2	NULL	ref	j	j	5	join.t1.j	4096	100.00	Backward index scan; Using index
+2	DEPENDENT SUBQUERY	t2	NULL	ref	j	j	5	join2.t1.j	4096	100.00	Backward index scan; Using index
 FLUSH STATUS;
 SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
 a	b

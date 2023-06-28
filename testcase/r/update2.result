@@ -192,10 +192,10 @@ drop table t1,t2;
 create table t1(f1 int);
 select DATABASE();
 DATABASE()
-update
+update2
 select DATABASE();
 DATABASE()
-update
+update2
 drop table t1;
 create table t1 ( a int, b int default 0, index (a) );
 insert into t1 (a) values (0),(0),(0),(0),(0),(0),(0),(0);

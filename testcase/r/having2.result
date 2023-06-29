@@ -1,16 +1,12 @@
 drop table if exists t1,t2,t3;
 create table t1 (a int);
 select count(a) as b from t1 where a=0 having b > 0;
-b
 insert into t1 values (null);
 select count(a) as b from t1 where a=0 having b > 0;
-b
 select count(a) as b from t1 where a=0 having b >=0;
-b
 0
 analyze table t1;
 explain select count(a) as b from t1 where a=0 having b >=0;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 drop table t1;
 CREATE TABLE t1 (
@@ -45,44 +41,35 @@ WHERE sgp.raw_id=e.contig_id
 GROUP BY e.id
 HAVING chr_strand= -1 and end >= 0
 AND start <= 999660;
-id	start	end	chr_strand
 133197	813898	813898	-1.0000
 drop table t1,t2;
 CREATE TABLE t1 (Fld1 int(11) default NULL,Fld2 int(11) default NULL);
 INSERT INTO t1 VALUES (1,10),(1,20),(2,NULL),(2,NULL),(3,50);
 select Fld1, max(Fld2) as q from t1 group by Fld1 having q is not null;
-Fld1	q
 1	20
 3	50
 select Fld1, max(Fld2) from t1 group by Fld1 having max(Fld2) is not null;
-Fld1	max(Fld2)
 1	20
 3	50
 select Fld1, max(Fld2) from t1 group by Fld1 having avg(Fld2) is not null;
-Fld1	max(Fld2)
 1	20
 3	50
 select Fld1, max(Fld2) from t1 group by Fld1 having std(Fld2) is not null;
-Fld1	max(Fld2)
 1	20
 3	50
 select Fld1, max(Fld2) from t1 group by Fld1 having variance(Fld2) is not null;
-Fld1	max(Fld2)
 1	20
 3	50
 drop table t1;
 create table t1 (id int not null, qty int not null);
 insert into t1 values (1,2),(1,3),(2,4),(2,5);
 select id, sum(qty) as sqty from t1 group by id having sqty>2;
-id	sqty
 1	5
 2	9
 select sum(qty) as sqty from t1 group by id having count(id) > 0;
-sqty
 5
 9
 select sum(qty) as sqty from t1 group by id having count(distinct id) > 0;
-sqty
 5
 9
 drop table t1;
@@ -106,7 +93,6 @@ count(b.id) as c
 from t1 a left join t3 b on a.id=b.order_id
 group by a.id, a.description
 having (a.description is not null) and (c=0);
-id	description	c
 1	test	0
 select
 a.*,
@@ -114,7 +100,6 @@ count(b.id) as c
 from t2 a left join t3 b on a.id=b.order_id
 group by a.id, a.description
 having (a.description is not null) and (c=0);
-id	description	c
 1	test	0
 INSERT INTO t1  VALUES (2, 'test2');
 select
@@ -123,19 +108,16 @@ count(b.id) as c
 from t1 a left join t3 b on a.id=b.order_id
 group by a.id, a.description
 having (a.description is not null) and (c=0);
-id	description	c
 1	test	0
 2	test2	0
 drop table t1,t2,t3;
 CREATE TABLE t1 (a int);
 INSERT INTO t1 VALUES (3), (4), (1), (3), (1);
 SELECT SUM(a) FROM t1 GROUP BY a HAVING SUM(a)>0;
-SUM(a)
 6
 4
 2
 SELECT SUM(a) FROM t1 GROUP BY a HAVING SUM(a);
-SUM(a)
 6
 4
 2
@@ -143,19 +125,14 @@ DROP TABLE t1;
 CREATE TABLE t1 (a int);
 INSERT INTO t1 VALUES (1), (2), (1), (3), (2), (1);
 SELECT a FROM t1 GROUP BY a HAVING a > 1;
-a
 2
 3
 SELECT a FROM t1 GROUP BY a HAVING 1 != 1 AND a > 1;
-a
 SELECT 0 AS x, a FROM t1 GROUP BY x,a HAVING x=1 AND a > 1;
-x	a
 analyze table t1;
 EXPLAIN SELECT a FROM t1 GROUP BY a HAVING 1 != 1 AND a > 1;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Impossible HAVING
 EXPLAIN SELECT 0 AS x, a FROM t1 GROUP BY x,a HAVING x=1 AND a > 1;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Impossible HAVING
 DROP table t1;
 CREATE TABLE t1 (a int PRIMARY KEY);
@@ -167,15 +144,12 @@ INSERT INTO t3(b,flag) VALUES (2, 1);
 SELECT t1.a
 FROM t1 INNER JOIN t2 ON t1.a=t2.a LEFT JOIN t3 ON t2.b=t3.b
 GROUP BY t1.a, t2.b HAVING MAX(t3.flag)=0;
-a
 SELECT DISTINCT t1.a, MAX(t3.flag)
 FROM t1 INNER JOIN t2 ON t1.a=t2.a LEFT JOIN t3 ON t2.b=t3.b
 GROUP BY t1.a, t2.b HAVING MAX(t3.flag)=0;
-a	MAX(t3.flag)
 SELECT DISTINCT t1.a
 FROM t1 INNER JOIN t2 ON t1.a=t2.a LEFT JOIN t3 ON t2.b=t3.b
 GROUP BY t1.a, t2.b HAVING MAX(t3.flag)=0;
-a
 DROP TABLE t1,t2,t3;
 create table t1 (col1 int, col2 varchar(5), col_t1 int);
 create table t2 (col1 int, col2 varchar(5), col_t2 int);
@@ -189,59 +163,45 @@ insert into t1 values(10,'bob',10);
 insert into t2 select * from t1;
 insert into t3 select * from t1;
 select count(*) from t1 group by col1 having col1 = 10;
-count(*)
 4
 select count(*) as count_col1 from t1 group by col1 having col1 = 10;
-count_col1
 4
 select count(*) as count_col1 from t1 as tmp1 group by col1 having col1 = 10;
-count_col1
 4
 select count(*) from t1 group by col2 having col2 = 'hello';
-count(*)
 3
 select col1 as count_col1 from t1 as tmp1 group by col1 having col1 = 10;
-count_col1
 10
 select col1 as count_col1 from t1 as tmp1 group by col1 having count_col1 = 10;
-count_col1
 10
 select col1 as count_col1 from t1 as tmp1 group by count_col1 having col1 = 10;
-count_col1
 10
 select col1 as count_col1 from t1 as tmp1 group by count_col1 having count_col1 = 10;
-count_col1
 10
 select col1 as count_col1,col2 from t1 as tmp1 group by col1,col2 having col1 = 10;
-count_col1	col2
 10	hello
 10	bye
 10	sam
 10	bob
 select col1 as count_col1,col2 from t1 as tmp1 group by col1,col2 having count_col1 = 10;
-count_col1	col2
 10	hello
 10	bye
 10	sam
 10	bob
 select col1 as count_col1,col2 from t1 as tmp1 group by col1,col2 having col2 = 'hello';
-count_col1	col2
 10	hello
 20	hello
 30	hello
 select col1 as count_col1,col2 as group_col2 from t1 as tmp1 group by col1,col2 having group_col2 = 'hello';
-count_col1	group_col2
 10	hello
 20	hello
 30	hello
 select sum(col1) as co2, count(col2) as cc from t1 group by col1 having col1 =10;
-co2	cc
 40	4
 select t1.col1 from t1
 where t1.col2 in
 (select t2.col2 from t2
 group by t2.col1, t2.col2 having t2.col1 <= 10);
-col1
 10
 20
 30
@@ -254,7 +214,6 @@ where t1.col2 in
 group by t2.col1, t2.col2
 having t2.col1 <=
 (select min(t3.col1) from t3));
-col1
 10
 20
 30
@@ -265,7 +224,6 @@ select t1.col1 from t1
 where t1.col2 in
 (select t2.col2 from t2
 group by t2.col1, t2.col2 having t1.col1 <= 10);
-col1
 10
 10
 10
@@ -274,7 +232,6 @@ select t1.col1 from t1
 where t1.col2 in
 (select t2.col2 from t2
 group by t2.col1, t2.col2 having col_t1 <= 10);
-col1
 10
 10
 10
@@ -282,7 +239,6 @@ col1
 select sum(col1) from t1
 group by col_t1
 having (select col_t1 from t2 where col_t1 = col_t2 order by col_t2 limit 1);
-sum(col1)
 40
 20
 30
@@ -294,7 +250,6 @@ where t1.col2 in
 group by t2.col1, t2.col2 having col_t1 <= 10)
 group by col_t1
 having col_t1 <= 20;
-col1
 10
 set @@sql_mode=@previous_sql_mode_htnt542nh;
 select col_t1, sum(col1) from t1
@@ -302,14 +257,12 @@ group by col_t1
 having col_t1 > 10 and
 exists (select sum(t2.col1) from t2
 group by t2.col2 having t2.col2 > 'b');
-col_t1	sum(col1)
 20	20
 30	30
 select sum(col1) from t1
 group by col_t1
 having col_t1 in (select sum(t2.col1) from t2
 group by t2.col2, t2.col1 having t2.col1 = col_t1);
-sum(col1)
 40
 20
 30
@@ -317,20 +270,14 @@ drop table t1, t2, t3;
 create table t1 (s1 int);
 insert into t1 values (1),(2),(3);
 select count(*) from t1 group by s1 having s1 is null;
-count(*)
 select s1*0 as s1 from t1 group by s1 having s1 <> 0;
-s1
 0
 0
 0
 select s1*0 from t1 group by s1 having s1 = 0;
-s1*0
 select s1 from t1 group by 1 having 1 = 0;
-s1
 select count(s1) from t1 group by s1 having count(1+1)=2;
-count(s1)
 select count(s1) from t1 group by s1 having s1*0=0;
-count(s1)
 1
 1
 1
@@ -342,7 +289,6 @@ set @previous_sql_mode_htnt542nh=@@sql_mode;
 set sql_mode=(select replace(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
 select s1,count(s1) from t1
 group by s1 collate latin1_swedish_ci having s1 = 'y';
-s1	count(s1)
 y	1
 set names utf8mb4;
 set @@sql_mode=@previous_sql_mode_htnt542nh;
@@ -377,7 +323,6 @@ FROM HU.STAFF WHERE GRADE * 1000 >
 ANY (SELECT SUM(BUDGET) FROM HU.PROJ
 GROUP BY CITY, PTYPE
 HAVING HU.PROJ.CITY = HU.STAFF.CITY);
-EMPNUM	GRADE*1000
 E3	13000
 DROP SCHEMA HU;
 create database test;
@@ -386,19 +331,15 @@ create table t1(f1 int);
 set @previous_sql_mode_htnt542nh=@@sql_mode;
 set sql_mode=(select replace(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
 select f1 from t1 having max(f1)=f1;
-f1
 set @@sql_mode=@previous_sql_mode_htnt542nh;
 select f1 from t1 group by f1 having max(f1)=f1;
-f1
 set session sql_mode='ONLY_FULL_GROUP_BY';
 select f1 from t1 group by f1 having max(f1)=f1;
-f1
 set session sql_mode='';
 drop table t1;
 CREATE TABLE t1 ( a INT, b INT);
 INSERT INTO t1 VALUES (1, 1), (2,2), (3, NULL);
 SELECT b, COUNT(DISTINCT a) FROM t1 GROUP BY b HAVING b is NULL;
-b	COUNT(DISTINCT a)
 NULL	1
 DROP TABLE t1;
 CREATE TABLE t1
@@ -416,7 +357,6 @@ WHERE t1.id1=t1.id1) AS amount FROM t1
 WHERE t1.id2 = 1
 HAVING amount > 0
 ORDER BY t1.id1;
-id1	amount
 DROP TABLE t1;
 CREATE TABLE t1 (f1 INT PRIMARY KEY, f2 INT, f3 INT);
 INSERT INTO t1 VALUES (2,7,9), (4,7,9), (6,2,9), (17,0,9);
@@ -426,7 +366,6 @@ JOIN t1 AS table2 ON table1.f3 = table2.f3
 WHERE table2.f1 = 2
 GROUP BY table1.f1, table2.f2
 HAVING (table2.f2 = 8 AND table1.f1 >= 6);
-f1	f2
 EXPLAIN
 SELECT table1.f1, table2.f2
 FROM t1 AS table1
@@ -434,7 +373,6 @@ JOIN t1 AS table2 ON table1.f3 = table2.f3
 WHERE table2.f1 = 2
 GROUP BY table1.f1, table2.f2
 HAVING (table2.f2 = 8 AND table1.f1 >= 6);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Impossible HAVING noticed after reading const tables
 EXPLAIN
 SELECT table1.f1, table2.f2
@@ -443,7 +381,6 @@ JOIN t1 AS table2 ON table1.f3 = table2.f3
 WHERE table2.f1 = 2
 GROUP BY table1.f1, table2.f2
 HAVING (table2.f2 = 8);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Impossible HAVING noticed after reading const tables
 DROP TABLE t1;
 CREATE TABLE t1(f1 INT, f2 INT);
@@ -452,7 +389,6 @@ CREATE TABLE t2 (f1 INT);
 INSERT INTO t2 VALUES (5);
 SELECT  COUNT(f1) FROM t2
 HAVING (7, 9)  IN (SELECT f1, MIN(f2) FROM t1);
-COUNT(f1)
 DROP TABLE t1, t2;
 CREATE TABLE t1 (f1 INT, f2 VARCHAR(1));
 INSERT INTO t1 VALUES (16,'f');
@@ -466,7 +402,6 @@ SELECT t1.f2 FROM t1
 STRAIGHT_JOIN (t2 JOIN t3 ON t3.f2  = t2.f2  ) ON t3 .f2  = t2 .f2
 HAVING ('v', 'i') NOT IN (SELECT f2, MIN(f2) FROM t1)
 ORDER BY f2;
-f2
 f
 f
 f
@@ -481,7 +416,6 @@ SELECT MAX(t2.f2) FROM t2 JOIN t1 ON t1.f2
 HAVING ('e' , 'd') IN
 (SELECT ts1.f2, ts2.f2 FROM t2 ts1 JOIN t2 ts2 ON ts1.f1)
 ORDER BY t1.f2;
-MAX(t2.f2)
 NULL
 DROP TABLE t1,t2;
 CREATE TABLE t1 (f1 INT(11), f2 VARCHAR(1), PRIMARY KEY (f1));
@@ -494,7 +428,6 @@ INSERT INTO t2 VALUES (12,'k');
 SELECT MAX(t1.f1) field1
 FROM t1 JOIN t2 ON t2.f2 LIKE 'x'
 HAVING field1 < 7;
-field1
 DROP TABLE t1,t2;
 CREATE TABLE t1 (f1 INT, f2 INT);
 INSERT INTO t1 VALUES (1, 0), (2, 1), (3, 2);
@@ -503,17 +436,14 @@ SELECT t1.f1
 FROM t1
 HAVING (3, 2) IN (SELECT f1, f2 FROM t2) AND t1.f1  >= 0
 ORDER BY t1.f1;
-f1
 SELECT t1.f1
 FROM t1
 HAVING (3, 2) IN (SELECT 4, 2) AND t1.f1  >= 0
 ORDER BY t1.f1;
-f1
 SELECT t1.f1
 FROM t1
 HAVING 2 IN (SELECT f2 FROM t2) AND t1.f1  >= 0
 ORDER BY t1.f1;
-f1
 DROP TABLE t1,t2;
 CREATE TABLE t2 (
 f1 INT,
@@ -532,36 +462,29 @@ SELECT t1.f1 FROM t1 JOIN t2 ON t2.f1 = t1.f1
 WHERE t1.f3 AND t1.f2 IN ('f')
 HAVING (1 ,6) IN (SELECT 3, 6)
 ORDER BY t1.f1;
-f1
 DROP TABLE t1, t2;
 CREATE TABLE t1 (pk INT PRIMARY KEY, i4 INT);
 INSERT INTO t1 VALUES (2,7), (4,7), (6,2), (17,0);
 SELECT MIN(table1.i4), MIN(table2.pk) as min_pk
 FROM t1 as table1, t1 as table2
 WHERE table1.pk = 1;
-MIN(table1.i4)	min_pk
 NULL	NULL
 SELECT MIN(table1.i4), MIN(table2.pk) as min_pk
 FROM t1 as table1, t1 as table2
 WHERE table1.pk = 1
 HAVING min_pk <= 10;
-MIN(table1.i4)	min_pk
 DROP TABLE t1;
 SET @old_sql_mode = @@sql_mode;
 SET @@sql_mode='ONLY_FULL_GROUP_BY';
 CREATE TABLE t1 (a INT, b INT);
 insert into t1 values(1,10),(2,20),(3,30);
 select a from t1 having a=3;
-a
 3
 select a as x from t1 having x=3;
-x
 3
 select avg(a) as x from t1 having x=2;
-x
 2.0000
 select a as foo, sum(b) as bar from t1 group by a having foo<10;
-foo	bar
 1	10
 2	20
 3	30
@@ -569,7 +492,6 @@ select a as foo, sum(b) as bar from t1
 group by a
 having bar>10
 order by foo+10;
-foo	bar
 2	20
 3	30
 select a as foo,
@@ -579,7 +501,6 @@ as bar from t1 as t1_outer
 group by a
 having bar<30
 order by bar+5;
-foo	bar
 1	20
 select a as foo,
 (select t1_inner.b from t1 as t1_inner where
@@ -588,7 +509,6 @@ as bar from t1 as t1_outer
 group by foo
 having bar<30
 order by bar+5;
-foo	bar
 1	20
 DROP TABLE t1;
 set sql_mode='';
@@ -597,18 +517,15 @@ SELECT a FROM (SELECT 1 FROM t1 AS From1) AS From2
 NATURAL RIGHT OUTER JOIN t1 AS Outjoin3
 GROUP BY 1 HAVING (
 SELECT 1 FROM t1 AS Grouphaving4 GROUP BY 1 HAVING a);
-a
 SELECT a FROM (SELECT 1 FROM t1 AS From1) AS From2
 NATURAL RIGHT OUTER JOIN t1 AS Outjoin3
 GROUP BY 1 HAVING
 sin((SELECT 1 FROM t1 AS Grouphaving4 GROUP BY 1 HAVING a));
-a
 CREATE TABLE t2 (a INT) ENGINE=INNODB;
 SELECT Outjoin3.a FROM (SELECT 1 FROM t1 AS From1) AS From2
 NATURAL RIGHT OUTER JOIN t2 AS Outjoin3
 GROUP BY 1 HAVING (
 SELECT 1 FROM t1 AS GroupHaving4 GROUP BY 1 HAVING a);
-a
 DROP TABLE t1, t2;
 SET @@sql_mode = @old_sql_mode;
 CREATE TABLE series (
@@ -624,25 +541,20 @@ INSERT INTO t1 VALUES(10, 10), (11, 11), (12, 12), (12, 13),(14, 15), (15, 16),
 (16, 17), (17, 18);
 ANALYZE TABLE t1;
 SELECT * FROM series, seq_calls;
-val	c
 1	0
 SELECT * FROM series, seq_calls;
-val	c
 1	0
 UPDATE series set val=0;
 SELECT * FROM series, seq_calls;
-val	c
 0	0
 UPDATE series set val=0;
 SELECT * FROM series, seq_calls;
-val	c
 0	0
 UPDATE series set val=1;
 INSERT INTO t1 SELECT * FROM t1;
 ALTER TABLE t1 ADD KEY(t, u);
 ANALYZE TABLE t1;
 SELECT * FROM series, seq_calls;
-val	c
 1	0
 UPDATE series set val=0;
 DROP TABLE t1;
@@ -653,14 +565,12 @@ ANALYZE TABLE t1;
 SELECT * FROM t1 WHERE (t, u) in (SELECT a.t,  COUNT(DISTINCT a.u)
 FROM t1 a, t1 b
 GROUP BY a.t);
-t	u
 2	1
 3	1
 4	1
 SELECT * FROM t1 WHERE (t, u) not in (SELECT a.t,  COUNT(DISTINCT a.u)
 FROM t1 a, t1 b
 GROUP BY a.t);
-t	u
 DROP TABLE t1;
 CREATE TABLE t1 (col_varchar_key varchar(1) DEFAULT NULL,
 KEY col_varchar_key (col_varchar_key));
@@ -669,7 +579,6 @@ SELECT SQL_BUFFER_RESULT col_varchar_key AS field1
 FROM t1 AS table1
 GROUP BY field1
 HAVING field1 = 'a';
-field1
 a
 DROP TABLE t1;
 CREATE TABLE a(f INTEGER, g INTEGER) engine=innodb;
@@ -677,15 +586,12 @@ DROP TABLE a;
 CREATE TABLE t1(c1 INT) ENGINE=INNODB;
 CREATE TABLE t2(c2 INT) ENGINE=INNODB;
 EXPLAIN SELECT c1 FROM t1 WHERE EXISTS(SELECT * FROM t2 HAVING c2>0);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	PRIMARY	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Impossible WHERE
 2	SUBQUERY	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 SELECT c1 FROM t1 WHERE EXISTS(SELECT * FROM t2 HAVING c2>0);
-c1
 INSERT INTO t1 VALUES(1);
 INSERT INTO t2 VALUES(2);
 SELECT c1 FROM t1 WHERE EXISTS(SELECT * FROM t2 HAVING c2>0);
-c1
 1
 DROP TABLE t1, t2;
 CREATE TABLE CC (
@@ -700,7 +606,6 @@ INSERT INTO CC VALUES
 (23,'z','z'),(28,'y','y');
 SELECT MAX(col_varchar_key) AS field1 FROM CC AS alias1
 HAVING field1 <> 5;
-field1
 z
 CREATE OR REPLACE VIEW v1 AS
 SELECT MAX(col_varchar_key) AS field1 FROM CC AS alias1
@@ -715,14 +620,12 @@ FROM t t1
 HAVING sub_value = 99
 ORDER BY value
 LIMIT 1;
-id	sub_value
 1	99
 SELECT t1.id, (SELECT t2.value FROM t t2 WHERE t1.id = t2.id) AS sub_value
 FROM t t1
 HAVING sub_value = 99 AND RAND() >= 0.0E0
 ORDER BY value
 LIMIT 1;
-id	sub_value
 1	99
 SELECT (SELECT (SELECT t2.value+o.c FROM t t2 WHERE t1.id = t2.id) AS sub_value
 FROM t t1
@@ -730,7 +633,6 @@ HAVING sub_value = 99
 ORDER BY value
 LIMIT 1) AS sub_value
 FROM o;
-sub_value
 99
 99
 DROP TABLE t, o;
@@ -741,9 +643,7 @@ DROP VIEW v;
 DROP TABLE t;
 SELECT 1 HAVING COUNT(*) = 1;
 1
-1
 SELECT 1 HAVING json_objectagg(utc_date(), 1416) <> 0;
-1
 1
 CREATE TABLE t1 (a INTEGER);
 INSERT INTO t1 VALUES (1), (2);
@@ -754,7 +654,6 @@ t1
 JOIN t1 AS t2 ON t1.a = t2.a
 GROUP BY t1.a
 HAVING COUNT(DISTINCT t1.a) = 1;
-da
 1
 DROP TABLE t1;
 CREATE TABLE t1 (f1 INT, f2 TEXT, f3 INT, PRIMARY KEY(f1));

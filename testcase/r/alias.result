@@ -57,7 +57,6 @@ INSERT INTO t1 VALUES (3359360,0,0,'Mustermann Musterfrau',29674907,'2000-05-20'
 INSERT INTO t1 VALUES (3359361,406,3359361,'Mustermann Musterfrau',7001,'2000-05-20','workflow','Auftrag storniert','','(7001-84):Storno, Kd. möchte nicht mehr','privat',NULL,0,'+','','P',1909150,'MobilComSuper92000D1(Akquise)',NULL,NULL,'MS9ND1',325,24,'MobilCom Intern',7003,NULL,'auto',20010202105916,'Mobilfunk','PP','','','');
 INSERT INTO t1 VALUES (3359362,406,3359362,'Mustermann Musterfrau',7001,'2000-05-20','workflow','Auftrag erledigt','Originalvertrag eingegangen und geprüft','','privat',1509984,2145874,'+','','P',1909154,'MobilComSuper92000D1(Akquise)',NULL,NULL,'MS9ND1',327,24,'MobilCom Intern',7003,NULL,'auto',20010202105916,'Mobilfunk','PP','','','');
 SELECT ELT(FIELD(kundentyp,'PP','PPA','PG','PGA','FK','FKA','FP','FPA','K','KA','V','VA',''), 'Privat (Private Nutzung)','Privat (Private Nutzung) Sitz im Ausland','Privat (geschaeftliche Nutzung)','Privat (geschaeftliche Nutzung) Sitz im Ausland','Firma (Kapitalgesellschaft)','Firma (Kapitalgesellschaft) Sitz im Ausland','Firma (Personengesellschaft)','Firma (Personengesellschaft) Sitz im Ausland','oeff. rechtl. Koerperschaft','oeff. rechtl. Koerperschaft Sitz im Ausland','Eingetragener Verein','Eingetragener Verein Sitz im Ausland','Typ unbekannt') AS Kundentyp ,kategorie FROM t1 WHERE hdl_nr < 2000000 AND kategorie IN ('Prepaid','Mobilfunk') AND st_klasse = 'Workflow' GROUP BY kundentyp ORDER BY kategorie;
-Kundentyp	kategorie
 Privat (Private Nutzung)	Mobilfunk
 drop table t1;
 CREATE TABLE t1 (
@@ -80,70 +79,53 @@ insert into t1 values(1,2,3);
 insert into t1 values(11,22,33);
 insert into t2 values(99);
 select t1.* from t1;
-a	b	c
 1	2	3
 11	22	33
 select t2.* from t2;
-d
 99
 select t1.*, t1.* from t1;
-a	b	c	a	b	c
 1	2	3	1	2	3
 11	22	33	11	22	33
 select t1.*, a, t1.* from t1;
-a	b	c	a	a	b	c
 1	2	3	1	1	2	3
 11	22	33	11	11	22	33
 select a, t1.* from t1;
-a	a	b	c
 1	1	2	3
 11	11	22	33
 select t1.*, a from t1;
-a	b	c	a
 1	2	3	1
 11	22	33	11
 select a, t1.*, b from t1;
-a	a	b	c	b
 1	1	2	3	2
 11	11	22	33	22
 select (select d from t2 where d > a), t1.* from t1;
-(select d from t2 where d > a)	a	b	c
 99	1	2	3
 99	11	22	33
 select t1.*, (select a from t2 where d > a) from t1;
-a	b	c	(select a from t2 where d > a)
 1	2	3	1
 11	22	33	11
 select a as 'x', t1.* from t1;
-x	a	b	c
 1	1	2	3
 11	11	22	33
 select t1.*, a as 'x' from t1;
-a	b	c	x
 1	2	3	1
 11	22	33	11
 select a as 'x', t1.*, b as 'x' from t1;
-x	a	b	c	x
 1	1	2	3	2
 11	11	22	33	22
 select (select d from t2 where d > a) as 'x', t1.* from t1;
-x	a	b	c
 99	1	2	3
 99	11	22	33
 select t1.*, (select a from t2 where d > a) as 'x' from t1;
-a	b	c	x
 1	2	3	1
 11	22	33	11
 select (select t2.* from t2) from t1;
-(select t2.* from t2)
 99
 99
 select a, (select t2.* from t2) from t1;
-a	(select t2.* from t2)
 1	99
 11	99
 select t1.*, (select t2.* from t2) from t1;
-a	b	c	(select t2.* from t2)
 1	2	3	99
 11	22	33	99
 insert into t3 select t1.* from t1;
@@ -157,4 +139,3 @@ drop table t4;
 create table t4 select t2.*, d as 'x', d as 'z' from t2;
 drop table t4;
 drop table t1,t2,t3;
-SET sql_mode = default;

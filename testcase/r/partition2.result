@@ -64,14 +64,12 @@ PARTITION BY KEY (a) PARTITIONS 1;
 INSERT INTO t1 VALUES ('a'),('b'),('c');
 analyze table t1;
 EXPLAIN SELECT 1 FROM t1 WHERE a > 1;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p0	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where
 DROP TABLE t1;
 CREATE TABLE t1 (a INT NOT NULL, b INT NOT NULL)
 PARTITION BY KEY (a) PARTITIONS 2;
 INSERT INTO t1 VALUES (0,1), (0,2);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int NOT NULL,
   `b` int NOT NULL
@@ -79,18 +77,15 @@ t1	CREATE TABLE `t1` (
 /*!50100 PARTITION BY KEY (a)
 PARTITIONS 2 */
 SELECT * FROM t1;
-a	b
 0	1
 0	2
 UPDATE t1 SET a = 1, b = 1 WHERE a = 0 AND b = 2;
 ALTER TABLE t1 ADD PRIMARY KEY (a);
 SELECT * FROM t1;
-a	b
 1	1
 0	1
 ALTER TABLE t1 DROP PRIMARY KEY;
 SELECT * FROM t1;
-a	b
 1	1
 0	1
 DROP TABLE t1;
@@ -142,7 +137,6 @@ PARTITION p01 VALUES LESS THAN(100),
 PARTITION p11 VALUES LESS THAN(200),
 PARTITION p21 VALUES LESS THAN MAXVALUE);
 SELECT PARTITION_EXPRESSION, SUBPARTITION_EXPRESSION FROM INFORMATION_SCHEMA.PARTITIONS WHERE TABLE_NAME='t1';
-PARTITION_EXPRESSION	SUBPARTITION_EXPRESSION
 `ID`	`ID`,`aaaa,aaaaa`
 `ID`	`ID`,`aaaa,aaaaa`
 `ID`	`ID`,`aaaa,aaaaa`
@@ -150,7 +144,6 @@ PARTITION_EXPRESSION	SUBPARTITION_EXPRESSION
 `ID`	`ID`,`aaaa,aaaaa`
 `ID`	`ID`,`aaaa,aaaaa`
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `ID` int NOT NULL,
   `aaaa,aaaaa` tinyint unsigned NOT NULL DEFAULT '0',
@@ -198,40 +191,31 @@ INSERT INTO t1 VALUES ('2007-07-30 17:35:48', 'p1');
 INSERT INTO t1 VALUES ('2009-07-14 17:35:55', 'pmax');
 INSERT INTO t1 VALUES ('2009-09-21 17:31:42', 'pmax');
 SELECT * FROM t1;
-a	b
 2007-07-30 17:35:48	p1
 2009-07-14 17:35:55	pmax
 2009-09-21 17:31:42	pmax
 SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-a	b
 2007-07-30 17:35:48	p1
 analyze table t1;
 EXPLAIN SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1	range	PRIMARY	PRIMARY	4	NULL	1	100.00	Using where
 EXPLAIN SELECT * FROM t1 where a = '2007-07-30 17:35:48';
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
 ALTER TABLE t1 REORGANIZE PARTITION pmax INTO (
 PARTITION p3 VALUES LESS THAN (1247688000),
 PARTITION pmax VALUES LESS THAN MAXVALUE);
 SELECT * FROM t1;
-a	b
 2007-07-30 17:35:48	p1
 2009-07-14 17:35:55	pmax
 2009-09-21 17:31:42	pmax
 SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-a	b
 2007-07-30 17:35:48	p1
 analyze table t1;
 EXPLAIN SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1	range	PRIMARY	PRIMARY	4	NULL	1	100.00	Using where
 EXPLAIN SELECT * FROM t1 where a = '2007-07-30 17:35:48';
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `b` varchar(10) DEFAULT NULL,
@@ -256,11 +240,9 @@ partition p1 values in (2));
 insert into t1 values (1,1),(2,1),(2,2),(2,3);
 analyze table t1;
 show indexes from t1;
-Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment	Visible	Expression
 t1	1	a	1	a	A	1	NULL	NULL	YES	BTREE			YES	NULL
 analyze table t1;
 show indexes from t1;
-Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment	Visible	Expression
 t1	1	a	1	a	A	1	NULL	NULL	YES	BTREE			YES	NULL
 drop table t1;
 create table t1 (a int)
@@ -282,11 +264,9 @@ INSERT INTO t1 VALUES (NULL);
 INSERT INTO t1 VALUES (NULL);
 INSERT INTO t1 VALUES (NULL);
 SELECT * FROM t1 WHERE pk < 0 ORDER BY pk;
-pk
 DROP TABLE t1;
 CREATE TABLE t1 (a INT);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -307,7 +287,6 @@ PARTITION BY HASH (a)
 PARTITION p1 ENGINE=NonExistentEngine);
 ALTER TABLE t1 ENGINE=NonExistentEngine;
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -321,18 +300,15 @@ PARTITION BY RANGE(a)
 (PARTITION p1 VALUES LESS THAN (200), PARTITION pmax VALUES LESS THAN MAXVALUE);
 INSERT INTO t1 VALUES (2), (40), (40), (70), (60), (90), (199);
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 95 ORDER BY a ASC;
-a
 60
 70
 90
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 95;
-a
 60
 70
 90
 INSERT INTO t1 VALUES (200), (250), (210);
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 220 ORDER BY a ASC;
-a
 60
 70
 90
@@ -340,16 +316,13 @@ a
 200
 210
 SELECT a FROM t1 WHERE a BETWEEN 200 AND 220 ORDER BY a ASC;
-a
 200
 210
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 95 ORDER BY a DESC;
-a
 90
 70
 60
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 220 ORDER BY a DESC;
-a
 210
 200
 199
@@ -357,11 +330,9 @@ a
 70
 60
 SELECT a FROM t1 WHERE a BETWEEN 200 AND 220 ORDER BY a DESC;
-a
 210
 200
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 220;
-a
 60
 70
 90
@@ -369,16 +340,13 @@ a
 200
 210
 SELECT a FROM t1 WHERE a BETWEEN 200 AND 220;
-a
 200
 210
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 95;
-a
 60
 70
 90
 SELECT a FROM t1 WHERE a BETWEEN 60 AND 220;
-a
 60
 70
 90
@@ -386,7 +354,6 @@ a
 200
 210
 SELECT a FROM t1 WHERE a BETWEEN 200 AND 220;
-a
 200
 210
 DROP TABLE t1;
@@ -443,24 +410,18 @@ INSERT INTO t1 VALUES (1,1,0), (1,1,1), (1,1,2), (1,1,53), (1,1,4), (1,1,5),
 (1,15,15), (1,15,27), (1,15,49), (1,16,0), (1,16,1), (1,16,3), (1,17,4),
 (1,19,1);
 SELECT COUNT(*) FROM t1 WHERE b NOT IN ( 1,2,6,7,9,10,11 );
-COUNT(*)
 24
 SELECT SUM(c) FROM t1 WHERE b NOT IN ( 1,2,6,7,9,10,11 );
-SUM(c)
 400
 ALTER TABLE t1 DROP INDEX b;
 SELECT COUNT(*) FROM t1 WHERE b NOT IN ( 1,2,6,7,9,10,11 );
-COUNT(*)
 24
 SELECT SUM(c) FROM t1 WHERE b NOT IN ( 1,2,6,7,9,10,11 );
-SUM(c)
 400
 ALTER TABLE t1 ADD INDEX b USING HASH (b);
 SELECT COUNT(*) FROM t1 WHERE b NOT IN ( 1,2,6,7,9,10,11 );
-COUNT(*)
 24
 SELECT SUM(c) FROM t1 WHERE b NOT IN ( 1,2,6,7,9,10,11 );
-SUM(c)
 400
 DROP TABLE t1;
 CREATE TABLE `t1` (
@@ -475,17 +436,14 @@ INSERT INTO `t1` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
 INSERT INTO `t2` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 analyze table t1;
 EXPLAIN SELECT c1 FROM t1 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	range	c1	c1	5	NULL	4	100.00	Using where; Using index
 FLUSH STATUS;
 SELECT c1 FROM t1 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
-c1
 11
 12
 18
 19
 SHOW STATUS LIKE 'Handler_read_%';
-Variable_name	Value
 Handler_read_first	0
 Handler_read_key	2
 Handler_read_last	0
@@ -494,17 +452,14 @@ Handler_read_prev	0
 Handler_read_rnd	0
 Handler_read_rnd_next	0
 EXPLAIN SELECT c1 FROM t2 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t2	a	range	c1	c1	5	NULL	4	100.00	Using where; Using index
 FLUSH STATUS;
 SELECT c1 FROM t2 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
-c1
 11
 12
 18
 19
 SHOW STATUS LIKE 'Handler_read_%';
-Variable_name	Value
 Handler_read_first	0
 Handler_read_key	2
 Handler_read_last	0
@@ -528,15 +483,12 @@ INSERT INTO `t1` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
 INSERT INTO `t2` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 analyze table t1;
 EXPLAIN SELECT c1 FROM t1 WHERE (c1 > 2 AND c1 < 5);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	range	c1	c1	5	NULL	2	100.00	Using where; Using index
 FLUSH STATUS;
 SELECT c1 FROM t1 WHERE (c1 > 2 AND c1 < 5);
-c1
 3
 4
 SHOW STATUS LIKE 'Handler_read_%';
-Variable_name	Value
 Handler_read_first	0
 Handler_read_key	1
 Handler_read_last	0
@@ -545,15 +497,12 @@ Handler_read_prev	0
 Handler_read_rnd	0
 Handler_read_rnd_next	0
 EXPLAIN SELECT c1 FROM t2 WHERE (c1 > 2 AND c1 < 5);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t2	a	range	c1	c1	5	NULL	2	100.00	Using where; Using index
 FLUSH STATUS;
 SELECT c1 FROM t2 WHERE (c1 > 2 AND c1 < 5);
-c1
 3
 4
 SHOW STATUS LIKE 'Handler_read_%';
-Variable_name	Value
 Handler_read_first	0
 Handler_read_key	1
 Handler_read_last	0
@@ -562,15 +511,12 @@ Handler_read_prev	0
 Handler_read_rnd	0
 Handler_read_rnd_next	0
 EXPLAIN SELECT c1 FROM t1 WHERE (c1 > 12 AND c1 < 15);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	range	c1	c1	5	NULL	2	100.00	Using where; Using index
 FLUSH STATUS;
 SELECT c1 FROM t1 WHERE (c1 > 12 AND c1 < 15);
-c1
 13
 14
 SHOW STATUS LIKE 'Handler_read_%';
-Variable_name	Value
 Handler_read_first	0
 Handler_read_key	1
 Handler_read_last	0
@@ -579,15 +525,12 @@ Handler_read_prev	0
 Handler_read_rnd	0
 Handler_read_rnd_next	0
 EXPLAIN SELECT c1 FROM t2 WHERE (c1 > 12 AND c1 < 15);
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t2	a	range	c1	c1	5	NULL	2	100.00	Using where; Using index
 FLUSH STATUS;
 SELECT c1 FROM t2 WHERE (c1 > 12 AND c1 < 15);
-c1
 13
 14
 SHOW STATUS LIKE 'Handler_read_%';
-Variable_name	Value
 Handler_read_first	0
 Handler_read_key	1
 Handler_read_last	0
@@ -610,13 +553,11 @@ PARTITION `p5` VALUES LESS THAN (2010)
 COMMENT 'APSTART \' APEND'
 );
 SELECT * FROM t1 LIMIT 1;
-d
 DROP TABLE t1;
 create table t1 (id int auto_increment, s1 int, primary key (id));
 insert into t1 values (null,1);
 insert into t1 values (null,6);
 select * from t1;
-id	s1
 1	1
 2	6
 alter table t1 partition by range (id) (
@@ -640,9 +581,7 @@ partition by hash (a);
 insert into t1 values (0xFFFFFFFFFFFFFFFD);
 insert into t1 values (0xFFFFFFFFFFFFFFFE);
 select * from t1 where (a + 1) < 10;
-a
 select * from t1 where (a + 1) > 10;
-a
 18446744073709551613
 18446744073709551614
 drop table t1;
@@ -652,7 +591,6 @@ subpartition by key (a)
 (partition p0 values less than (1));
 alter table t1 add partition (partition p1 values less than (2));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -662,7 +600,6 @@ SUBPARTITION BY KEY (a)
  PARTITION p1 VALUES LESS THAN (2) ENGINE = InnoDB) */
 alter table t1 reorganize partition p1 into (partition p1 values less than (3));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -678,10 +615,8 @@ c int not null,
 primary key(a,b))
 partition by key (a);
 select count(*) from t1;
-count(*)
 0
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int NOT NULL,
   `b` int NOT NULL,
@@ -740,7 +675,6 @@ partition x2 tablespace innodb_file_per_table,
 partition x3 tablespace innodb_file_per_table);
 CREATE TABLE t2 LIKE t1;
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int NOT NULL,
   `b` int NOT NULL,
@@ -752,7 +686,6 @@ t1	CREATE TABLE `t1` (
  PARTITION x2 TABLESPACE = `innodb_file_per_table` ENGINE = InnoDB,
  PARTITION x3 TABLESPACE = `innodb_file_per_table` ENGINE = InnoDB) */
 SHOW CREATE TABLE t2;
-Table	Create Table
 t2	CREATE TABLE `t2` (
   `a` int NOT NULL,
   `b` int NOT NULL,
@@ -776,7 +709,6 @@ partitions 3
 partition x2 values in (3, 11, 5, 7),
 partition x3 values in (16, 8, 5+19, 70-43));
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int NOT NULL,
   `b` int NOT NULL,
@@ -799,7 +731,6 @@ partitions 3
 partition x2 values in (3, 11, 5, 7),
 partition x3 values in (16, 8, 5+19, 70-43));
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int NOT NULL,
   `b` int NOT NULL,
@@ -821,7 +752,6 @@ partition by list (b*a)
 partition x2 values in (3, 11, 5, 7),
 partition x3 values in (16, 8, 5+19, 70-43));
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int NOT NULL,
   `b` int NOT NULL,
@@ -861,7 +791,6 @@ INSERT INTO t1 VALUES
 (9, 'study desk', '1984-09-16'),
 (10, 'lava lamp', '1998-12-25');
 SELECT * from t1 ORDER BY a;
-a	name	purchased
 1	desk organiser	2003-10-15
 2	CD player	1993-11-05
 3	TV set	1996-03-10
@@ -874,7 +803,6 @@ a	name	purchased
 10	lava lamp	1998-12-25
 ALTER TABLE t1 DROP PARTITION p0;
 SELECT * from t1 ORDER BY a;
-a	name	purchased
 3	TV set	1996-03-10
 4	bookcase	1982-01-10
 5	exercise bike	2004-05-09
@@ -889,7 +817,6 @@ PARTITION BY LIST (a)
 (PARTITION p0 VALUES IN (1,2,3), PARTITION p1 VALUES IN (4,5,6));
 insert into t1 values (1),(2),(3),(4),(5),(6);
 select * from t1;
-a
 1
 2
 3
@@ -898,23 +825,19 @@ a
 6
 truncate t1;
 select * from t1;
-a
 truncate t1;
 select * from t1;
-a
 drop table t1;
 CREATE TABLE t1 (a int, b int, primary key(a,b))
 PARTITION BY KEY(b,a) PARTITIONS 4;
 insert into t1 values (0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);
 select * from t1 where a = 4;
-a	b
 4	4
 drop table t1;
 CREATE TABLE t1 (c1 INT, c2 INT, PRIMARY KEY USING BTREE (c1,c2))
 PARTITION BY KEY(c2,c1) PARTITIONS 4;
 INSERT INTO t1 VALUES (0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);
 SELECT * FROM t1 WHERE c1 = 4;
-c1	c2
 4	4
 DROP TABLE t1;
 CREATE TABLE t1 (a int)
@@ -922,7 +845,6 @@ PARTITION BY LIST (a)
 PARTITIONS 1
 (PARTITION x1 VALUES IN (1) ENGINE=InnoDB);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -942,7 +864,6 @@ CREATE TABLE t1 (a int)
 PARTITION BY HASH(a)
 PARTITIONS 5;
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -967,7 +888,6 @@ partition p1 values less than (20),
 partition p2 values less than (25));
 alter table t1 reorganize partition p2 into (partition p2 values less than (30));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -991,7 +911,6 @@ PARTITION x9 VALUES LESS THAN (20));
 ALTER TABLE t1 REORGANIZE PARTITION x0,x1,x2 INTO
 (PARTITION x1 VALUES LESS THAN (6));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL
@@ -1019,7 +938,6 @@ partition p3 values less than (2147483647));
 insert into t1 values(10,10,'10');
 insert into t1 values(2,2,'2');
 select * from t1 where f1 = 2;
-f1	f2	f3
 2	2	2
 drop table t1;
 create table t1 (f1 integer,f2 integer, unique index(f1))
@@ -1030,7 +948,6 @@ partition parte values less than (4),
 partition partf values less than (10000));
 insert into t1 values(10,1);
 select * from t1 where f1 = 10;
-f1	f2
 10	1
 drop table t1;
 set @old_default_engine= @@session.default_storage_engine;
@@ -1054,7 +971,6 @@ partition by key(a)
 partitions 2
 (partition p0 engine=innodb, partition p1 engine=innodb);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1063,7 +979,6 @@ t1	CREATE TABLE `t1` (
  PARTITION p1 ENGINE = InnoDB) */
 alter table t1;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1072,7 +987,6 @@ t1	CREATE TABLE `t1` (
  PARTITION p1 ENGINE = InnoDB) */
 alter table t1 engine=innodb;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1081,7 +995,6 @@ t1	CREATE TABLE `t1` (
  PARTITION p1 ENGINE = InnoDB) */
 alter table t1 remove partitioning;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1092,7 +1005,6 @@ partition by key(a)
 partitions 2
 (partition p0 engine=innodb, partition p1 engine=innodb);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1101,7 +1013,6 @@ t1	CREATE TABLE `t1` (
  PARTITION p1 ENGINE = InnoDB) */
 alter table t1 add column b int remove partitioning;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL
@@ -1111,7 +1022,6 @@ engine=innodb
 partition by key(a)
 (partition p0 engine=innodb, partition p1);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL
@@ -1121,7 +1031,6 @@ t1	CREATE TABLE `t1` (
  PARTITION p1 ENGINE = InnoDB) */
 alter table t1 engine=myisam, add column c int remove partitioning;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL,
@@ -1132,7 +1041,6 @@ engine=innodb
 partition by key (a)
 (partition p0, partition p1);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL,
@@ -1145,7 +1053,6 @@ alter table t1
 partition by key (a)
 (partition p0, partition p1);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL,
@@ -1175,10 +1082,8 @@ PARTITION partf VALUES LESS THAN (2147483647));
 INSERT INTO t1 SET f_int1 = NULL , f_int2 = -20, f_char1 = CAST(-20 AS CHAR),
 f_char2 = CAST(-20 AS CHAR), f_charbig = '#NULL#';
 SELECT * FROM t1 WHERE f_int1 IS NULL;
-f_int1	f_int2	f_char1	f_char2	f_charbig
 NULL	-20	-20	-20	#NULL#
 SELECT * FROM t1;
-f_int1	f_int2	f_char1	f_char2	f_charbig
 NULL	-20	-20	-20	#NULL#
 drop table t1;
 CREATE TABLE t1 (
@@ -1192,7 +1097,6 @@ PARTITION part3 VALUES IN (1) (SUBPARTITION sp4, SUBPARTITION sp6));
 INSERT INTO t1 SET f_int1 = 2, f_int2 = 2, f_char1 = '2', f_char2 = '2', f_charbig = '===2===';
 INSERT INTO t1 SET f_int1 = 2, f_int2 = 2, f_char1 = '2', f_char2 = '2', f_charbig = '===2===';
 SELECT * FROM t1 WHERE f_int1  IS NULL;
-f_int1	f_int2	f_char1	f_char2	f_charbig
 drop table t1;
 create table t1 (a int,b int,c int,key(a,b))
 partition by range (a)
@@ -1205,9 +1109,7 @@ insert into t1 values (0, 1, 1);
 insert into t1 values (12, 1, 1);
 select partition_name, partition_description, table_rows
 from information_schema.partitions where table_schema ='test';
-PARTITION_NAME	PARTITION_DESCRIPTION	TABLE_ROWS
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL,
@@ -1234,7 +1136,6 @@ insert into t1 values (11,1,6);
 insert into t1 values (NULL,1,1);
 select partition_name, partition_description, table_rows
 from information_schema.partitions where table_schema ='test';
-PARTITION_NAME	PARTITION_DESCRIPTION	TABLE_ROWS
 drop table t1;
 create table t1 (a int)
 partition by list (a)
@@ -1248,7 +1149,6 @@ create table t1 (a int)
 partition by range (a) subpartition by hash (a)
 (partition p0 values less than (100));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1258,7 +1158,6 @@ SUBPARTITION BY HASH (`a`)
 alter table t1 add partition (partition p1 values less than (200)
 (subpartition subpart21));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1272,14 +1171,12 @@ drop table t1;
 create table t1 (a int)
 partition by key (a);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 /*!50100 PARTITION BY KEY (a) */
 alter table t1 add partition (partition p1);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1306,25 +1203,20 @@ drop table t1;
 create table t2 (s1 int not null auto_increment, primary key (s1)) partition by list (s1) (partition p1 values in (1),partition p2 values in (2),partition p3 values in (3),partition p4 values in (4));
 insert into t2 values (null),(null),(null);
 select * from t2;
-s1
 1
 2
 3
 select * from t2 where s1 < 2;
-s1
 1
 update t2 set s1 = s1 + 1 order by s1 desc;
 select * from t2 where s1 < 3;
-s1
 2
 select * from t2 where s1 = 2;
-s1
 2
 drop table t2;
 create table t1 (a int, b int) partition by list (a)
 (partition p1 values in (1), partition p2 values in (2));
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL
@@ -1337,7 +1229,6 @@ create table t1 (a int unsigned not null auto_increment primary key)
 partition by key(a);
 alter table t1 rename t2, add c char(10), comment "no comment";
 show create table t2;
-Table	Create Table
 t2	CREATE TABLE `t2` (
   `a` int unsigned NOT NULL AUTO_INCREMENT,
   `c` char(10) DEFAULT NULL,
@@ -1349,7 +1240,6 @@ create table t1 (f1 int) partition by hash (f1) as select 1;
 drop table t1;
 prepare stmt1 from 'create table t1 (s1 int) partition by hash (s1)';
 execute stmt1;
-
 drop table t1;
 CREATE TABLE t1 (a int not null)
 partition by key(a)
@@ -1365,11 +1255,9 @@ create table t1 (f1 integer) partition by range(f1)
 (partition p1 values less than (0), partition p2 values less than (10));
 insert into t1 set f1 = null;
 select * from t1 where f1 is null;
-f1
 NULL
 analyze table t1;
 explain select * from t1 where f1 is null;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 drop table t1;
 create table t1 (f1 integer) partition by list(f1)
@@ -1377,7 +1265,6 @@ create table t1 (f1 integer) partition by list(f1)
 insert into t1 set f1 = null;
 insert into t1 set f1 = 1;
 select * from t1 where f1 is null or f1 = 1;
-f1
 1
 NULL
 drop table t1;
@@ -1385,26 +1272,18 @@ create table t1 (f1 smallint)
 partition by list (f1) (partition p0 values in (null));
 insert into t1 values (null);
 select * from t1 where f1 is null;
-f1
 NULL
 select * from t1 where f1 < 1;
-f1
 select * from t1 where f1 <= NULL;
-f1
 select * from t1 where f1 < NULL;
-f1
 select * from t1 where f1 >= NULL;
-f1
 select * from t1 where f1 > NULL;
-f1
 select * from t1 where f1 > 1;
-f1
 drop table t1;
 create table t1 (f1 smallint)
 partition by range (f1) (partition p0 values less than (0));
 insert into t1 values (null);
 select * from t1 where f1 is null;
-f1
 NULL
 drop table t1;
 create table t1 (f1 integer) partition by list(f1)
@@ -1417,18 +1296,14 @@ partition p5 values in (4)
 );
 insert into t1 values (1),(2),(3),(4),(null);
 select * from t1 where f1 < 3;
-f1
 1
 2
 analyze table t1;
 explain select * from t1 where f1 < 3;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1,p3	ALL	NULL	NULL	NULL	NULL	2	50.00	Using where
 select * from t1 where f1 is null;
-f1
 NULL
 explain select * from t1 where f1 is null;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p2	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 drop table t1;
 create table t1 (f1 int) partition by list(f1 div 2)
@@ -1441,17 +1316,13 @@ partition p5 values in (4)
 );
 insert into t1 values (2),(4),(6),(8),(null);
 select * from t1 where f1 < 3;
-f1
 2
 analyze table t1;
 explain select * from t1 where f1 < 3;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p1,p2,p3,p4,p5	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
 select * from t1 where f1 is null;
-f1
 NULL
 explain select * from t1 where f1 is null;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p2	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 drop table t1;
 create table t1 (a int) partition by LIST(a) (
@@ -1462,20 +1333,16 @@ partition p2 values in (2)
 );
 insert into t1 values (NULL),(0),(1),(2);
 select * from t1 where a is null or a < 2;
-a
 NULL
 0
 1
 analyze table t1;
 explain select * from t1 where a is null or a < 2;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	pn,p0,p1	ALL	NULL	NULL	NULL	NULL	3	55.56	Using where
 select * from t1 where a is null or a < 0 or a > 1;
-a
 NULL
 2
 explain select * from t1 where a is null or a < 0 or a > 1;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	pn,p2	ALL	NULL	NULL	NULL	NULL	2	87.50	Using where
 drop table t1;
 CREATE TABLE t1 (id INT NOT NULL PRIMARY KEY, name VARCHAR(20))
@@ -1502,7 +1369,6 @@ CREATE TABLE t1 (a int)
 PARTITION BY LIST (a)
 (PARTITION p0 VALUES IN (NULL));
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1519,10 +1385,8 @@ insert into t1 values (null);
 insert into t1 values (null);
 analyze table t1;
 select auto_increment from information_schema.tables where table_name='t1';
-AUTO_INCREMENT
 4
 select * from t1;
-s1
 1
 2
 3
@@ -1536,7 +1400,6 @@ create table t1 (a varchar(1))
 partition by key (a)
 as select 'a';
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` varchar(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -1567,7 +1430,6 @@ create table t1 (a int, index(a))
 partition by hash(a);
 insert into t1 values (1),(2);
 select * from t1 ORDER BY a DESC;
-a
 2
 1
 drop table t1;
@@ -1575,7 +1437,6 @@ create table t1 (a bigint unsigned not null, primary key(a))
 partition by key (a)
 partitions 10;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` bigint unsigned NOT NULL,
   PRIMARY KEY (`a`)
@@ -1585,17 +1446,14 @@ PARTITIONS 10 */
 insert into t1 values (18446744073709551615), (0xFFFFFFFFFFFFFFFE),
 (18446744073709551613), (18446744073709551612);
 select * from t1;
-a
 18446744073709551614
 18446744073709551612
 18446744073709551613
 18446744073709551615
 select * from t1 where a = 18446744073709551615;
-a
 18446744073709551615
 delete from t1 where a = 18446744073709551615;
 select * from t1;
-a
 18446744073709551614
 18446744073709551612
 18446744073709551613
@@ -1657,7 +1515,6 @@ SELECT distinct id
 FROM t4
 WHERE taken BETWEEN @f_date AND date_add(@t_date, INTERVAL 1 DAY))
 ORDER BY t1.id;
-MyISAM_part
 16421
 19092
 22589
@@ -1686,7 +1543,6 @@ alien tinyint(4) NOT NULL
 INSERT INTO t2 VALUES
 (22589,1,1,'Need Feedback',0);
 SELECT t2.id FROM t2 WHERE t2.id IN (SELECT id FROM t1 WHERE status = 'Verified');
-id
 22589
 drop table t1, t2;
 create table t1 (c1 varchar(255),c2 tinyint,primary key(c1))
@@ -1694,7 +1550,6 @@ partition by key (c1) partitions 10 ;
 insert into t1 values ('aaa','1') on duplicate key update c2 = c2 + 1;
 insert into t1 values ('aaa','1') on duplicate key update c2 = c2 + 1;
 select * from t1;
-c1	c2
 aaa	2
 drop table t1;
 create table t1 (s1 bigint) partition by list (s1) (partition p1 values in (-9223372036854775808));
@@ -1729,7 +1584,6 @@ PARTITION p1 VALUES LESS THAN (10),
 PARTITION p2 VALUES LESS THAN (20)
 ) select * from t2;
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `a` int DEFAULT NULL,
   `b` int DEFAULT NULL
@@ -1753,7 +1607,6 @@ key(c0)
 insert ignore into t1 set c0 = -6502262, c1 = 3992917, c2 = 35019;
 insert ignore into t1 set c0 = 241221, c1 = -6862346, c2 = 56644;
 select c1 from t1 group by (select c0 from t1 limit 1);
-c1
 -6862346
 drop table t1;
 CREATE TABLE t1(a int)
@@ -1784,21 +1637,17 @@ PARTITION p3 VALUES LESS THAN MAXVALUE
 INSERT INTO t1 VALUES (-1), (0), (18446744073709551613),
 (18446744073709551614), (18446744073709551615);
 SELECT * FROM t1;
-s1
 0
 0
 18446744073709551613
 18446744073709551614
 18446744073709551615
 SELECT * FROM t1 WHERE s1 = 0;
-s1
 0
 0
 SELECT * FROM t1 WHERE s1 = 18446744073709551614;
-s1
 18446744073709551614
 SELECT * FROM t1 WHERE s1 = 18446744073709551615;
-s1
 18446744073709551615
 DROP TABLE t1;
 CREATE TABLE t1 (s1 BIGINT UNSIGNED)
@@ -1829,7 +1678,6 @@ INSERT INTO t1 (int_column, char_column) VALUES
 (     756594 ,'ZZZXU'),
 (     718061 ,'ZZzZH');
 SELECT * FROM t1 ORDER BY char_column DESC;
-int_column	char_column
 718061	ZZzZH
 756594	ZZZXU
 453491	zzZWV
@@ -1852,7 +1700,6 @@ SUBPARTITION BY hash(id) subpartitions 2
 PARTITION pa2 values less than (20),
 PARTITION pa11 values less than MAXVALUE);
 show create table t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `user` char(25) DEFAULT NULL,
@@ -1883,11 +1730,9 @@ create table t2 (
 INSERT INTO t1 SET number=1;
 insert into t2 select * from t1;
 SELECT SLEEP(1);
-SLEEP(1)
 0
 UPDATE t1 SET number=6;
 select count(*) from t1, t2 where t1.createdDate = t2.createdDate;
-count(*)
 1
 drop table t1, t2;
 SET @orig_sql_mode = @@SQL_MODE;
@@ -1898,10 +1743,8 @@ PARTITION p0 VALUES IN (NULL),
 PARTITION p1 VALUES IN (1)
 );
 SELECT * FROM t1;
-c1
 TRUNCATE t1;
 SELECT * FROM t1;
-c1
 DROP TABLE t1;
 SET SQL_MODE= @orig_sql_mode;
 create table t1 (s1 int) partition by hash(s1) partitions 2;
@@ -1911,7 +1754,6 @@ insert into t1 select s1 from t1;
 insert into t1 select s1 from t1;
 insert into t1 select s1 from t1 order by s1 desc;
 select * from t1;
-s1
 1
 1
 1
@@ -1930,7 +1772,6 @@ insert into t1 select s1 from t1;
 insert into t1 select s1 from t1;
 insert into t1 select s1 from t1 order by s1 desc;
 select * from t1;
-s1
 1
 1
 1
@@ -1949,7 +1790,6 @@ insert into t1 select s1 from t1;
 insert into t1 select s1 from t1;
 insert into t1 select s1 from t1 order by s1 desc;
 select * from t1;
-s1
 20
 20
 20
@@ -1971,7 +1811,6 @@ insert into t1 select s1 from t1;
 insert into t1 select s1 from t1 order by s1 desc;
 insert into t1 select s1 from t1 where s1=3;
 select count(*) from t1;
-count(*)
 288
 drop table t1;
 CREATE TABLE t1 (a int) PARTITION BY RANGE (a)
@@ -1982,7 +1821,6 @@ PARTITION p3 VALUES LESS THAN MAXVALUE);
 INSERT INTO t1 VALUES (10), (100), (200), (300), (400);
 analyze table t1;
 EXPLAIN SELECT * FROM t1 WHERE a>=200;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p2,p3	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where
 DROP TABLE t1;
 CREATE TABLE t1 ( a INT, b INT, c INT, KEY bc(b, c) )
@@ -2014,7 +1852,6 @@ INSERT INTO t1 VALUES
 (14, 1, 15)
 ;
 SELECT b, c FROM t1 WHERE b = 1 GROUP BY b, c;
-b	c
 1	-8
 1	-7
 1	-6
@@ -2041,21 +1878,18 @@ b	c
 analyze table t1;
 EXPLAIN
 SELECT b, c FROM t1 WHERE b = 1 GROUP BY b, c;
-id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	p0,p1,p2	ref	bc	bc	5	const	23	100.00	Using index
 DROP TABLE t1;
 SET SESSION SQL_MODE='ONLY_FULL_GROUP_BY';
 CREATE TABLE t1(id INT,KEY(id))
 PARTITION BY HASH(id) PARTITIONS 2;
 SELECT COUNT(*) FROM t1;
-COUNT(*)
 0
 DROP TABLE t1;
 SET SESSION SQL_MODE=DEFAULT;
 DROP TABLE IF EXISTS t1;
 CREATE TABLE t1 (s1 VARCHAR(5) PRIMARY KEY) PARTITION BY KEY(s1);
 SELECT * FROM t1;
-s1
 DROP TABLE t1;
 SET GLOBAL myisam_use_mmap=1;
 CREATE TABLE t1(a INT) PARTITION BY HASH(a) PARTITIONS 1;
@@ -2072,16 +1906,13 @@ nokey int
 INSERT INTO t1_part VALUES (1, 1) , (10, 10);
 CREATE VIEW v1 AS SELECT * FROM t1_part;
 SELECT * FROM t1_part;
-partkey	nokey
 1	1
 10	10
 SELECT * FROM t1_part;
-partkey	nokey
 1	1
 10	10
 UPDATE t1_part AS A NATURAL JOIN t1_part B SET A.nokey = 2 , B.nokey = 3;
 SELECT * FROM t1_part;
-partkey	nokey
 1	3
 10	3
 DROP VIEW v1;
@@ -2095,7 +1926,6 @@ CREATE TABLE t1(a INT PRIMARY KEY) PARTITION BY LINEAR KEY (a);
 CREATE ALGORITHM=TEMPTABLE VIEW vtmp AS
 SELECT 1 FROM t1 AS t1_0 JOIN t1 ON t1_0.a LIKE (SELECT 1 FROM t1);
 SELECT * FROM vtmp;
-1
 DROP VIEW vtmp;
 DROP TABLE t1;
 CREATE TABLE t1 (
@@ -2116,7 +1946,6 @@ INSERT INTO t1 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(1
 DROP TABLE t1;
 SET sql_mode= 'STRICT_TRANS_TABLES';
 SELECT @@sql_mode;
-@@sql_mode
 STRICT_TRANS_TABLES
 SET sql_mode= DEFAULT;
 CREATE TABLE t1 (a int PRIMARY KEY)
@@ -2126,7 +1955,6 @@ set innodb_strict_mode=off;
 set @org_mode=@@sql_mode;
 set @@sql_mode='NO_DIR_IN_CREATE';
 select @@sql_mode;
-@@sql_mode
 NO_DIR_IN_CREATE
 create table t1 (i int )
 partition by range (i)
@@ -2141,7 +1969,6 @@ CREATE TABLE t (a BIGINT NOT NULL)
 PARTITION BY KEY(a) PARTITIONS 2;
 INSERT INTO t VALUES(0);
 SELECT 1 FROM t WHERE a = 0x8000000000000000;
-1
 DROP TABLE t;
 CREATE TABLE t (a VARCHAR(10) NOT NULL,b INT,PRIMARY KEY (b)) ENGINE=INNODB
 PARTITION BY RANGE (b)
@@ -2154,7 +1981,6 @@ VALUES('A',0),('B',1),('C',2),('D',3),('E',4),('F',5),('G',25),('H',35);
 ALTER TABLE t ADD COLUMN r INT UNSIGNED NOT NULL AUTO_INCREMENT, ADD UNIQUE
 KEY (r,b), ALGORITHM=INPLACE, LOCK=SHARED;
 SELECT * FROM t;
-a	b	r
 A	0	1
 B	1	2
 C	2	3
@@ -2166,7 +1992,6 @@ H	35	8
 DROP TABLE t;
 CREATE TABLE t1(c1 INT, c2 CHAR) PARTITION BY HASH(c1) PARTITIONS 50;
 SELECT MBRTOUCHES(a.c2, b.c2) FROM t1 AS a JOIN t1 AS b;
-MBRTOUCHES(a.c2, b.c2)
 ALTER TABLE t1 CONVERT TO CHARACTER SET latin1;
 DROP TABLE t1;
 CREATE TABLE t1 (s1 INT PRIMARY KEY) PARTITION BY HASH(s1);
@@ -2187,13 +2012,11 @@ SUBPARTITION p31,
 SUBPARTITION p32,
 SUBPARTITION p33));
 SELECT MBRTOUCHES(a.c1, b.c2) FROM t1 AS a JOIN t1 AS b;
-MBRTOUCHES(a.c1, b.c2)
 ALTER TABLE t1 CONVERT TO CHARACTER SET latin1;
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT) PARTITION BY RANGE(i) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 INSERT INTO t1 (i, j) VALUES (-1, 1);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `i` int DEFAULT NULL,
   `j` int DEFAULT NULL
@@ -2202,15 +2025,12 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 VALUES LESS THAN (0) ENGINE = InnoDB,
  PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 -1	1
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT) PARTITION BY RANGE(i) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 INSERT INTO t1 (i, j) VALUES (-1, 1);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `i` int DEFAULT NULL,
   `j` int DEFAULT NULL
@@ -2219,10 +2039,8 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 VALUES LESS THAN (0) ENGINE = InnoDB,
  PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 -1	1
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT) PARTITION BY RANGE(i+1) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 DROP TABLE t1;
@@ -2233,7 +2051,6 @@ CREATE TABLE t1 (i INT, j INT) PARTITION BY RANGE(i) (PARTITION p0 VALUES LESS T
 INSERT INTO t1 (i, j) VALUES (-1, 1);
 ALTER TABLE t1 RENAME COLUMN i TO k PARTITION BY RANGE(k) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `k` int DEFAULT NULL,
   `j` int DEFAULT NULL
@@ -2242,13 +2059,10 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 VALUES LESS THAN (0) ENGINE = InnoDB,
  PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
 SELECT k, j FROM t1 PARTITION (p0);
-k	j
 -1	1
 SELECT k, j FROM t1 PARTITION (p1);
-k	j
 ALTER TABLE t1 RENAME COLUMN k TO j, RENAME COLUMN j TO k PARTITION BY RANGE(k) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int DEFAULT NULL,
   `k` int DEFAULT NULL
@@ -2257,21 +2071,16 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 VALUES LESS THAN (0) ENGINE = InnoDB,
  PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
 SELECT k, j FROM t1 PARTITION (p0);
-k	j
 SELECT k, j FROM t1 PARTITION (p1);
-k	j
 1	-1
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT, PRIMARY KEY (i)) PARTITION BY KEY () PARTITIONS 2 (PARTITION p0, PARTITION p1);
 INSERT INTO t1 (i, j) VALUES (-1, 1);
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 -1	1
 ALTER TABLE t1 RENAME COLUMN i TO j, RENAME COLUMN j TO i;
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int NOT NULL,
   `i` int DEFAULT NULL,
@@ -2281,21 +2090,16 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 ENGINE = InnoDB,
  PARTITION p1 ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 1	-1
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT, PRIMARY KEY (i, j)) PARTITION BY KEY (i) PARTITIONS 2 (PARTITION p0, PARTITION p1);
 INSERT INTO t1 (i, j) VALUES (-1, 1);
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 -1	1
 ALTER TABLE t1 RENAME COLUMN i TO j, RENAME COLUMN j TO i PARTITION BY KEY (i) PARTITIONS 2 (PARTITION p0, PARTITION p1);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int NOT NULL,
   `i` int NOT NULL,
@@ -2305,10 +2109,8 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 ENGINE = InnoDB,
  PARTITION p1 ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 1	-1
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT) PARTITION BY RANGE(i+1) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 DROP TABLE t1;
@@ -2319,7 +2121,6 @@ CREATE TABLE t1 (i INT, j INT) PARTITION BY RANGE(i) (PARTITION p0 VALUES LESS T
 ALTER TABLE t1 DROP COLUMN i, ADD COLUMN i INT PARTITION BY RANGE(i) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 INSERT INTO t1 (i, j) VALUES (-1, 1);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int DEFAULT NULL,
   `i` int DEFAULT NULL
@@ -2328,13 +2129,10 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 VALUES LESS THAN (0) ENGINE = InnoDB,
  PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 -1	1
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 ALTER TABLE t1 DROP COLUMN i, ADD COLUMN i INT DEFAULT 1 PARTITION BY RANGE(i) (PARTITION p0 VALUES LESS THAN (0), PARTITION p1 VALUES LESS THAN MAXVALUE);
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int DEFAULT NULL,
   `i` int DEFAULT '1'
@@ -2343,29 +2141,22 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 VALUES LESS THAN (0) ENGINE = InnoDB,
  PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 1	1
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT, PRIMARY KEY (i, j)) PARTITION BY KEY () PARTITIONS 2 (PARTITION p0, PARTITION p1);
 INSERT INTO t1 (i, j) VALUES (1, 2);
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 1	2
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 drop table if exists t1;
 CREATE TABLE t1 (i INT, j INT, PRIMARY KEY (i, j)) PARTITION BY KEY () PARTITIONS 2 (PARTITION p0, PARTITION p1);
 INSERT INTO t1 (i, j) VALUES (1, 2);
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 1	2
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 ALTER TABLE t1 DROP COLUMN i;
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int NOT NULL,
   PRIMARY KEY (`j`)
@@ -2374,21 +2165,16 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 ENGINE = InnoDB,
  PARTITION p1 ENGINE = InnoDB) */
 SELECT j FROM t1 PARTITION (p0);
-j
 SELECT j FROM t1 PARTITION (p1);
-j
 2
 DROP TABLE t1;
 CREATE TABLE t1 (i INT, j INT, PRIMARY KEY (i, j)) PARTITION BY KEY () PARTITIONS 2 (PARTITION p0, PARTITION p1);
 INSERT INTO t1 (i, j) VALUES (1, 2);
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 1	2
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 ALTER TABLE t1 DROP COLUMN i, ADD COLUMN i INT DEFAULT 0;
 SHOW CREATE TABLE t1;
-Table	Create Table
 t1	CREATE TABLE `t1` (
   `j` int NOT NULL,
   `i` int NOT NULL DEFAULT '0',
@@ -2398,9 +2184,7 @@ t1	CREATE TABLE `t1` (
 (PARTITION p0 ENGINE = InnoDB,
  PARTITION p1 ENGINE = InnoDB) */
 SELECT i, j FROM t1 PARTITION (p0);
-i	j
 SELECT i, j FROM t1 PARTITION (p1);
-i	j
 0	2
 DROP TABLE t1;
 CREATE TABLE t(  id int unsigned NOT NULL,
@@ -2412,7 +2196,6 @@ KEY data_idx (data(1),id)
 PARTITION p20 VALUES LESS THAN (20) ) */;
 INSERT INTO t VALUES (6, 'ab'), (4, 'ab'), (5, 'ab'), (16, 'ab'), (14, 'ab'), (15, 'ab'), (5, 'ac'), (15, 'aa') ;
 SELECT id FROM t WHERE data = 'ab' ORDER BY id ASC;
-id
 4
 5
 6

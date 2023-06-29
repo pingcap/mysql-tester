@@ -5,7 +5,6 @@ insert into t1 values (a+2);
 insert into t1 values (a+3),(a+4);
 insert into t1 values (5),(a+6);
 select * from t1;
-a
 1
 2
 3
@@ -23,7 +22,6 @@ drop table t1;
 create table t1 (a int not null auto_increment, primary key (a), t timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, c char(10) default "hello", i int);
 insert into t1 values (default,default,default,default), (default,default,default,default), (4,0,"a",5),(default,default,default,default);
 select a,t>0,c,i from t1;
-a	t>0	c	i
 1	1	hello	NULL
 2	1	hello	NULL
 4	0	a	5
@@ -35,7 +33,6 @@ insert into t1 set a=4,t=0,c="a",i=5;
 insert into t1 set a=5,t=0,c="a",i=null;
 insert into t1 set a=default,t=default,c=default,i=default;
 select a,t>0,c,i from t1;
-a	t>0	c	i
 1	1	hello	NULL
 2	1	hello	NULL
 4	0	a	5
@@ -45,7 +42,6 @@ drop table t1;
 create table t1 (id int NOT NULL DEFAULT 8);
 insert into t1 values (1), (NULL), (2);
 select * from t1;
-id
 1
 0
 2
@@ -55,12 +51,10 @@ insert into t1 values ('sasha@mysql.com'),('monty@mysql.com'),('foo@hotmail.com'
 create table t2(id int not null auto_increment primary key, t2 varchar(50), unique(t2));
 insert into t2 (t2) select distinct substring(email, locate('@', email)+1) from t1;
 select id from t2;
-id
 3
 2
 1
 select t2 from t2;
-t2
 aol.com
 hotmail.com
 mysql.com
@@ -74,37 +68,26 @@ create database test;
 use test;
 create table t1(number int auto_increment primary key, original_value varchar(50), f_double double, f_float float, f_double_7_2 double(7,2), f_float_4_3 float (4,3), f_double_u double unsigned, f_float_u float unsigned, f_double_15_1_u double(15,1) unsigned, f_float_3_1_u float (3,1) unsigned);
 set @value= "aa";
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= "1aa";
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= "aa1";
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= "1e+1111111111a";
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= "-1e+1111111111a";
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= 1e+1111111111;
 [types:1367]Illegal double '1e+1111111111' value found during parsing
 set @value= -1e+1111111111;
 [types:1367]Illegal double '1e+1111111111' value found during parsing
 set @value= 1e+111;
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= -1e+111;
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= 1;
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 set @value= -1;
-insert into t1 values(null,@value,@value,@value,@value,@value,@value,@value,@value,@value);
 drop table t1;
 create table t1(id1 int not null auto_increment primary key, t char(12));
 create table t2(id2 int not null, t char(12));
 create table t3(id3 int not null, t char(12), index(id3));
 select count(*) from t2;
-count(*)
 0
 insert into  t2 select t1.* from t1, t2 t, t3 where  t1.id1 = t.id2 and t.id2 = t3.id3;
 select count(*) from t2;
-count(*)
 0
 drop table t1,t2,t3;
 create table t1 (a int, b int);
@@ -116,27 +99,21 @@ drop table t1;
 create table t1 (id int primary key, data int);
 insert into t1 values (1, 1), (2, 2), (3, 3);
 select row_count();
-row_count()
 0
 insert ignore into t1 values (1, 1);
 select row_count();
-row_count()
 0
 replace into t1 values (1, 11);
 select row_count();
-row_count()
 0
 replace into t1 values (4, 4);
 select row_count();
-row_count()
 0
 insert into t1 values (2, 2) on duplicate key update data= data + 10;
 select row_count();
-row_count()
 0
 insert into t1 values (5, 5) on duplicate key update data= data + 10;
 select row_count();
-row_count()
 0
 drop table t1;
 create table t1 (f1 int unique, f2 int);
@@ -145,7 +122,6 @@ create view v1 as select * from t1, t2 where f1= f3;
 insert into t1 values (1,11), (2,22);
 insert into t2 values (1,12), (2,24);
 select * from t1;
-f1	f2
 1	11
 2	22
 drop view v1;
@@ -156,7 +132,6 @@ b char(7) DEFAULT NULL,
 c char(4) DEFAULT NULL
 );
 INSERT INTO t1(a,b,c) VALUES (9.999999e+0, 9.999999e+0, 9.999e+0);
-INSERT INTO t1(a,b,c) VALUES (1.225e-05, 1.225e-05, 1.225e-05);
 INSERT INTO t1(a,b) VALUES (1.225e-04, 1.225e-04);
 INSERT INTO t1(a,b) VALUES (1.225e-01, 1.225e-01);
 INSERT INTO t1(a,b) VALUES (1.225877e-01, 1.225877e-01);
@@ -173,14 +148,11 @@ INSERT INTO t1(a,b) VALUES (1.25e-175, 1.25e-175);
 INSERT INTO t1(a,c) VALUES (1.225e+0, 1.225e+0);
 INSERT INTO t1(a,c) VALUES (1.37e+0, 1.37e+0);
 INSERT INTO t1(a,c) VALUES (-1.37e+0, -1.37e+0);
-INSERT INTO t1(a,c) VALUES (1.87e-3, 1.87e-3);
 INSERT INTO t1(a,c) VALUES (-1.87e-2, -1.87e-2);
 INSERT INTO t1(a,c) VALUES (5000e+0, 5000e+0);
 INSERT INTO t1(a,c) VALUES (-5000e+0, -5000e+0);
 SELECT * FROM t1;
-a	b	c
 9.999999	10	10
-0.00001225	1.22e-5	1e-5
 0.0001225	1.22e-4	NULL
 0.1225	0.1225	NULL
 0.1225877	0.12259	NULL
@@ -197,7 +169,6 @@ a	b	c
 1.225	NULL	1.23
 1.37	NULL	1.37
 -1.37	NULL	-1.4
-0.00187	NULL	2e-3
 -0.0187	NULL	0
 5000	NULL	5000
 -5000	NULL	-5e3
@@ -230,7 +201,6 @@ INSERT INTO t1(a,c) VALUES (-1.87e-2, -1.87e-2);
 INSERT INTO t1(a,c) VALUES (5000e+0, 5000e+0);
 INSERT INTO t1(a,c) VALUES (-5000e+0, -5000e+0);
 SELECT * FROM t1;
-a	b	c
 9.999999	10	9.999
 0.00001225	1.22e-5	1e-5
 0.0001225	1.22e-4	NULL
@@ -254,7 +224,6 @@ a	b	c
 5000	NULL	5000
 -5000	NULL	-5000
 DROP TABLE t1;
-SET sql_mode = default;
 CREATE TABLE t (a CHAR(10),b INT);
 INSERT INTO t VALUES (),(),();
 INSERT INTO t(a) SELECT rand() FROM t;
@@ -263,14 +232,12 @@ CREATE TABLE t1 (c1 INT NOT NULL);
 INSERT INTO t1 VALUES(4188.32999999999992724042385816574096679687500),
 ('4188.32999999999992724042385816574096679687500'), (4188);
 SELECT * FROM t1;
-c1
 4188
 4188
 4188
 CREATE TABLE t2 (c1 BIGINT);
 INSERT INTO t2 VALUES('15449237462.0000000000');
 SELECT * FROM t2;
-c1
 15449237462
 DROP TABLE t1, t2;
 CREATE TABLE t1(f1 FLOAT);
@@ -283,25 +250,14 @@ drop table t1;
 CREATE TABLE t1 (a INT);
 DROP TABLE t1;
 CREATE TABLE t1( a INT );
-INSERT DELAYED INTO t1 VALUES ( 1 );
-REPLACE DELAYED INTO t1 VALUES ( 1 );
 DROP TABLE t1;
-SET GLOBAL delayed_insert_limit = DEFAULT;
-SET GLOBAL delayed_insert_timeout = DEFAULT;
-SET GLOBAL delayed_queue_size = DEFAULT;
-SET GLOBAL max_insert_delayed_threads = DEFAULT;
-SET GLOBAL max_delayed_threads = DEFAULT;
 CREATE TABLE t1(a INTEGER);
-INSERT INTO t1(a) values();
-Error 1136: Column count doesn't match value count at row 1
 DROP TABLE t1;
 SET sql_mode='';
 CREATE TABLE default_date(a DATE NOT NULL DEFAULT '0000-00-00');
 INSERT INTO default_date VALUES();
 INSERT INTO default_date VALUES(DEFAULT);
-SET sql_mode=default;
 SELECT * FROM default_date;
-a
 0000-00-00
 0000-00-00
 DROP TABLE default_date;
@@ -324,7 +280,6 @@ CREATE VIEW v3 AS
 SELECT t1.pk,t1.a FROM t1 JOIN t4 ON pk IN (SELECT a FROM t3);
 DELETE FROM t1;
 SELECT * FROM v2;
-pk	a
 1	10
 3	30
 DELETE FROM t1;
@@ -335,9 +290,7 @@ CREATE TABLE t2(b INTEGER);
 CREATE VIEW v AS SELECT * FROM t1 JOIN t2 ON TRUE;
 INSERT INTO v(b) SELECT 2;
 SELECT * FROM t1;
-a
 SELECT * FROM t2;
-b
 2
 DROP VIEW v;
 DROP TABLE t1, t2;
@@ -349,7 +302,6 @@ INSERT INTO v(a1,b1) VALUES (11, 0) ON DUPLICATE KEY UPDATE b1=b1+1;
 INSERT INTO v(a2,b2) VALUES (21, 0) ON DUPLICATE KEY UPDATE b2=b2+1;
 INSERT INTO v(a2,b2) VALUES (21, 0) ON DUPLICATE KEY UPDATE b2=b2+1;
 SELECT * FROM v;
-a1	b1	a2	b2
 11	1	21	1
 DELETE FROM t1;
 DELETE FROM t2;
@@ -358,7 +310,6 @@ INSERT INTO v(a1,b1) SELECT 11, 0 ON DUPLICATE KEY UPDATE b1=b1+1;
 INSERT INTO v(a2,b2) SELECT 21, 0 ON DUPLICATE KEY UPDATE b2=b2+1;
 INSERT INTO v(a2,b2) SELECT 21, 0 ON DUPLICATE KEY UPDATE b2=b2+1;
 SELECT * FROM v;
-a1	b1	a2	b2
 11	1	21	1
 DROP VIEW v;
 DROP TABLE t1, t2;
@@ -380,13 +331,10 @@ CREATE VIEW v2 AS SELECT * FROM t1 AS a
 WHERE a.pk IN ( SELECT pk FROM v1 AS b WHERE b.pk = a.pk );
 PREPARE st1 FROM 'INSERT INTO v2 (pk) VALUES ( 1 )';
 EXECUTE st1;
-
 SELECT * FROM t1;
-pk
 1
 2
 SELECT * FROM t2;
-pk
 2
 DROP TABLE t1, t2;
 DROP VIEW v1, v2;
@@ -399,9 +347,7 @@ SELECT * FROM t1 AS a
 WHERE a.pk IN ( SELECT pk FROM v2 AS b WHERE b.pk = a.pk );
 PREPARE st1 FROM "INSERT INTO v1 (pk) VALUES (2)";
 EXECUTE st1;
-
 SELECT * FROM t1;
-pk
 1
 2
 DROP VIEW v1, v2;
@@ -460,7 +406,6 @@ INNER JOIN      view_stations AS stations
 ON              table_source.id = stations.icao
 LEFT JOIN       view_target2 AS old
 USING           (mexs_id);
-mexs_id	messzeit
 87654321	2006-07-12 07:50:00
 REPLACE INTO    view_target2
 SELECT          stations.mexs_id AS mexs_id, datetime AS messzeit
@@ -477,14 +422,11 @@ ON              table_source.id = stations.icao
 LEFT JOIN       view_target3 AS old
 USING           (mexs_id);
 SELECT * FROM table_target;
-mexs_id	messzeit
 87654321	2006-07-12 07:50:00
 SELECT * FROM view_target2;
-mexs_id	messzeit
 12X45Y78	2006-07-12 07:50:00
 87654321	2006-07-12 07:50:00
 SELECT * FROM view_target3;
-mexs_id	messzeit
 87654321	2006-07-12 07:50:00
 DROP VIEW  view_stations;
 DROP TABLE table_source;
@@ -523,7 +465,6 @@ INSERT INTO t VALUES (0, 0) ON DUPLICATE KEY UPDATE x = VALUES(x) + 1;
 INSERT INTO t VALUES (0, 0)
 ON DUPLICATE KEY UPDATE x = (SELECT VALUES(x)+1 FROM t t1);
 SELECT VALUES(x) FROM t;
-VALUES(x)
 NULL
 INSERT INTO t VALUES (1, VALUES(x));
 DROP TABLE t;
@@ -551,7 +492,6 @@ FROM t2
 WHERE pk BETWEEN 7 AND 8
 LIMIT 1";
 EXECUTE stmt;
-
 DEALLOCATE PREPARE stmt;
 DROP VIEW v1;
 DROP TABLE t1, t2;

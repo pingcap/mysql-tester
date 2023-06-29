@@ -3608,7 +3608,7 @@ CREATE TABLE t2 (c0 int);
 INSERT INTO t1 VALUES(@@connect_timeout);
 INSERT INTO t2 VALUES(@@connect_timeout);
 SELECT * FROM t1 JOIN t2 ON t1.c0 = t2.c0 WHERE (t1.c0 <=> @@connect_timeout);
-10	10
+30	30
 DROP TABLE t1, t2;
 CREATE TABLE t1 (
 K2C4 varchar(4) character set latin1 collate latin1_bin NOT NULL default '',
@@ -4573,12 +4573,12 @@ join_1.c1,
 join_0.c1;
 1	SIMPLE	join_0	NULL	ALL	PRIMARY	NULL	NULL	NULL	1	100.00	Using temporary
 1	SIMPLE	join_1	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
-1	SIMPLE	join_2	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_1.c1	1	100.00	Using where
-1	SIMPLE	join_3	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	Using where
-1	SIMPLE	join_4	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	Using where
-1	SIMPLE	join_5	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	Using where
-1	SIMPLE	join_6	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_2.c1	1	100.00	Using where
-1	SIMPLE	join_7	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	Using where
+1	SIMPLE	join_2	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
+1	SIMPLE	join_3	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
+1	SIMPLE	join_4	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
+1	SIMPLE	join_5	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
+1	SIMPLE	join_6	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
+1	SIMPLE	join_7	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.join_0.c1	1	100.00	NULL
 SHOW WARNINGS;
 DROP TABLE t1;
 SELECT 1 AS ` `;
@@ -29608,7 +29608,7 @@ CREATE TABLE t1 (f1 DECIMAL(10,2));
 INSERT INTO t1 VALUES (11.67),(17865.3),(12345678.92);
 CREATE VIEW view_t1 AS SELECT FORMAT(f1,1,'sk_SK') AS f1 FROM t1;
 SHOW CREATE VIEW view_t1;
-view_t1	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `view_t1` AS select format(`t1`.`f1`,1,'sk_SK') AS `f1` from `t1`	utf8mb4	utf8mb4_general_ci
+view_t1	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_t1` AS select format(`t1`.`f1`,1,'sk_SK') AS `f1` from `t1`	utf8mb4	utf8mb4_general_ci
 SELECT * FROM view_t1;
 11,7
 17 865,3

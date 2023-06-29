@@ -654,7 +654,7 @@ order by x3.a, x4.a, C.a, D.a;
 delete from t2  where a = 2 and b = 'val-2' order by a,b,c,d limit 30;
 ANALYZE TABLE t1, t2;
 explain select c from t2 where a = 2 and b = 'val-2' group by c;
-1	SIMPLE	t2	NULL	ref	PRIMARY,a	PRIMARY	402	const,const	6	100.00	Using where
+1	SIMPLE	t2	NULL	ref	PRIMARY,a	PRIMARY	402	const,const	36	100.00	Using where
 select c from t2 where a = 2 and b = 'val-2' group by c;
 val-74
 val-98

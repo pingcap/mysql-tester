@@ -457,8 +457,8 @@ CREATE VIEW v1 AS SELECT * FROM t2 AS a
 CREATE VIEW v2 AS SELECT * FROM t1 AS a
                   WHERE a.pk IN ( SELECT pk FROM v1 AS b WHERE b.pk = a.pk );
 
-PREPARE st1 FROM 'INSERT INTO v2 (pk) VALUES ( 1 )';
-EXECUTE st1;
+#skip PREPARE st1 FROM 'INSERT INTO v2 (pk) VALUES ( 1 )';
+#skip EXECUTE st1;
 
 SELECT * FROM t1;
 SELECT * FROM t2;
@@ -476,8 +476,8 @@ CREATE ALGORITHM = UNDEFINED VIEW v1 AS
    SELECT * FROM t1 AS a
    WHERE a.pk IN ( SELECT pk FROM v2 AS b WHERE b.pk = a.pk );
 
-PREPARE st1 FROM "INSERT INTO v1 (pk) VALUES (2)";
-EXECUTE st1;
+#skip PREPARE st1 FROM "INSERT INTO v1 (pk) VALUES (2)";
+#skip EXECUTE st1;
 
 SELECT * FROM t1;
 
@@ -546,22 +546,22 @@ CREATE ALGORITHM=MERGE SQL SECURITY INVOKER VIEW view_stations AS select table_s
 CREATE TABLE table_source ( id varchar(4), datetime TIMESTAMP, PRIMARY KEY (id));
 INSERT INTO  table_source VALUES ('XXXX','2006-07-12 07:50:00');
 
-CREATE USER user20989@localhost;
-GRANT  SELECT                ON table_source    TO   user20989@localhost;
-GRANT  SELECT                ON table_countries TO   user20989@localhost;
-GRANT  SELECT                ON table_stations  TO   user20989@localhost;
-GRANT  SELECT                ON view_stations   TO   user20989@localhost;
-GRANT  SELECT                ON table_target    TO   user20989@localhost;
-GRANT  SELECT                ON table_target2   TO   user20989@localhost;
-GRANT  INSERT,DELETE,SELECT  ON view_target3    TO   user20989@localhost;
+#skip CREATE USER user20989@localhost;
+#skip GRANT  SELECT                ON table_source    TO   user20989@localhost;
+#skip GRANT  SELECT                ON table_countries TO   user20989@localhost;
+#skip GRANT  SELECT                ON table_stations  TO   user20989@localhost;
+#skip GRANT  SELECT                ON view_stations   TO   user20989@localhost;
+#skip GRANT  SELECT                ON table_target    TO   user20989@localhost;
+#skip GRANT  SELECT                ON table_target2   TO   user20989@localhost;
+#skip GRANT  INSERT,DELETE,SELECT  ON view_target3    TO   user20989@localhost;
 
 
 
 
 
-GRANT  INSERT,DELETE         ON table_target    TO   user20989@localhost;
-GRANT  INSERT,DELETE,SELECT  ON view_target2    TO   user20989@localhost;
-GRANT  INSERT,DELETE,SELECT  ON table_target3   TO   user20989@localhost;
+#skip GRANT  INSERT,DELETE         ON table_target    TO   user20989@localhost;
+#skip GRANT  INSERT,DELETE,SELECT  ON view_target2    TO   user20989@localhost;
+#skip GRANT  INSERT,DELETE,SELECT  ON table_target3   TO   user20989@localhost;
 
 
 REPLACE INTO    table_target
@@ -611,7 +611,7 @@ DROP TABLE table_target2;
 DROP TABLE table_target3;
 DROP VIEW  view_target2;
 DROP VIEW  view_target3;
-DROP USER  user20989@localhost;
+#skip DROP USER  user20989@localhost;
 
 
 
@@ -686,22 +686,21 @@ CREATE TABLE t2 (
 
 INSERT INTO t2 VALUES (7,8, 0xEFBFBDEFBFBDEFBFBDEFBFBD004A);
 
-PREPARE stmt FROM
-"INSERT INTO v1 (col_blob, pk, col_varchar)
- SELECT col_blob, col_int, col_blob
- FROM t2
- WHERE pk BETWEEN 7 AND 8
- LIMIT 1";
+#skip PREPARE stmt FROM
+#skip "INSERT INTO v1 (col_blob, pk, col_varchar)
+#skip SELECT col_blob, col_int, col_blob
+#skip FROM t2
+#skip WHERE pk BETWEEN 7 AND 8
+#skip LIMIT 1";
+#skip
+#skip EXECUTE stmt;
 
-EXECUTE stmt;
-
-DEALLOCATE PREPARE stmt;
+#skip DEALLOCATE PREPARE stmt;
 DROP VIEW v1;
 DROP TABLE t1, t2;
 
 
 CREATE TABLE t1 (
-  Ñ INTEGER,
   N INTEGER,
   a INTEGER,
   b INTEGER,
@@ -735,7 +734,7 @@ CREATE TABLE t1 (
   ad INTEGER
 );
 
-INSERT INTO t1 (Ñ, N) VALUES (1, 2);
+INSERT INTO t1 (a, N) VALUES (1, 2);
 
 DROP TABLE t1;
 

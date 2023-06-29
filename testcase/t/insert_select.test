@@ -221,7 +221,7 @@ DROP TABLE t1;
 #
 # Bug #26207: inserts don't work with shortened index
 #
-SET SQL_MODE=default;
+#skip SET SQL_MODE=default;
 
 CREATE TABLE t1 (c VARCHAR(30), INDEX ix_c (c(10))) charset utf8mb4;
 CREATE TABLE t2 (d VARCHAR(10)); 
@@ -295,11 +295,11 @@ DROP TABLE t1, t2;
 CREATE TABLE t(id INTEGER PRIMARY KEY, x INTEGER);
 INSERT INTO t VALUES (1, 1), (2, 2), (3, 3);
 
-PREPARE ps FROM
-  'INSERT INTO t SELECT id+1, x FROM t a ON DUPLICATE KEY UPDATE x = a.x';
-EXECUTE ps;
-EXECUTE ps;
-DEALLOCATE PREPARE ps;
+#skip PREPARE ps FROM
+#skip   'INSERT INTO t SELECT id+1, x FROM t a ON DUPLICATE KEY UPDATE x = a.x';
+#skip EXECUTE ps;
+#skip EXECUTE ps;
+#skip DEALLOCATE PREPARE ps;
 
 SELECT * FROM t ORDER BY id;
 

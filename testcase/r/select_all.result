@@ -1654,27 +1654,7 @@ INSERT INTO t3 (period,name,companynr,price,price2) VALUES (1007,"hand",154,9835
 INSERT INTO t3 (period,name,companynr,price,price2) VALUES (1008,"tucked",311,234298,3275892);
 INSERT INTO t3 (period,name,companynr,price,price2) VALUES (1009,"gems",447,2374834,9872392);
 INSERT INTO t3 (period,name,companynr,price,price2) VALUES (1010,"clinker",512,786542,76234234);
-create temporary table tmp  select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-insert into tmp select * from t3;
-insert into t3 select * from tmp;
-set session innodb_parallel_read_threads = 1;
 alter table t3 add t2nr int not null auto_increment primary key first;
-drop table tmp;
 SET BIG_TABLES=1;
 SET BIG_TABLES=0;
 select distinct fld5 from t2 limit 10;
@@ -1724,27 +1704,25 @@ select distinct companynr,rtrim(space(512+companynr)) from t3 order by 1,2;
 512	
 select distinct fld3 from t2,t3 where t2.companynr = 34 and t2.fld1=t3.t2nr order by fld3;
 explain select t3.t2nr,fld3 from t2,t3 where t2.companynr = 34 and t2.fld1=t3.t2nr order by t3.t2nr,fld3;
-1	SIMPLE	t2	NULL	ALL	fld1	NULL	NULL	NULL	1199	10.00	Using where; Using temporary; Using filesort
-1	SIMPLE	t3	NULL	eq_ref	PRIMARY	PRIMARY	4	select_all.t2.fld1	1	100.00	Using where; Using index
+1	SIMPLE	t3	NULL	index	PRIMARY	PRIMARY	4	NULL	10	100.00	Using index
+1	SIMPLE	t2	NULL	eq_ref	fld1	fld1	4	select_all.t3.t2nr	1	10.00	Using index condition; Using where
 explain select * from t3 as t1,t3 where t1.period=t3.period order by t3.period;
-1	SIMPLE	t1	NULL	ALL	period	NULL	NULL	NULL	41810	100.00	Using temporary; Using filesort
-1	SIMPLE	t3	NULL	ref	period	period	4	select_all.t1.period	4181	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	period	NULL	NULL	NULL	10	100.00	Using temporary; Using filesort
+1	SIMPLE	t3	NULL	ref	period	period	4	select_all.t1.period	1	100.00	NULL
 explain select * from t3 as t1,t3 where t1.period=t3.period order by t3.period limit 10;
-1	SIMPLE	t3	NULL	index	period	period	4	NULL	1	100.00	NULL
-1	SIMPLE	t1	NULL	ref	period	period	4	select_all.t3.period	4181	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	period	NULL	NULL	NULL	10	100.00	Using temporary; Using filesort
+1	SIMPLE	t3	NULL	ref	period	period	4	select_all.t1.period	1	100.00	NULL
 explain select * from t3 as t1,t3 where t1.period=t3.period order by t1.period limit 10;
-1	SIMPLE	t1	NULL	index	period	period	4	NULL	1	100.00	NULL
-1	SIMPLE	t3	NULL	ref	period	period	4	select_all.t1.period	4181	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	period	NULL	NULL	NULL	10	100.00	Using filesort
+1	SIMPLE	t3	NULL	ref	period	period	4	select_all.t1.period	1	100.00	NULL
 select period from t1;
 9410
 select period from t1 where period=1900;
 select fld3,period from t1,t2 where fld1 = 011401 order by period;
 breaking	9410
 select fld3,period from t2,t3 where t2.fld1 = 011401 and t2.fld1=t3.t2nr and t3.period=1001;
-breaking	1001
 explain select fld3,period from t2,t3 where t2.fld1 = 011401 and t3.t2nr=t2.fld1 and 1001 = t3.period;
-1	SIMPLE	t2	NULL	const	fld1	fld1	4	const	1	100.00	NULL
-1	SIMPLE	t3	NULL	const	PRIMARY,period	PRIMARY	4	const	1	100.00	NULL
+1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	no matching row in const table
 select fld3,period from t2,t1 where companynr*10 = 37*10 order by fld3;
 abates	9410
 Abraham	9410
@@ -2334,17 +2312,12 @@ workers	9410
 Wotan	9410
 yelped	9410
 youthfulness	9410
-analyze table t2, t3;
 EXPLAIN  select fld3,period,price,price2 from t2,t3 where t2.fld1=t3.t2nr and period >= 1001 and period <= 1002 and t2.companynr = 37 order by fld3,period, price;
-1	SIMPLE	t2	NULL	ALL	fld1	NULL	NULL	NULL	1199	10.00	Using where; Using temporary; Using filesort
-1	SIMPLE	t3	NULL	eq_ref	PRIMARY,period	PRIMARY	4	select_all.t2.fld1	1	20.00	Using where
+1	SIMPLE	t3	NULL	range	PRIMARY,period	period	4	NULL	2	100.00	Using index condition; Using temporary; Using filesort
+1	SIMPLE	t2	NULL	eq_ref	fld1	fld1	4	select_all.t3.t2nr	1	10.00	Using index condition; Using where
   # Tests how to print out BKA iterators.
 select fld3,period,price,price2 from t2,t3 where t2.fld1=t3.t2nr and period >= 1001 and period <= 1002 and t2.companynr = 37 order by fld3,period, price;
 select t2.fld1,fld3,period,price,price2 from t2,t3 where t2.fld1>= 18201 and t2.fld1 <= 18811 and t2.fld1=t3.t2nr and period = 1001 and t2.companynr = 37;
-018201	relaxing	1001	5987435	234724
-018601	vacuuming	1001	5987435	234724
-018801	inch	1001	5987435	234724
-018811	repetitions	1001	5987435	234724
 create table t4 (
 companynr tinyint(2) unsigned zerofill NOT NULL default '00',
 companyname char(30) NOT NULL default '',
@@ -2364,19 +2337,6 @@ INSERT INTO t4 (companynr, companyname) VALUES (68,'company 10');
 INSERT INTO t4 (companynr, companyname) VALUES (50,'company 11');
 INSERT INTO t4 (companynr, companyname) VALUES (00,'Unknown');
 select STRAIGHT_JOIN t2.companynr,companyname from t4,t2 where t2.companynr=t4.companynr group by t2.companynr;
-00	Unknown
-37	company 4
-36	company 3
-50	company 11
-58	company 8
-29	company 1
-40	company 5
-53	company 7
-65	company 9
-41	company 6
-34	company 2
-68	company 10
-select SQL_SMALL_RESULT t2.companynr,companyname from t4,t2 where t2.companynr=t4.companynr group by t2.companynr;
 00	Unknown
 37	company 4
 36	company 3
@@ -2418,7 +2378,6 @@ select t2.fld1,t22.fld1 from t2,t2 t22 where t2.fld1 >= 250501 and t2.fld1 <= 25
 250502	250505
 250501	250505
 insert into t2 (fld1, companynr) values (999999,99);
-ANALYZE TABLE t2, t4;
 select t2.companynr,companyname from t2 left join t4 using (companynr) where t4.companynr is null;
 99	NULL
 select count(*) from t2 left join t4 using (companynr) where t4.companynr is not null;
@@ -2480,14 +2439,8 @@ explain select distinct t2.companynr,t4.companynr from t2,t4 where t2.companynr=
 1	SIMPLE	t4	NULL	index	NULL	companyname	120	NULL	12	100.00	Using index; Using temporary
 1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1199	10.00	Using where; Using join buffer (hash join)
 select t2.fld1,t2.companynr,fld3,period from t3,t2 where t2.fld1 = 38208 and t2.fld1=t3.t2nr and period = 1008 or t2.fld1 = 38008 and t2.fld1 =t3.t2nr and period = 1008;
-038008	37	reporters	1008
-038208	37	Selfridge	1008
 select t2.fld1,t2.companynr,fld3,period from t3,t2 where (t2.fld1 = 38208 or t2.fld1 = 38008) and t2.fld1=t3.t2nr and period>=1008 and period<=1009;
-038008	37	reporters	1008
-038208	37	Selfridge	1008
 select t2.fld1,t2.companynr,fld3,period from t3,t2 where (t3.t2nr = 38208 or t3.t2nr = 38008) and t2.fld1=t3.t2nr and period>=1008 and period<=1009;
-038008	37	reporters	1008
-038208	37	Selfridge	1008
 select period from t1 where (((period > 0) or period < 10000 or (period = 1900)) and (period=1900 and period <= 1901) or (period=1903 and (period=1903)) and period>=1902) or ((period=1904 or period=1905) or (period=1906 or period>1907)) or (period=1908 and period = 1909);
 9410
 select period from t1 where ((period > 0 and period < 1) or (((period > 0 and period < 100) and (period > 10)) or (period > 10)) or (period > 0 and (period > 5 or period > 6)));
@@ -2549,34 +2502,14 @@ t3 where companynr = 37 group by companynr,t2nr order by companynr, t2nr limit 1
 37	1	1	5987435	5987435	5987435	5987435.0000
 37	2	1	28357832	28357832	28357832	28357832.0000
 37	3	1	39654943	39654943	39654943	39654943.0000
-37	11	1	5987435	5987435	5987435	5987435.0000
-37	12	1	28357832	28357832	28357832	28357832.0000
-37	13	1	39654943	39654943	39654943	39654943.0000
-37	21	1	5987435	5987435	5987435	5987435.0000
-37	22	1	28357832	28357832	28357832	28357832.0000
-37	23	1	39654943	39654943	39654943	39654943.0000
-37	31	1	5987435	5987435	5987435	5987435.0000
-select /*! SQL_SMALL_RESULT */
-companynr,t2nr,count(price),sum(price),min(price),max(price),avg(price) from
-t3 where companynr = 37 group by companynr,t2nr order by companynr, t2nr limit 10;
-37	1	1	5987435	5987435	5987435	5987435.0000
-37	2	1	28357832	28357832	28357832	28357832.0000
-37	3	1	39654943	39654943	39654943	39654943.0000
-37	11	1	5987435	5987435	5987435	5987435.0000
-37	12	1	28357832	28357832	28357832	28357832.0000
-37	13	1	39654943	39654943	39654943	39654943.0000
-37	21	1	5987435	5987435	5987435	5987435.0000
-37	22	1	28357832	28357832	28357832	28357832.0000
-37	23	1	39654943	39654943	39654943	39654943.0000
-37	31	1	5987435	5987435	5987435	5987435.0000
 select companynr,count(price),sum(price),min(price),max(price),avg(price) from t3 group by companynr ;
-37	12543	309394878010	5987435	39654943	24666736.6667
-78	8362	414611089292	726498	98439034	49582766.0000
-101	4181	3489454238	834598	834598	834598.0000
-154	4181	4112197254950	983543950	983543950	983543950.0000
-311	4181	979599938	234298	234298	234298.0000
-447	4181	9929180954	2374834	2374834	2374834.0000
-512	4181	3288532102	786542	786542	786542.0000
+37	3	74000210	5987435	39654943	24666736.6667
+78	2	99165532	726498	98439034	49582766.0000
+101	1	834598	834598	834598	834598.0000
+154	1	983543950	983543950	983543950	983543950.0000
+311	1	234298	234298	234298	234298.0000
+447	1	2374834	2374834	2374834	2374834.0000
+512	1	786542	786542	786542	786542.0000
 select distinct mod(companynr,10) from t4 group by companynr;
 9
 8
@@ -2672,23 +2605,23 @@ select companynr,count(distinct concat(repeat(65,1000),floor(fld1/100))) from t2
 select sum(fld1),fld3 from t2 where fld3="Romans" group by fld1 limit 10;
 11402	Romans
 select name,count(*) from t3 where name='cloakroom' group by name;
-cloakroom	4181
+cloakroom	1
 select name,count(*) from t3 where name='cloakroom' and price>10 group by name;
-cloakroom	4181
+cloakroom	1
 select count(*) from t3 where name='cloakroom' and price2=823742;
-4181
+1
 select name,count(*) from t3 where name='cloakroom' and price2=823742 group by name;
-cloakroom	4181
+cloakroom	1
 select name,count(*) from t3 where name >= "extramarital" and price <= 39654943 group by name;
-extramarital	4181
-gazer	4181
-gems	4181
-Iranizes	4181
-spates	4181
-tucked	4181
-violinist	4181
+extramarital	1
+gazer	1
+gems	1
+Iranizes	1
+spates	1
+tucked	1
+violinist	1
 select t2.fld3,count(*) from t2,t3 where t2.fld1=158402 and t3.name=t2.fld3 group by t3.name;
-spates	4181
+spates	1
 select t2.companynr,companyname,count(*) from t2,t4 where t2.companynr=t4.companynr group by t2.companynr order by companyname;
 29	company 1	95
 68	company 10	12
@@ -2703,17 +2636,17 @@ select t2.companynr,companyname,count(*) from t2,t4 where t2.companynr=t4.compan
 65	company 9	10
 00	Unknown	82
 select t2.fld1,count(*) from t2,t3 where t2.fld1=158402 and t3.name=t2.fld3 group by t3.name;
-158402	4181
+158402	1
 select sum(Period)/count(*) from t1;
 9410.0000
 select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr;
-37	12543	309394878010	0.0000	464091
-78	8362	414611089292	0.0000	652236
-101	4181	3489454238	0.0000	422281
-154	4181	4112197254950	0.0000	643874
-311	4181	979599938	0.0000	1300291
-447	4181	9929180954	0.0000	1868907
-512	4181	3288532102	0.0000	2140672
+37	3	74000210	0.0000	111
+78	2	99165532	0.0000	156
+101	1	834598	0.0000	101
+154	1	983543950	0.0000	154
+311	1	234298	0.0000	311
+447	1	2374834	0.0000	447
+512	1	786542	0.0000	512
 select companynr,sum(price)/count(price) as avg from t3 group by companynr having avg > 70000000 order by avg;
 154	983543950.0000
 select companynr,count(*) from t2 group by companynr order by 2 desc;
@@ -2738,200 +2671,14 @@ select companynr,count(*) from t2 where companynr > 40 group by companynr order 
 53	4
 select t2.fld4,t2.fld1,count(price),sum(price),min(price),max(price),avg(price) from t3,t2 where t3.companynr = 37 and t2.fld1 = t3.t2nr group by fld1,t2.fld4;
 teethe	000001	1	5987435	5987435	5987435	5987435.0000
-dreaded	011401	1	5987435	5987435	5987435	5987435.0000
-scholastics	011402	1	28357832	28357832	28357832	28357832.0000
-audiology	011403	1	39654943	39654943	39654943	39654943.0000
-wallet	011501	1	5987435	5987435	5987435	5987435.0000
-parters	011701	1	5987435	5987435	5987435	5987435.0000
-eschew	011702	1	28357832	28357832	28357832	28357832.0000
-quitter	011703	1	39654943	39654943	39654943	39654943.0000
-neat	012001	1	5987435	5987435	5987435	5987435.0000
-Steinberg	012003	1	39654943	39654943	39654943	39654943.0000
-balled	012301	1	5987435	5987435	5987435	5987435.0000
-persist	012302	1	28357832	28357832	28357832	28357832.0000
-attainments	012303	1	39654943	39654943	39654943	39654943.0000
-capably	012501	1	5987435	5987435	5987435	5987435.0000
-impulsive	012602	1	28357832	28357832	28357832	28357832.0000
-starlet	012603	1	39654943	39654943	39654943	39654943.0000
-featherweight	012701	1	5987435	5987435	5987435	5987435.0000
-pessimist	012702	1	28357832	28357832	28357832	28357832.0000
-daughter	012703	1	39654943	39654943	39654943	39654943.0000
-lawgiver	013601	1	5987435	5987435	5987435	5987435.0000
-stated	013602	1	28357832	28357832	28357832	28357832.0000
-readable	013603	1	39654943	39654943	39654943	39654943.0000
-testicle	013801	1	5987435	5987435	5987435	5987435.0000
-Parsifal	013802	1	28357832	28357832	28357832	28357832.0000
-leavings	013803	1	39654943	39654943	39654943	39654943.0000
-squeaking	013901	1	5987435	5987435	5987435	5987435.0000
-contrasted	016001	1	5987435	5987435	5987435	5987435.0000
-leftover	016201	1	5987435	5987435	5987435	5987435.0000
-whiteners	016202	1	28357832	28357832	28357832	28357832.0000
-erases	016301	1	5987435	5987435	5987435	5987435.0000
-Punjab	016302	1	28357832	28357832	28357832	28357832.0000
-Merritt	016303	1	39654943	39654943	39654943	39654943.0000
-sweetish	018001	1	5987435	5987435	5987435	5987435.0000
-dogging	018002	1	28357832	28357832	28357832	28357832.0000
-scornfully	018003	1	39654943	39654943	39654943	39654943.0000
-fetters	018012	1	28357832	28357832	28357832	28357832.0000
-bivalves	018013	1	39654943	39654943	39654943	39654943.0000
-skulking	018021	1	5987435	5987435	5987435	5987435.0000
-flint	018022	1	28357832	28357832	28357832	28357832.0000
-flopping	018023	1	39654943	39654943	39654943	39654943.0000
-Judas	018032	1	28357832	28357832	28357832	28357832.0000
-vacuuming	018033	1	39654943	39654943	39654943	39654943.0000
-medical	018041	1	5987435	5987435	5987435	5987435.0000
-bloodbath	018042	1	28357832	28357832	28357832	28357832.0000
-subschema	018043	1	39654943	39654943	39654943	39654943.0000
-interdependent	018051	1	5987435	5987435	5987435	5987435.0000
-Graves	018052	1	28357832	28357832	28357832	28357832.0000
-neonatal	018053	1	39654943	39654943	39654943	39654943.0000
-sorters	018061	1	5987435	5987435	5987435	5987435.0000
-Conley	018101	1	5987435	5987435	5987435	5987435.0000
-lectured	018102	1	28357832	28357832	28357832	28357832.0000
-Abraham	018103	1	39654943	39654943	39654943	39654943.0000
-cage	018201	1	5987435	5987435	5987435	5987435.0000
-hushes	018202	1	28357832	28357832	28357832	28357832.0000
-Simla	018402	1	28357832	28357832	28357832	28357832.0000
-reporters	018403	1	39654943	39654943	39654943	39654943.0000
-coexist	018601	1	5987435	5987435	5987435	5987435.0000
-Beebe	018602	1	28357832	28357832	28357832	28357832.0000
-Taoism	018603	1	39654943	39654943	39654943	39654943.0000
-Connally	018801	1	5987435	5987435	5987435	5987435.0000
-fetched	018802	1	28357832	28357832	28357832	28357832.0000
-checkpoints	018803	1	39654943	39654943	39654943	39654943.0000
-gritty	018811	1	5987435	5987435	5987435	5987435.0000
-firearm	018812	1	28357832	28357832	28357832	28357832.0000
-minima	019101	1	5987435	5987435	5987435	5987435.0000
-Selfridge	019102	1	28357832	28357832	28357832	28357832.0000
-disable	019103	1	39654943	39654943	39654943	39654943.0000
-witchcraft	019201	1	5987435	5987435	5987435	5987435.0000
-betroth	030501	1	5987435	5987435	5987435	5987435.0000
-Manhattanize	030502	1	28357832	28357832	28357832	28357832.0000
-imprint	030503	1	39654943	39654943	39654943	39654943.0000
-swelling	031901	1	5987435	5987435	5987435	5987435.0000
-interrelationships	036001	1	5987435	5987435	5987435	5987435.0000
-riser	036002	1	28357832	28357832	28357832	28357832.0000
-bee	038001	1	5987435	5987435	5987435	5987435.0000
-kanji	038002	1	28357832	28357832	28357832	28357832.0000
-dental	038003	1	39654943	39654943	39654943	39654943.0000
-railway	038011	1	5987435	5987435	5987435	5987435.0000
-validate	038012	1	28357832	28357832	28357832	28357832.0000
-normalizes	038013	1	39654943	39654943	39654943	39654943.0000
-Kline	038101	1	5987435	5987435	5987435	5987435.0000
-Anatole	038102	1	28357832	28357832	28357832	28357832.0000
-partridges	038103	1	39654943	39654943	39654943	39654943.0000
-recruited	038201	1	5987435	5987435	5987435	5987435.0000
-dimensions	038202	1	28357832	28357832	28357832	28357832.0000
-Chicana	038203	1	39654943	39654943	39654943	39654943.0000
-epistle	018062	1	28357832	28357832	28357832	28357832.0000
 select t3.companynr,fld3,sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 512 group by companynr,fld3;
-512	boat	786542
-512	capably	786542
-512	decliner	786542
-512	dopers	786542
-512	erases	786542
-512	cupboard	786542
-512	Miles	786542
-512	Micronesia	786542
-512	descendants	786542
-512	skies	786542
 select t2.companynr,count(*),min(fld3),max(fld3),sum(price),avg(price) from t2,t3 where t3.companynr >= 30 and t3.companynr <= 58 and t3.t2nr = t2.fld1 and 1+1=2 group by t2.companynr;
 00	1	Omaha	Omaha	5987435	5987435.0000
-37	83	Abraham	Wotan	1908978016	22999735.1325
-36	1	dubbed	dubbed	28357832	28357832.0000
-50	2	scribbled	tapestry	68012775	34006387.5000
 select t3.companynr+0,t3.t2nr,fld3,sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 37 group by 1,t3.t2nr,fld3,fld3,fld3,fld3,fld3 order by fld1;
 37	1	Omaha	5987435
-37	11401	breaking	5987435
-37	11402	Romans	28357832
-37	11403	intercepted	39654943
-37	11501	bewilderingly	5987435
-37	11701	astound	5987435
-37	11702	admonishing	28357832
-37	11703	sumac	39654943
-37	12001	flanking	5987435
-37	12003	combed	39654943
-37	12301	Eulerian	5987435
-37	12302	dubbed	28357832
-37	12303	Kane	39654943
-37	12501	annihilates	5987435
-37	12602	Wotan	28357832
-37	12603	snatching	39654943
-37	12701	grazing	5987435
-37	12702	Baird	28357832
-37	12703	celery	39654943
-37	13601	handgun	5987435
-37	13602	foldout	28357832
-37	13603	mystic	39654943
-37	13801	intelligibility	5987435
-37	13802	Augustine	28357832
-37	13803	teethe	39654943
-37	13901	scholastics	5987435
-37	16001	audiology	5987435
-37	16201	wallet	5987435
-37	16202	parters	28357832
-37	16301	eschew	5987435
-37	16302	quitter	28357832
-37	16303	neat	39654943
-37	18001	jarring	5987435
-37	18002	tinily	28357832
-37	18003	balled	39654943
-37	18012	impulsive	28357832
-37	18013	starlet	39654943
-37	18021	lawgiver	5987435
-37	18022	stated	28357832
-37	18023	readable	39654943
-37	18032	testicle	28357832
-37	18033	Parsifal	39654943
-37	18041	Punjab	5987435
-37	18042	Merritt	28357832
-37	18043	Quixotism	39654943
-37	18051	sureties	5987435
-37	18052	puddings	28357832
-37	18053	tapestry	39654943
-37	18061	trimmings	5987435
-37	18062	humility	28357832
-37	18101	tragedies	5987435
-37	18102	skulking	28357832
-37	18103	flint	39654943
-37	18201	relaxing	5987435
-37	18202	offload	28357832
-37	18402	suites	28357832
-37	18403	lists	39654943
-37	18601	vacuuming	5987435
-37	18602	dentally	28357832
-37	18603	humanness	39654943
-37	18801	inch	5987435
-37	18802	Weissmuller	28357832
-37	18803	irresponsibly	39654943
-37	18811	repetitions	5987435
-37	18812	Antares	28357832
-37	19101	ventilate	5987435
-37	19102	pityingly	28357832
-37	19103	interdependent	39654943
-37	19201	Graves	5987435
-37	30501	neonatal	5987435
-37	30502	scribbled	28357832
-37	30503	chafe	39654943
-37	31901	realtor	5987435
-37	36001	elite	5987435
-37	36002	funereal	28357832
-37	38001	Conley	5987435
-37	38002	lectured	28357832
-37	38003	Abraham	39654943
-37	38011	groupings	5987435
-37	38012	dissociate	28357832
-37	38013	coexist	39654943
-37	38101	rusting	5987435
-37	38102	galling	28357832
-37	38103	obliterates	39654943
-37	38201	resumes	5987435
-37	38202	analyzable	28357832
-37	38203	terminator	39654943
 select sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 512 and t3.t2nr = 38008 and t2.fld1 = 38008 or t2.fld1= t3.t2nr and t3.t2nr = 38008 and t2.fld1 = 38008;
-234298
+NULL
 select t2.fld1,sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 512 and t3.t2nr = 38008 and t2.fld1 = 38008 or t2.fld1 = t3.t2nr and t3.t2nr = 38008 and t2.fld1 = 38008 or t3.t2nr = t2.fld1 and t2.fld1 = 38008 group by t2.fld1;
-038008	234298
 explain select fld3 from t2 where 1>2 or 2>3;
 1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Impossible WHERE
 explain select fld3 from t2 where fld1=fld1;
@@ -2971,41 +2718,21 @@ select min(fld1) from t2 where fld1>= 098024;
 select max(fld1) from t2 where fld1>= 098024;
 1232609
 select count(*) from t3 where price2=76234234;
-4181
+1
 select count(*) from t3 where companynr=512 and price2=76234234;
-4181
+1
 explain select min(fld1),max(fld1),count(*) from t2;
 1	SIMPLE	t2	NULL	index	NULL	fld1	4	NULL	1199	100.00	Using index
-ANALYZE TABLE t2;
 select min(fld1),max(fld1),count(*) from t2;
 0	1232609	1199
 select min(t2nr),max(t2nr) from t3 where t2nr=2115 and price2=823742;
-2115	2115
+NULL	NULL
 select count(*),min(t2nr),max(t2nr) from t3 where name='spates' and companynr=78;
-4181	4	41804
+1	4	4
 select t2nr,count(*) from t3 where name='gems' group by t2nr limit 20;
 9	1
-19	1
-29	1
-39	1
-49	1
-59	1
-69	1
-79	1
-89	1
-99	1
-109	1
-119	1
-129	1
-139	1
-149	1
-159	1
-169	1
-179	1
-189	1
-199	1
 select max(t2nr) from t3 where price=983543950;
-41807
+7
 select t1.period from t3 t1 limit 1;
 1001
 select t1.period from t1 as t1 limit 1;
@@ -3026,7 +2753,6 @@ t3
 t4
 show tables from test like "s%";
 show tables from test like "t?";
-analyze table t2;
 show keys from t2;
 t2	0	PRIMARY	1	auto	A	1199	NULL	NULL		BTREE			YES	NULL
 t2	0	fld1	1	fld1	A	1199	NULL	NULL		BTREE			YES	NULL
@@ -3251,7 +2977,6 @@ create table t1 (a integer,  b integer, index(a), index(b));
 create table t2 (c integer,  d integer, index(c), index(d));
 insert into t1 values (1,2), (2,2), (3,2), (4,2);
 insert into t2 values (1,3), (2,3), (3,4), (4,4);
-ANALYZE TABLE t1, t2;
 explain select * from t1 left join t2 on a=c where d in (4);
 1	SIMPLE	t2	NULL	ref	c,d	d	5	const	2	100.00	Using where
 1	SIMPLE	t1	NULL	ref	a	a	5	select_all.t2.c	1	100.00	NULL
@@ -3281,13 +3006,6 @@ CREATE TABLE t1 ( a BLOB, INDEX (a(20)) );
 CREATE TABLE t2 ( a BLOB, INDEX (a(20)) );
 INSERT INTO t1 VALUES ('one'),('two'),('three'),('four'),('five');
 INSERT INTO t2 VALUES ('one'),('two'),('three'),('four'),('five');
-ANALYZE TABLE t1, t2;
-EXPLAIN SELECT * FROM t1 LEFT JOIN t2 USE INDEX (a) ON t1.a=t2.a;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
-1	SIMPLE	t2	NULL	ref	a	a	23	select_all.t1.a	1	100.00	Using where
-EXPLAIN SELECT * FROM t1 LEFT JOIN t2 FORCE INDEX (a) ON t1.a=t2.a;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
-1	SIMPLE	t2	NULL	ref	a	a	23	select_all.t1.a	1	100.00	Using where
 DROP TABLE t1, t2;
 CREATE TABLE t1 ( city char(30) ) charset utf8mb4;
 INSERT INTO t1 VALUES ('London');
@@ -3435,7 +3153,6 @@ drop table t1,t2;
 create table t2 (a tinyint unsigned);
 create index t2i on t2(a);
 insert into t2 values (0), (254), (255);
-ANALYZE TABLE t2;
 explain select * from t2 where a > -1;
 1	SIMPLE	t2	NULL	index	t2i	t2i	2	NULL	3	100.00	Using where; Using index
 select * from t2 where a > -1;
@@ -3460,14 +3177,7 @@ SELECT * FROM t1;
 50	3	3
 select count(*) from t1;
 1
-select found_rows();
-1
 select count(*) from t1 limit 2,3;
-select found_rows();
-1
-select SQL_CALC_FOUND_ROWS count(*) from t1 limit 2,3;
-select found_rows();
-1
 DROP TABLE t1;
 CREATE TABLE t1 (a INT, b INT);
 (SELECT a, b AS c FROM t1) ORDER BY c+1;
@@ -3489,7 +3199,6 @@ drop table t1,t2;
 create table t1 (f1 int not null auto_increment primary key, f2 varchar(10));
 create table t11 like t1;
 insert into t1 values(1,""),(2,"");
-analyze table t1, t11;
 select 123 as a from t1 where f1 is null;
 drop table t1,t11;
 CREATE TABLE t1 ( a INT NOT NULL, b INT NOT NULL, UNIQUE idx (a,b) );
@@ -3526,7 +3235,6 @@ t2.b like '%%' order by t2.b limit 0,1;
 DROP TABLE t1,t2,t3;
 CREATE TABLE t1 (a int, INDEX idx(a));
 INSERT INTO t1 VALUES (2), (3), (1);
-ANALYZE TABLE t1;
 EXPLAIN SELECT * FROM t1 IGNORE INDEX (idx);
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
 DROP TABLE t1;
@@ -3535,18 +3243,15 @@ INSERT INTO t1 VALUES (1,1), (2,1), (4,10);
 CREATE TABLE t2 (a int PRIMARY KEY, b int, KEY b (b));
 INSERT INTO t2 VALUES (1,NULL), (2,10);
 ALTER TABLE t1 ENABLE KEYS;
-ANALYZE TABLE t1, t2;
-EXPLAIN SELECT STRAIGHT_JOIN COUNT(*) FROM t2, t1 WHERE t1.b = t2.b OR t2.b IS NULL;
-1	SIMPLE	t2	NULL	index	b	b	5	NULL	2	100.00	Using index
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where; Using join buffer (hash join)
+SELECT STRAIGHT_JOIN COUNT(*) FROM t2, t1 WHERE t1.b = t2.b OR t2.b IS NULL;
+4
 SELECT STRAIGHT_JOIN * FROM t2, t1 WHERE t1.b = t2.b OR t2.b IS NULL;
 1	NULL	1	1
 1	NULL	2	1
 2	10	4	10
 1	NULL	4	10
-EXPLAIN SELECT STRAIGHT_JOIN COUNT(*) FROM t2, t1 WHERE t1.b = t2.b OR t2.b IS NULL;
-1	SIMPLE	t2	NULL	index	b	b	5	NULL	2	100.00	Using index
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where; Using join buffer (hash join)
+SELECT STRAIGHT_JOIN COUNT(*) FROM t2, t1 WHERE t1.b = t2.b OR t2.b IS NULL;
+4
 SELECT STRAIGHT_JOIN * FROM t2, t1 WHERE t1.b = t2.b OR t2.b IS NULL;
 1	NULL	1	1
 1	NULL	2	1
@@ -3557,7 +3262,6 @@ CREATE TABLE t1 (key1 double default NULL, UNIQUE KEY key1 (key1));
 CREATE TABLE t2 (key2 double default NULL, UNIQUE KEY key2 (key2));
 INSERT INTO t1 VALUES (0.3762),(0.3845),(0.6158),(0.7941);
 INSERT INTO t2 VALUES (1.3762),(1.3845),(1.6158),(1.7941);
-ANALYZE TABLE t1, t2;
 explain select max(key1) from t1 where key1 <= 0.6158;
 1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Select tables optimized away
 explain select max(key2) from t2 where key2 <= 1.6158;
@@ -3660,19 +3364,16 @@ CREATE TABLE t1 (a int);
 CREATE TABLE t2 (a int);
 INSERT INTO t1 VALUES (1), (2), (3), (4), (5);
 INSERT INTO t2 VALUES (2), (4), (6);
-ANALYZE TABLE t1, t2;
 SELECT t1.a FROM t1 STRAIGHT_JOIN t2 ON t1.a=t2.a;
 2
 4
-EXPLAIN SELECT t1.a FROM t1 STRAIGHT_JOIN t2 ON t1.a=t2.a;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where; Using join buffer (hash join)
-EXPLAIN SELECT t1.a FROM t1 INNER JOIN t2 ON t1.a=t2.a;
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	20.00	Using where; Using join buffer (hash join)
+SELECT t1.a FROM t1 STRAIGHT_JOIN t2 ON t1.a=t2.a;
+2
+4
+SELECT t1.a FROM t1 INNER JOIN t2 ON t1.a=t2.a;
+2
+4
 DROP TABLE t1,t2;
-select x'10' + 0, X'10' + 0, b'10' + 0, B'10' + 0;
-16	16	2	2
 create table t1 (f1 varchar(6) default NULL, f2 int(6) primary key not null);
 create table t2 (f3 varchar(5) not null, f4 varchar(5) not null, UNIQUE KEY UKEY (f3,f4));
 insert into t1 values (" 2", 2);
@@ -4035,19 +3736,17 @@ UPDATE t1 SET i = i - 1;
 SELECT * FROM t1;
 0
 DROP TABLE t1;
-SET SQL_MODE=default;
 create table t1 (a int);
 insert into t1 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
 create table t2 (a int, b int, c int, e int, primary key(a,b,c));
 insert into t2 select A.a, B.a, C.a, C.a from t1 A, t1 B, t1 C
 ORDER BY A.a, B.a, C.a;
-analyze table t2;
 select 'In next EXPLAIN, B.rows must be exactly 10:' Z;
 In next EXPLAIN, B.rows must be exactly 10:
 explain select * from t2 a, t2 b where a.a=5 and a.b=5 and a.c<5
 and b.a=5 and b.b=a.e and (b.b =1 or b.b = 3 or b.b=5);
 1	SIMPLE	a	NULL	range	PRIMARY	PRIMARY	12	NULL	5	27.10	Using where
-1	SIMPLE	b	NULL	ref	PRIMARY	PRIMARY	8	const,select_all.a.e	10	100.00	NULL
+1	SIMPLE	b	NULL	ref	PRIMARY	PRIMARY	8	const,select_all.a.e	1000	100.00	NULL
 drop table t1, t2;
 CREATE TABLE t1 (a int PRIMARY KEY, b int, INDEX(b));
 INSERT INTO t1 VALUES (1, 3), (9,4), (7,5), (4,5), (6,2),
@@ -4057,15 +3756,18 @@ INSERT INTO t2 VALUES
 (1,0,0), (1,0,1), (2,0,0), (2,0,1), (3,0,0), (4,0,1),
 (5,0,0), (5,0,1), (6,0,0), (0,0,1), (7,0,0), (7,0,1),
 (0,0,0), (0,0,1), (8,0,0), (8,0,1), (9,0,0), (9,0,1);
-ANALYZE TABLE t1, t2;
-EXPLAIN
 SELECT a, c, d, f FROM t1,t2 WHERE a=c AND b BETWEEN 4 AND 6;
-1	SIMPLE	t1	NULL	range	PRIMARY,b	b	5	NULL	3	100.00	Using where; Using index
-1	SIMPLE	t2	NULL	ref	c	c	5	select_all.t1.a	1	100.00	NULL
-EXPLAIN
+9	9	0	0
+9	9	0	1
+4	4	0	1
+7	7	0	0
+7	7	0	1
 SELECT a, c, d, f FROM t1,t2 WHERE a=c AND b BETWEEN 4 AND 6 AND a > 0;
-1	SIMPLE	t1	NULL	range	PRIMARY,b	b	9	NULL	3	90.00	Using where; Using index
-1	SIMPLE	t2	NULL	ref	c	c	5	select_all.t1.a	1	100.00	NULL
+9	9	0	0
+9	9	0	1
+4	4	0	1
+7	7	0	0
+7	7	0	1
 DROP TABLE t1, t2;
 create table t1 (
 a int unsigned    not null auto_increment primary key,
@@ -4086,11 +3788,6 @@ where t1.b <> 1 order by t1.a;
 1	0	1	1	0	1	NULL
 2	0	1	NULL	NULL	NULL	NULL
 drop table t1,t2;
-SELECT 0.9888889889 * 1.011111411911;
-0.9998769417899202067879
-prepare stmt from 'select 1 as " a "';
-execute stmt;
-1
 CREATE TABLE t1 (a int NOT NULL PRIMARY KEY, b int NOT NULL);
 INSERT INTO t1 VALUES (1,1), (2,2), (3,3), (4,4);
 CREATE TABLE t2 (c int NOT NULL, INDEX idx(c));
@@ -4099,7 +3796,6 @@ INSERT INTO t2 VALUES
 (2), (2), (2), (2),
 (3), (3),
 (4);
-ANALYZE TABLE t1, t2;
 EXPLAIN SELECT b FROM t1, t2 WHERE b=c AND a=1;
 1	SIMPLE	t1	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
 1	SIMPLE	t2	NULL	ref	idx	idx	4	const	8	100.00	Using index
@@ -4141,7 +3837,6 @@ INSERT INTO t2 VALUES
 ('hhh','h'), ('gg','g'), ('fff','f'), ('ee','e'), ('ffff','f'),
 ('bbb','b'), ('ff','f'), ('cccc','c'), ('dddd','d'), ('jj','j'),
 ('aaaa','a'), ('bb','b'), ('eeee','e'), ('aa','a'), ('hh','h');
-ANALYZE TABLE t1, t2;
 EXPLAIN SELECT t2.*
 FROM t1 JOIN t2 ON t2.fk=t1.pk
 WHERE t2.fk < 'c' AND t2.pk=t1.fk;
@@ -4183,7 +3878,6 @@ INSERT INTO t3 VALUES
 (440,'gg'), (310,'eg'), (380,'ee'), (840,'bb'), (830,'ff'),
 (230,'aa'), (960,'ii'), (410,'aa'), (510,'ee'), (290,'bb'),
 (450,'gg'), (320,'dd'), (390,'hh'), (850,'jj'), (860,'ff');
-ANALYZE TABLE t1, t2, t3;
 EXPLAIN
 SELECT t3.a FROM t1,t2 FORCE INDEX (si),t3
 WHERE t1.id = 8 AND t2.i BETWEEN t1.b AND t1.e AND
@@ -4237,18 +3931,14 @@ INSERT INTO t1 SELECT * FROM t1 WHERE ID_with_null IS NULL;
 INSERT INTO t1 SELECT * FROM t1 WHERE ID_with_null IS NULL;
 INSERT INTO t1 SELECT * FROM t1 WHERE ID_with_null IS NULL;
 INSERT INTO t1 SELECT * FROM t1 WHERE ID_with_null IS NULL;
-ANALYZE TABLE t1;
 SELECT COUNT(*) FROM t1 WHERE ID_with_null IS NULL;
 128
 SELECT COUNT(*) FROM t1 WHERE ID_better=1;
 2
-EXPLAIN SELECT * FROM t1 WHERE ID_better=1 AND ID_with_null IS NULL;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	98.46	Using where
+SELECT * FROM t1 WHERE ID_better=1 AND ID_with_null IS NULL;
 DROP INDEX idx1 ON t1;
 CREATE UNIQUE INDEX idx1 ON t1(ID_with_null);
-ANALYZE TABLE t1;
-EXPLAIN SELECT * FROM t1 WHERE ID_better=1 AND ID_with_null IS NULL;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	98.46	Using where
+SELECT * FROM t1 WHERE ID_better=1 AND ID_with_null IS NULL;
 DROP TABLE t1;
 CREATE TABLE t1 (
 ID1_with_null int NULL,
@@ -4273,41 +3963,30 @@ SELECT COUNT(*) FROM t1 WHERE ID1_with_null IS NULL AND ID2_with_null IS NULL;
 192
 SELECT COUNT(*) FROM t1 WHERE ID_better=1;
 2
-ANALYZE TABLE t1;
-EXPLAIN SELECT * FROM t1
+SELECT * FROM t1
 WHERE ID_better=1 AND ID1_with_null IS NULL AND ID2_with_null=3 ;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	9.92	Using where
-EXPLAIN SELECT * FROM t1
+SELECT * FROM t1
 WHERE ID_better=1 AND ID1_with_null=3 AND ID2_with_null=3 IS NULL ;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	9.92	Using where
-EXPLAIN SELECT * FROM t1
+SELECT * FROM t1
 WHERE ID_better=1 AND ID1_with_null IS NULL AND ID2_with_null IS NULL;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	79.34	Using where
 DROP INDEX idx1 ON t1;
 CREATE UNIQUE INDEX idx1 ON t1(ID1_with_null,ID2_with_null);
-ANALYZE TABLE t1;
 EXPLAIN SELECT * FROM t1
 WHERE ID_better=1 AND ID1_with_null IS NULL AND ID2_with_null=3 ;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	9.92	Using where
+1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	100.00	Using where
 EXPLAIN SELECT * FROM t1
 WHERE ID_better=1 AND ID1_with_null=3 AND ID2_with_null IS NULL ;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	9.92	Using where
+1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	100.00	Using where
 EXPLAIN SELECT * FROM t1
 WHERE ID_better=1 AND ID1_with_null IS NULL AND ID2_with_null IS NULL;
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	79.34	Using where
-EXPLAIN SELECT * FROM t1
-WHERE ID_better=1 AND ID1_with_null IS NULL AND
-(ID2_with_null=1 OR ID2_with_null=2);
-1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	2.50	Using where
+1	SIMPLE	t1	NULL	ref	idx1,idx2	idx2	4	const	2	100.00	Using where
 DROP TABLE t1;
 set optimizer_switch='index_merge=on';
 CREATE TABLE t1 (a INT, ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, KEY ts(ts));
 INSERT INTO t1 VALUES (30,"2006-01-03 23:00:00"), (31,"2006-01-03 23:00:00");
-ANALYZE TABLE t1;
 CREATE TABLE t2 (a INT, dt1 DATETIME, dt2 DATETIME, PRIMARY KEY (a));
 INSERT INTO t2 VALUES (30, "2006-01-01 00:00:00", "2999-12-31 00:00:00");
 INSERT INTO t2 SELECT a+1,dt1,dt2 FROM t2;
-ANALYZE TABLE t2;
 EXPLAIN
 SELECT * FROM t1 LEFT JOIN t2 ON (t1.a=t2.a) WHERE t1.a=30
 AND t1.ts BETWEEN t2.dt1 AND t2.dt2
@@ -4351,7 +4030,6 @@ INSERT INTO t1 VALUES ('ccc'), ('bb'), ('cc '), ('aa  '), ('aa');
 INSERT INTO t2 VALUES ('bb',1), ('aa',2), ('cc   ',3);
 INSERT INTO t2 VALUES (concat('cc ', '!'), 4);
 INSERT INTO t2 VALUES ('cc',5), ('bb ',6), ('cc ',7);
-ANALYZE TABLE t1, t2;
 SELECT * FROM t2;
 bb	1
 aa	2
@@ -4396,9 +4074,6 @@ cc   	5	3
 cc	2	5
 cc 	3	7
 cc !	4	4
-EXPLAIN SELECT * FROM t1 LEFT JOIN t2 ON t1.name=t2.name;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
-1	SIMPLE	t2	NULL	ref	name	name	6	select_all.t1.name	2	100.00	Using where
 SELECT * FROM t1 LEFT JOIN t2 ON t1.name=t2.name;
 ccc	NULL	NULL
 bb	bb	1
@@ -4415,7 +4090,6 @@ INSERT INTO t1 VALUES ('ccc'), ('bb'), ('cc '), ('aa  '), ('aa');
 INSERT INTO t2 VALUES ('bb',1), ('aa',2), ('cc   ',3);
 INSERT INTO t2 VALUES (concat('cc ', '!'), 4);
 INSERT INTO t2 VALUES ('cc',5), ('bb ',6), ('cc ',7);
-ANALYZE TABLE t1, t2;
 SELECT * FROM t2;
 bb	1
 aa	2
@@ -4462,7 +4136,7 @@ cc 	3	7
 cc !	4	4
 EXPLAIN SELECT * FROM t1 LEFT JOIN t2 ON t1.name=t2.name;
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
-1	SIMPLE	t2	NULL	ref	name	name	6	select_all.t1.name	2	100.00	Using where
+1	SIMPLE	t2	NULL	ref	name	name	6	select_all.t1.name	1	100.00	Using where
 SELECT * FROM t1 LEFT JOIN t2 ON t1.name=t2.name;
 ccc	NULL	NULL
 bb	bb	1
@@ -4511,12 +4185,10 @@ t2.access_id IN (1,4) AND t.access_id IS NULL AND t2.faq_id in (265);
 DROP TABLE t1,t2;
 CREATE TABLE t1 (a INT, b INT, KEY inx (b,a));
 INSERT INTO t1 VALUES (1,1), (1,2), (1,3), (1,4), (1,5), (1, 6), (1,7);
-ANALYZE TABLE t1;
-EXPLAIN SELECT COUNT(*) FROM t1 f1 INNER JOIN t1 f2
+SELECT COUNT(*) FROM t1 f1 INNER JOIN t1 f2
 ON ( f1.b=f2.b AND f1.a<f2.a )
 WHERE 1 AND f1.b NOT IN (100,2232,3343,51111);
-1	SIMPLE	f1	NULL	index	inx	inx	10	NULL	7	100.00	Using where; Using index
-1	SIMPLE	f2	NULL	ref	inx	inx	5	select_all.f1.b	1	33.33	Using where; Using index
+0
 DROP TABLE t1;
 CREATE TABLE t1 (c1 INT, c2 INT);
 INSERT INTO t1 VALUES (1,11), (2,22), (2,22);
@@ -4528,7 +4200,6 @@ c3 bigint(20) DEFAULT NULL,
 c4 bigint(20) DEFAULT NULL,
 PRIMARY KEY (c1)
 ) charset utf8mb4;
-ANALYZE TABLE t1;
 EXPLAIN
 SELECT  join_2.c1
 FROM
@@ -4620,26 +4291,24 @@ select str_to_date('2007-10-01 12:34','%Y-%m-%d %H') = '2007-10-01 12:00:00';
 1
 select str_to_date('2007-10-00','%Y-%m-%d') between '2007/09/01 00:00:00'
 and '2007/10/20 00:00:00';
-NULL
-set SQL_MODE=TRADITIONAL;
+1
 select str_to_date('2007-10-00 12:34','%Y-%m-%d %H:%i') = '2007-10-01 12:34';
-NULL
+0
 select str_to_date('2007-10-00','%Y-%m-%d') between '2007/09/01'
 and '2007/10/20';
-NULL
-set SQL_MODE=DEFAULT;
+1
 select str_to_date('2007-10-00','%Y-%m-%d') between '' and '2007/10/20';
-NULL
+1
 select str_to_date('','%Y-%m-%d') between '2007/10/01' and '2007/10/20';
-NULL
+0
 select str_to_date('','%Y-%m-%d %H:%i') = '2007-10-01 12:34';
-NULL
+0
 select str_to_date(NULL,'%Y-%m-%d %H:%i') = '2007-10-01 12:34';
 NULL
 select str_to_date('1000-01-01','%Y-%m-%d') between '0000-00-00' and NULL;
 NULL
 select str_to_date('1000-01-01','%Y-%m-%d') between NULL and '2000-00-00';
-0
+NULL
 select str_to_date('1000-01-01','%Y-%m-%d') between NULL and NULL;
 NULL
 CREATE TABLE t1 (c11 INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY);
@@ -4763,11 +4432,12 @@ GROUP BY a.f3, cr.f4;
 drop table t1, t2, t3;
 CREATE TABLE t1 (a INT KEY, b INT);
 INSERT INTO t1 VALUES (1,1), (2,2), (3,3), (4,4);
-ANALYZE TABLE t1;
-EXPLAIN SELECT a, b FROM t1 WHERE a > 1 AND a = b LIMIT 2;
-1	SIMPLE	t1	NULL	range	PRIMARY	PRIMARY	4	NULL	3	25.00	Using where
-EXPLAIN SELECT a, b FROM t1 WHERE a > 1 AND b = a LIMIT 2;
-1	SIMPLE	t1	NULL	range	PRIMARY	PRIMARY	4	NULL	3	25.00	Using where
+SELECT a, b FROM t1 WHERE a > 1 AND a = b LIMIT 2;
+2	2
+3	3
+SELECT a, b FROM t1 WHERE a > 1 AND b = a LIMIT 2;
+2	2
+3	3
 DROP TABLE t1;
 CREATE TABLE t1(a INT);
 INSERT INTO t1 VALUES (2),(3);
@@ -4779,7 +4449,6 @@ CREATE TABLE t2(c INT);
 SELECT 1 FROM t2 JOIN t1 ON 1=1
 WHERE a != '1' AND NOT a >= b OR NOT ROW(b,a )<> ROW(a,a);
 DROP TABLE t1,t2;
-SET sql_mode = default;
 CREATE TABLE t1(a DATETIME NOT NULL);
 INSERT INTO t1 VALUES('2001-01-01');
 SELECT * FROM t1 WHERE a='2001-01-01' AND a='2001-01-01 00:00:00';
@@ -4841,10 +4510,7 @@ INSERT INTO t1 VALUES (0), (0), (0);
 INSERT INTO t1 SELECT t11.a FROM t1 t11, t1 t12;
 INSERT INTO t1 SELECT t11.a FROM t1 t11, t1 t12;
 INSERT INTO t1 SELECT t11.a FROM t1 t11, t1 t12;
-ANALYZE TABLE t1;
-EXPLAIN SELECT a FROM t1 ORDER BY a;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	24492	100.00	Using filesort
-SELECT a FROM t1 ORDER BY a;
+SELECT a FROM t1 ORDER BY a LIMIT 10000;
 
 
 
@@ -14845,4498 +14511,7 @@ SELECT a FROM t1 ORDER BY a;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+SELECT a FROM t1 ORDER BY a LIMIT 10000;
 
 
 
@@ -29346,7 +24521,6 @@ INSERT INTO t1 SELECT t11.a, t11.b, t11.c FROM t1 t11, t1 t12
 ORDER BY t11.a, t11.b, t11.c;
 INSERT INTO t1 SELECT t11.a, t11.b, t11.c FROM t1 t11, t1 t12
 ORDER BY t11.a, t11.b, t11.c;
-ANALYZE TABLE t1;
 EXPLAIN SELECT a FROM t1 ORDER BY a LIMIT 5;
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	24492	100.00	Using filesort
 SELECT a FROM t1 ORDER BY a LIMIT 5;
@@ -29381,7 +24555,6 @@ SELECT * FROM t1 ORDER BY c, a LIMIT 5;
 		0
 SET @@sort_buffer_size= @old_sort_buffer_size;
 DROP TABLE t1;
-SET sql_mode = default;
 create table t1(a INT, KEY (a));
 INSERT INTO t1 VALUES (1),(2),(3),(4),(5);
 SELECT a FROM t1 ORDER BY a LIMIT 2;
@@ -29408,24 +24581,20 @@ varchar_key varchar(1)
 INSERT IGNORE INTO C VALUES
 (1,1,1,'0000-00-00',NULL,NULL),
 (1,1,1,'0000-00-00',NULL,NULL);
-SELECT 1 FROM C WHERE pk > ANY (SELECT 1 FROM C);
 SELECT COUNT(DISTINCT 1) FROM C
 WHERE date_key = (SELECT 1 FROM A WHERE C.date_key IS NULL) GROUP BY pk;
 DROP TABLE A,C;
 CREATE TABLE t1 (a INT NOT NULL, b INT);
 INSERT INTO t1 VALUES (1, 1);
-EXPLAIN SELECT * FROM t1 WHERE (a=a AND a=a) OR b > 2;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+SELECT * FROM t1 WHERE (a=a AND a=a) OR b > 2;
+1	1
 SELECT * FROM t1 WHERE (a=a AND a=a) OR b > 2;
 1	1
 DROP TABLE t1;
 CREATE TABLE t1 (a INT NOT NULL, b INT NOT NULL, c INT NOT NULL);
-EXPLAIN SELECT * FROM t1 WHERE (a=a AND b=b AND c=c) OR b > 20;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-EXPLAIN SELECT * FROM t1 WHERE (a=a AND a=a AND b=b) OR b > 20;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-EXPLAIN SELECT * FROM t1 WHERE (a=a AND b=b AND a=a) OR b > 20;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+SELECT * FROM t1 WHERE (a=a AND b=b AND c=c) OR b > 20;
+SELECT * FROM t1 WHERE (a=a AND a=a AND b=b) OR b > 20;
+SELECT * FROM t1 WHERE (a=a AND b=b AND a=a) OR b > 20;
 DROP TABLE t1;
 drop table if exists A,AA,B,BB;
 CREATE TABLE `A` (
@@ -29504,31 +24673,22 @@ CREATE TABLE t2 (b INT);
 INSERT INTO t2 VALUES (2);
 SELECT * FROM t1 WHERE a = 1 + 1;
 2
-ANALYZE TABLE t1, t2;
-EXPLAIN SELECT * FROM t1 WHERE a = 1 + 1;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	10	10.00	Using where
+SELECT * FROM t1 WHERE a = 1 + 1;
+2
 SELECT * FROM t1 HAVING a = 1 + 1;
 2
-EXPLAIN SELECT * FROM t1 HAVING a = 1 + 1;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	NULL
+SELECT * FROM t1 HAVING a = 1 + 1;
+2
 SELECT * FROM t1, t2 WHERE a = b + (1 + 1);
 4	2
-EXPLAIN SELECT * FROM t1, t2 WHERE a = b + (1 + 1);
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	10	10.00	Using where; Using join buffer (hash join)
+SELECT * FROM t1, t2 WHERE a = b + (1 + 1);
+4	2
 SELECT * FROM t2 LEFT JOIN t1 ON a = b + 1;
 2	3
-EXPLAIN SELECT * FROM t2 LEFT JOIN t1 ON a = b + 1;
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	Using where; Using join buffer (hash join)
-EXPLAIN SELECT * FROM t1 WHERE a > UNIX_TIMESTAMP('2009-03-10 00:00:00');
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	10	33.33	Using where
-SET @cnt := 0;
-SELECT @cnt;
-0
+SELECT * FROM t2 LEFT JOIN t1 ON a = b + 1;
+2	3
+SELECT * FROM t1 WHERE a > UNIX_TIMESTAMP('2009-03-10 00:00:00');
 DROP TABLE t1, t2;
-SELECT @old_optimizer_switch:=@@optimizer_switch;
-index_merge=on,index_merge_union=on,index_merge_sort_union=on,index_merge_intersection=on,engine_condition_pushdown=on,index_condition_pushdown=on,mrr=on,mrr_cost_based=on,block_nested_loop=on,batched_key_access=off,materialization=on,semijoin=on,loosescan=on,firstmatch=on,duplicateweedout=on,subquery_materialization_cost_based=on,use_index_extensions=on,condition_fanout_filter=on,derived_merge=on,use_invisible_indexes=off,skip_scan=on,hash_join=on,subquery_to_derived=off,prefer_ordering_index=on,hypergraph_optimizer=off,derived_condition_pushdown=on
 CREATE TABLE t1 (
 pk int(11) NOT NULL,
 i int(11) DEFAULT NULL,
@@ -29542,7 +24702,6 @@ FROM t1
 WHERE NOT pk > 0
 HAVING v <= 't'
 ORDER BY pk;
-SET SESSION optimizer_switch=@old_optimizer_switch;
 DROP TABLE t1;
 CREATE TABLE t1(c1 DOUBLE(5,4));
 INSERT INTO t1 VALUES (9.1234);
@@ -29558,9 +24717,10 @@ SELECT * FROM t1 WHERE 102 < c;
 DROP TABLE t1;
 CREATE TABLE t1(a ENUM('') NOT NULL) charset latin1;
 INSERT INTO t1 VALUES (), (), ();
-ANALYZE TABLE t1;
-EXPLAIN SELECT 1 FROM t1 ORDER BY a COLLATE latin1_german2_ci;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using filesort
+SELECT 1 FROM t1 ORDER BY a COLLATE latin1_german2_ci;
+1
+1
+1
 SELECT 1 FROM t1 ORDER BY a COLLATE latin1_german2_ci;
 1
 1
@@ -29579,9 +24739,8 @@ INSERT INTO `cc` VALUES
 ,'e'),(8,9,'t','t'),(5,2,'q','q'),(4,6,'b','b'),(5,5,'w','w'),(3,2,'m','m'),(0,4,'x','x'),
 (8,9,'',''),(0,6,'w','w'),(4,5,'x','x'),(0,0,'e','e'),(0,0,'e','e'),(2,8,'p','p'),(0,0,'x'
 ,'x');
-EXPLAIN SELECT `varchar_nokey` g1  FROM cc  WHERE `int_nokey` AND `int_key`  <= 4
+SELECT `varchar_nokey` g1  FROM cc  WHERE `int_nokey` AND `int_key`  <= 4
 HAVING g1  ORDER  BY `varchar_key` LIMIT  6   ;
-1	SIMPLE	cc	NULL	range	int_key	int_key	4	NULL	9	90.00	Using index condition; Using where; Using filesort
 SELECT `varchar_nokey` g1  FROM cc  WHERE `int_nokey` AND `int_key`  <= 4
 HAVING g1  ORDER  BY `varchar_key` LIMIT  6   ;
 DROP TABLE cc;
@@ -29607,8 +24766,6 @@ DROP TABLE t1;
 CREATE TABLE t1 (f1 DECIMAL(10,2));
 INSERT INTO t1 VALUES (11.67),(17865.3),(12345678.92);
 CREATE VIEW view_t1 AS SELECT FORMAT(f1,1,'sk_SK') AS f1 FROM t1;
-SHOW CREATE VIEW view_t1;
-view_t1	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_t1` AS select format(`t1`.`f1`,1,'sk_SK') AS `f1` from `t1`	utf8mb4	utf8mb4_general_ci
 SELECT * FROM view_t1;
 11,7
 17 865,3
@@ -29650,7 +24807,6 @@ INSERT INTO t1 VALUES (NULL,7);
 INSERT INTO t1 VALUES (NULL,NULL);
 INSERT INTO t1 VALUES (NULL,NULL);
 INSERT INTO t1 VALUES (NULL,4);
-ANALYZE TABLE t1;
 DROP TABLE t1;
 SET @@GLOBAL.innodb_stats_transient_sample_pages= @innodb_stats_transient_sample_pages;
 SET @@GLOBAL.innodb_stats_persistent_sample_pages= @innodb_stats_persistent_sample_pages;

@@ -269,56 +269,10 @@ ORDER by lastchange_datum DESC LIMIT 2;
 drop table t1;
 create table t1 (a int not null, b int, c varchar(10), key (a, b, c)) charset utf8mb4;
 insert into t1 values (1, NULL, NULL), (1, NULL, 'b'), (1, 1, NULL), (1, 1, 'b'), (1, 1, 'b'), (2, 1, 'a'), (2, 1, 'b'), (2, 2, 'a'), (2, 2, 'b'), (2, 3, 'c'),(1,3,'b');
-ANALYZE TABLE t1;
-explain select * from t1 where (a = 1 and b is null and c = 'b') or (a > 2) order by a desc;
-1	SIMPLE	t1	NULL	range	a	a	52	NULL	2	100.00	Using where; Backward index scan; Using index
 select * from t1 where (a = 1 and b is null and c = 'b') or (a > 2) order by a desc;
 1	NULL	b
-explain select * from t1 where a >= 1 and a < 3 order by a desc;
-1	SIMPLE	t1	NULL	index	a	a	52	NULL	11	100.00	Using where; Backward index scan; Using index
-explain format=json select * from t1 where a >= 1 and a < 3 order by a desc;
-{
-  "query_block": {
-    "select_id": 1,
-    "cost_info": {
-      "query_cost": "1.35"
-    },
-    "ordering_operation": {
-      "using_filesort": false,
-      "table": {
-        "table_name": "t1",
-        "access_type": "index",
-        "possible_keys": [
-          "a"
-        ],
-        "key": "a",
-        "used_key_parts": [
-          "a",
-          "b",
-          "c"
-        ],
-        "key_length": "52",
-        "rows_examined_per_scan": 11,
-        "rows_produced_per_join": 11,
-        "filtered": "100.00",
-        "backward_index_scan": true,
-        "using_index": true,
-        "cost_info": {
-          "read_cost": "0.25",
-          "eval_cost": "1.10",
-          "prefix_cost": "1.35",
-          "data_read_per_join": "616"
-        },
-        "used_columns": [
-          "a",
-          "b",
-          "c"
-        ],
-        "attached_condition": "((`order_by`.`t1`.`a` >= 1) and (`order_by`.`t1`.`a` < 3))"
-      }
-    }
-  }
-}
+select * from t1 where (a = 1 and b is null and c = 'b') or (a > 2) order by a desc;
+1	NULL	b
 select * from t1 where a >= 1 and a < 3 order by a desc;
 2	3	c
 2	2	b
@@ -331,8 +285,30 @@ select * from t1 where a >= 1 and a < 3 order by a desc;
 1	1	NULL
 1	NULL	b
 1	NULL	NULL
-explain select * from t1 where a = 1 order by a desc, b desc;
-1	SIMPLE	t1	NULL	ref	a	a	4	const	6	100.00	Backward index scan; Using index
+select * from t1 where a >= 1 and a < 3 order by a desc;
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+1	3	b
+1	1	b
+1	1	b
+1	1	NULL
+1	NULL	b
+1	NULL	NULL
+select * from t1 where a >= 1 and a < 3 order by a desc;
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+1	3	b
+1	1	b
+1	1	b
+1	1	NULL
+1	NULL	b
+1	NULL	NULL
 select * from t1 where a = 1 order by a desc, b desc;
 1	3	b
 1	1	b
@@ -340,26 +316,59 @@ select * from t1 where a = 1 order by a desc, b desc;
 1	1	NULL
 1	NULL	b
 1	NULL	NULL
-explain select * from t1 where a = 1 and b is null order by a desc, b desc;
-1	SIMPLE	t1	NULL	ref	a	a	9	const,const	2	100.00	Using where; Using index; Using filesort
+select * from t1 where a = 1 order by a desc, b desc;
+1	3	b
+1	1	b
+1	1	b
+1	1	NULL
+1	NULL	b
+1	NULL	NULL
 select * from t1 where a = 1 and b is null order by a desc, b desc;
 1	NULL	NULL
 1	NULL	b
-explain select * from t1 where a >= 1 and a < 3 and b >0 order by a desc,b desc;
-1	SIMPLE	t1	NULL	range	a	a	9	NULL	9	33.33	Using where; Backward index scan; Using index
-explain select * from t1 where a = 2 and b >0 order by a desc,b desc;
-1	SIMPLE	t1	NULL	range	a	a	9	NULL	5	100.00	Using where; Backward index scan; Using index
-explain select * from t1 where a = 2 and b is null order by a desc,b desc;
-1	SIMPLE	t1	NULL	ref	a	a	9	const,const	1	100.00	Using where; Using index; Using filesort
-explain select * from t1 where a = 2 and (b is null or b > 0) order by a
+select * from t1 where a = 1 and b is null order by a desc, b desc;
+1	NULL	NULL
+1	NULL	b
+select * from t1 where a >= 1 and a < 3 and b >0 order by a desc,b desc;
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+1	3	b
+1	1	b
+1	1	b
+1	1	NULL
+select * from t1 where a = 2 and b >0 order by a desc,b desc;
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+select * from t1 where a = 2 and b is null order by a desc,b desc;
+select * from t1 where a = 2 and (b is null or b > 0) order by a
 desc,b desc;
-1	SIMPLE	t1	NULL	range	a	a	9	NULL	6	100.00	Using where; Backward index scan; Using index
-explain select * from t1 where a = 2 and b > 0 order by a desc,b desc;
-1	SIMPLE	t1	NULL	range	a	a	9	NULL	5	100.00	Using where; Backward index scan; Using index
-explain select * from t1 where a = 2 and b < 2 order by a desc,b desc;
-1	SIMPLE	t1	NULL	range	a	a	9	NULL	2	100.00	Using where; Backward index scan; Using index
-explain select * from t1 where a = 1 order by b desc;
-1	SIMPLE	t1	NULL	ref	a	a	4	const	6	100.00	Backward index scan; Using index
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+select * from t1 where a = 2 and b > 0 order by a desc,b desc;
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+select * from t1 where a = 2 and b < 2 order by a desc,b desc;
+2	1	b
+2	1	a
+select * from t1 where a = 1 order by b desc;
+1	3	b
+1	1	b
+1	1	b
+1	1	NULL
+1	NULL	b
+1	NULL	NULL
 select * from t1 where a = 1 order by b desc;
 1	3	b
 1	1	b
@@ -368,9 +377,6 @@ select * from t1 where a = 1 order by b desc;
 1	NULL	b
 1	NULL	NULL
 alter table t1 modify b int not null, modify c varchar(10) not null;
-ANALYZE TABLE t1;
-explain select * from t1 order by a, b, c;
-1	SIMPLE	t1	NULL	index	NULL	a	50	NULL	11	100.00	Using index
 select * from t1 order by a, b, c;
 1	0	
 1	0	b
@@ -383,8 +389,18 @@ select * from t1 order by a, b, c;
 2	2	a
 2	2	b
 2	3	c
-explain select * from t1 order by a desc, b desc, c desc;
-1	SIMPLE	t1	NULL	index	NULL	a	50	NULL	11	100.00	Backward index scan; Using index
+select * from t1 order by a, b, c;
+1	0	
+1	0	b
+1	1	
+1	1	b
+1	1	b
+1	3	b
+2	1	a
+2	1	b
+2	2	a
+2	2	b
+2	3	c
 select * from t1 order by a desc, b desc, c desc;
 2	3	c
 2	2	b
@@ -397,13 +413,30 @@ select * from t1 order by a desc, b desc, c desc;
 1	1	
 1	0	b
 1	0	
-explain select * from t1 where (a = 1 and b = 1 and c = 'b') or (a > 2) order by a desc;
-1	SIMPLE	t1	NULL	range	a	a	50	NULL	3	100.00	Using where; Backward index scan; Using index
+select * from t1 order by a desc, b desc, c desc;
+2	3	c
+2	2	b
+2	2	a
+2	1	b
+2	1	a
+1	3	b
+1	1	b
+1	1	b
+1	1	
+1	0	b
+1	0	
 select * from t1 where (a = 1 and b = 1 and c = 'b') or (a > 2) order by a desc;
 1	1	b
 1	1	b
-explain select * from t1 where a < 2 and b <= 1 order by a desc, b desc;
-1	SIMPLE	t1	NULL	range	a	a	4	NULL	6	33.33	Using where; Backward index scan; Using index
+select * from t1 where (a = 1 and b = 1 and c = 'b') or (a > 2) order by a desc;
+1	1	b
+1	1	b
+select * from t1 where a < 2 and b <= 1 order by a desc, b desc;
+1	1	b
+1	1	b
+1	1	
+1	0	b
+1	0	
 select * from t1 where a < 2 and b <= 1 order by a desc, b desc;
 1	1	b
 1	1	b
@@ -422,8 +455,6 @@ select * from t1 where a < 5 and b > 0 order by a desc,b desc;
 1	1	b
 1	1	b
 1	1	
-explain select * from t1 where a between 1 and 3 and b <= 1 order by a desc, b desc;
-1	SIMPLE	t1	NULL	index	a	a	50	NULL	11	33.33	Using where; Backward index scan; Using index
 select * from t1 where a between 1 and 3 and b <= 1 order by a desc, b desc;
 2	1	b
 2	1	a
@@ -432,8 +463,21 @@ select * from t1 where a between 1 and 3 and b <= 1 order by a desc, b desc;
 1	1	
 1	0	b
 1	0	
-explain select * from t1 where a between 0 and 1 order by a desc, b desc;
-1	SIMPLE	t1	NULL	range	a	a	4	NULL	6	100.00	Using where; Backward index scan; Using index
+select * from t1 where a between 1 and 3 and b <= 1 order by a desc, b desc;
+2	1	b
+2	1	a
+1	1	b
+1	1	b
+1	1	
+1	0	b
+1	0	
+select * from t1 where a between 0 and 1 order by a desc, b desc;
+1	3	b
+1	1	b
+1	1	b
+1	1	
+1	0	b
+1	0	
 select * from t1 where a between 0 and 1 order by a desc, b desc;
 1	3	b
 1	1	b
@@ -465,7 +509,6 @@ PRIMARY KEY  (uid)
 ) ENGINE=MyISAM;
 INSERT INTO t3 VALUES (1),(15),(27),(75),(117),(250);
 ALTER TABLE t3 add skr int(10) not null;
-ANALYZE TABLE t1, t2, t3;
 select t1.gid, t2.sid, t3.uid from t2, t1, t3 where t2.gid = t1.gid and t2.uid = t3.uid order by t3.uid, t1.gid;
 104620	5	15
 103867	5	27
@@ -480,23 +523,23 @@ select t1.gid, t2.sid, t3.uid from t3, t2, t1 where t2.gid = t1.gid and t2.uid =
 104619	5	75
 104505	5	117
 103853	5	250
-EXPLAIN select t1.gid, t2.sid, t3.uid from t3, t2, t1 where t2.gid = t1.gid and t2.uid = t3.uid order by t1.gid, t3.uid;
-1	SIMPLE	t3	NULL	index	PRIMARY	PRIMARY	2	NULL	6	100.00	Using index; Using temporary; Using filesort
-1	SIMPLE	t2	NULL	ref	PRIMARY,uid	uid	2	order_by.t3.uid	1	100.00	Using index condition
-1	SIMPLE	t1	NULL	eq_ref	PRIMARY	PRIMARY	4	order_by.t2.gid	1	100.00	Using index
-EXPLAIN SELECT t1.gid, t3.uid from t1, t3 where t1.gid = t3.uid order by t1.gid,t3.skr;
-1	SIMPLE	t3	NULL	ALL	PRIMARY	NULL	NULL	NULL	6	100.00	Using temporary; Using filesort
-1	SIMPLE	t1	NULL	eq_ref	PRIMARY	PRIMARY	4	order_by.t3.uid	1	100.00	Using where; Using index
-EXPLAIN SELECT t1.gid, t2.sid, t3.uid from t2, t1, t3 where t2.gid = t1.gid and t2.uid = t3.uid order by t3.uid, t1.gid;
-1	SIMPLE	t2	NULL	ALL	PRIMARY,uid	NULL	NULL	NULL	6	100.00	Using temporary; Using filesort
-1	SIMPLE	t1	NULL	eq_ref	PRIMARY	PRIMARY	4	order_by.t2.gid	1	100.00	Using index
-1	SIMPLE	t3	NULL	eq_ref	PRIMARY	PRIMARY	2	order_by.t2.uid	1	100.00	Using where; Using index
-EXPLAIN SELECT t1.gid, t3.uid from t1, t3 where t1.gid = t3.uid order by t3.skr,t1.gid;
-1	SIMPLE	t3	NULL	ALL	PRIMARY	NULL	NULL	NULL	6	100.00	Using temporary; Using filesort
-1	SIMPLE	t1	NULL	eq_ref	PRIMARY	PRIMARY	4	order_by.t3.uid	1	100.00	Using where; Using index
-EXPLAIN SELECT t1.gid, t3.uid from t1, t3 where t1.skr = t3.uid order by t1.gid,t3.skr;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	Using temporary; Using filesort
-1	SIMPLE	t3	NULL	eq_ref	PRIMARY	PRIMARY	2	order_by.t1.skr	1	100.00	Using index condition
+select t1.gid, t2.sid, t3.uid from t3, t2, t1 where t2.gid = t1.gid and t2.uid = t3.uid order by t1.gid, t3.uid;
+103853	5	250
+103867	5	27
+103962	5	27
+104505	5	117
+104619	5	75
+104620	5	15
+SELECT t1.gid, t3.uid from t1, t3 where t1.gid = t3.uid order by t1.gid,t3.skr;
+SELECT t1.gid, t2.sid, t3.uid from t2, t1, t3 where t2.gid = t1.gid and t2.uid = t3.uid order by t3.uid, t1.gid;
+104620	5	15
+103867	5	27
+103962	5	27
+104619	5	75
+104505	5	117
+103853	5	250
+SELECT t1.gid, t3.uid from t1, t3 where t1.gid = t3.uid order by t3.skr,t1.gid;
+SELECT t1.gid, t3.uid from t1, t3 where t1.skr = t3.uid order by t1.gid,t3.skr;
 drop table t1,t2,t3;
 CREATE TABLE t1 (
 `titre` char(80) NOT NULL default '',
@@ -557,11 +600,8 @@ SELECT * FROM t1 ORDER BY (a + b) DESC;
 5	NULL
 DROP TABLE t1;
 create table t1(id int not null auto_increment primary key, t char(12));
-ANALYZE TABLE t1;
-explain select id,t from t1 order by id;
-1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	1	100.00	NULL
-explain select id,t from t1 force index (primary) order by id;
-1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	1	100.00	NULL
+select id,t from t1 order by id;
+select id,t from t1 force index (primary) order by id;
 drop table t1;
 CREATE TABLE t1 (
 FieldKey varchar(36) NOT NULL default '',
@@ -572,20 +612,26 @@ KEY LongField (FieldKey,LongVal),
 KEY StringField (FieldKey,StringVal(32))
 ) charset utf8mb4;
 INSERT INTO t1 VALUES ('0',3,'0'),('0',2,'1'),('0',1,'2'),('1',2,'1'),('1',1,'3'), ('1',0,'2'),('2',3,'0'),('2',2,'1'),('2',1,'2'),('2',3,'0'),('2',2,'1'),('2',1,'2'),('3',2,'1'),('3',1,'2'),('3','3','3');
-EXPLAIN SELECT * FROM t1 WHERE FieldKey = '1' ORDER BY LongVal;
-1	SIMPLE	t1	NULL	ref	FieldKey,LongField,StringField	LongField	146	const	3	100.00	NULL
 SELECT * FROM t1 WHERE FieldKey = '1' ORDER BY LongVal;
 1	0	2
 1	1	3
 1	2	1
-EXPLAIN SELECT * FROM t1 ignore index (FieldKey, LongField) WHERE FieldKey > '2' ORDER BY LongVal;
-1	SIMPLE	t1	NULL	range	StringField	StringField	146	NULL	3	100.00	Using index condition; Using filesort
+SELECT * FROM t1 WHERE FieldKey = '1' ORDER BY LongVal;
+1	0	2
+1	1	3
+1	2	1
+SELECT * FROM t1 ignore index (FieldKey, LongField) WHERE FieldKey > '2' ORDER BY LongVal;
+3	1	2
+3	2	1
+3	3	3
 SELECT * FROM t1 WHERE FieldKey > '2' ORDER BY LongVal;
 3	1	2
 3	2	1
 3	3	3
-EXPLAIN SELECT * FROM t1 WHERE FieldKey > '2' ORDER BY FieldKey, LongVal;
-1	SIMPLE	t1	NULL	range	FieldKey,LongField,StringField	LongField	146	NULL	3	100.00	Using index condition
+SELECT * FROM t1 WHERE FieldKey > '2' ORDER BY FieldKey, LongVal;
+3	1	2
+3	2	1
+3	3	3
 SELECT * FROM t1 WHERE FieldKey > '2' ORDER BY FieldKey, LongVal;
 3	1	2
 3	2	1
@@ -602,16 +648,21 @@ SELECT id FROM t1 WHERE id <11984 AND menu =2 ORDER BY id DESC LIMIT 1 ;
 drop table t1;
 create table t1(a int, b int, index(b));
 insert into t1 values (2, 1), (1, 1), (4, NULL), (3, NULL), (6, 2), (5, 2);
-ANALYZE TABLE t1;
-explain select * from t1 where b=1 or b is null order by a;
-1	SIMPLE	t1	NULL	ref_or_null	b	b	5	const	4	100.00	Using index condition; Using filesort
 select * from t1 where b=1 or b is null order by a;
 1	1
 2	1
 3	NULL
 4	NULL
-explain select * from t1 where b=2 or b is null order by a;
-1	SIMPLE	t1	NULL	ref_or_null	b	b	5	const	4	100.00	Using index condition; Using filesort
+select * from t1 where b=1 or b is null order by a;
+1	1
+2	1
+3	NULL
+4	NULL
+select * from t1 where b=2 or b is null order by a;
+3	NULL
+4	NULL
+5	2
+6	2
 select * from t1 where b=2 or b is null order by a;
 3	NULL
 4	NULL
@@ -633,16 +684,9 @@ insert into t1 select null, b, c, d from t2;
 insert into t2 select null, b, c, d from t1;
 insert into t1 select null, b, c, d from t2;
 set @row=10;
-insert into t1 select 1, b, c + (@row:=@row - 1) * 10, d - @row from t2 limit 10;
 select * from t1 where a=1 and b in (1) order by c, b, a;
 1	1	2	0
-1	1	12	-1
-1	1	52	-5
-1	1	92	-9
 select * from t1 where a=1 and b in (1);
-1	1	92	-9
-1	1	52	-5
-1	1	12	-1
 1	1	2	0
 drop table t1, t2;
 create table t1 (col1 int, col int);
@@ -690,11 +734,6 @@ insert into t1 set a = concat(repeat('x', 19), 'z');
 insert into t1 set a = concat(repeat('x', 19), 'ab');
 insert into t1 set a = concat(repeat('x', 19), 'aa');
 set max_sort_length=20;
-select a from t1 order by a;
-xxxxxxxxxxxxxxxxxxxab
-xxxxxxxxxxxxxxxxxxxaa
-xxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxz
 drop table t1;
 create table t1 (
 `sid` decimal(8,0) default null,
@@ -770,10 +809,6 @@ INSERT INTO t1 VALUES (1,30), (2,20), (1,10), (2,30), (1,20), (2,10);
 10	2
 20	2
 30	2
-(SELECT b,a FROM t1 ORDER by b,a LIMIT 3) ORDER by a,b;
-10	1
-20	1
-10	2
 DROP TABLE t1;
 CREATE TABLE t1 (a INT);
  INSERT INTO t1 VALUES (1),(2);
@@ -882,7 +917,6 @@ select a, b from t1 group by a, b order by sum(c);
 drop table t1;
 CREATE TABLE t1 (a int, b int, PRIMARY KEY  (a));
 INSERT INTO t1 VALUES (1,1), (2,2), (3,3);
-ANALYZE TABLE t1, t2;
 explain SELECT t1.b as a, t2.b as c FROM
 t1 LEFT JOIN t1 t2 ON (t1.a = t2.a AND t2.a = 2)
 ORDER BY c;
@@ -971,7 +1005,6 @@ SELECT COUNT(*) FROM t1;
 40960
 CREATE TABLE t2 LIKE t1;
 INSERT INTO t2 SELECT * FROM t1 ORDER BY id;
-ANALYZE TABLE t1, t2;
 EXPLAIN SELECT id,c3 FROM t2 WHERE c2=11 ORDER BY c3 LIMIT 4000;
 1	SIMPLE	t2	NULL	ref	k2	k2	5	const	8192	100.00	Using filesort
 EXPLAIN SELECT id,c3 FROM t2 WHERE c2 BETWEEN 10 AND 12 ORDER BY c3 LIMIT 20;
@@ -980,25 +1013,25 @@ EXPLAIN SELECT id,c3 FROM t2 WHERE c2 BETWEEN 20 AND 30 ORDER BY c3 LIMIT 4000;
 1	SIMPLE	t2	NULL	range	k2	k2	5	NULL	409	100.00	Using index condition; Using filesort
 SELECT c3,id FROM t2 WHERE c2=11 ORDER BY c3 LIMIT 20;
 14	6
+14	185
 14	16
+14	282
 14	31
+14	262
 14	41
+14	195
 14	62
 14	72
-14	82
-14	92
-14	125
-14	135
-14	145
-14	155
-14	165
-14	175
-14	185
-14	195
-14	252
-14	262
 14	272
-14	282
+14	82
+14	175
+14	92
+14	252
+14	125
+14	165
+14	135
+14	155
+14	145
 DROP TABLE t1,t2;
 CREATE TABLE t1 (
 a INT,
@@ -1012,7 +1045,6 @@ INSERT INTO t1 SELECT a + 8, b + 8 FROM t1;
 INSERT INTO t1 SELECT a +16, b +16 FROM t1;
 INSERT INTO t1 SELECT a +32, b +32 FROM t1;
 INSERT INTO t1 SELECT a +64, b +64 FROM t1;
-ANALYZE TABLE t1;
 flush status;
 show status like 'Created_tmp_tables';
 Created_tmp_tables	0
@@ -1145,12 +1177,10 @@ SELECT a FROM t1 IGNORE INDEX FOR ORDER BY (PRIMARY, ab) ORDER BY a;
 126
 127
 128
-ANALYZE TABLE t1;
 flush status;
 show status like 'Created_tmp_tables';
 Created_tmp_tables	0
 flush status;
-ANALYZE TABLE t1;
 SELECT a FROM t1 IGNORE INDEX (PRIMARY, ab) GROUP BY a;
 1
 2
@@ -1280,7 +1310,6 @@ SELECT a FROM t1 IGNORE INDEX (PRIMARY, ab) GROUP BY a;
 126
 127
 128
-ANALYZE TABLE t1;
 SELECT a FROM t1 IGNORE INDEX (PRIMARY, ab) ORDER BY a;
 1
 2
@@ -1874,23 +1903,18 @@ INSERT INTO t2 (a, b, c, d) VALUES
 ( 'ppfcz5', 30, 29, 833.5), ( 'ppfcz5', 30, 30, 857.5), ( 'foreign', 13, 30, 0),
 ( 'all', 32, 10000, 23.2342007434944);
 INSERT INTO t3 SELECT * FROM t1;
-ANALYZE TABLE t1, t2, t3;
-EXPLAIN
-SELECT d FROM t1, t2
-WHERE t2.b=14 AND t2.a=t1.a AND 5.1<t2.c AND t1.b='DE'
-ORDER BY t2.c LIMIT 1;
-1	SIMPLE	t1	NULL	ref	a,b	b	13	const	4	100.00	Using index condition; Using where; Using temporary; Using filesort
-1	SIMPLE	t2	NULL	ref	a,b,c	a	136	order_by.t1.a,const	11	78.90	Using index condition
 SELECT d FROM t1, t2
 WHERE t2.b=14 AND t2.a=t1.a AND 5.1<t2.c AND t1.b='DE'
 ORDER BY t2.c LIMIT 1;
 52.5
-EXPLAIN
+SELECT d FROM t1, t2
+WHERE t2.b=14 AND t2.a=t1.a AND 5.1<t2.c AND t1.b='DE'
+ORDER BY t2.c LIMIT 1;
+52.5
 SELECT d FROM t3 AS t1, t2 AS t2
 WHERE t2.b=14 AND t2.a=t1.a AND 5.1<t2.c AND t1.b='DE'
 ORDER BY t2.c LIMIT 1;
-1	SIMPLE	t2	NULL	range	a,b,c	c	5	NULL	415	27.57	Using index condition; Using where
-1	SIMPLE	t1	NULL	eq_ref	a	a	144	order_by.t2.a,const	1	100.00	Using where; Using index
+52.5
 SELECT d FROM t3 AS t1, t2 AS t2
 WHERE t2.b=14 AND t2.a=t1.a AND 5.1<t2.c AND t1.b='DE'
 ORDER BY t2.c LIMIT 1;
@@ -2254,12 +2278,8 @@ ORDER BY f1, f0 LIMIT 30;
 233	5	5
 333	5	5
 433	5	5
-SELECT FOUND_ROWS();
-500
 SELECT SQL_CALC_FOUND_ROWS * FROM t1
 ORDER BY f1, f0 LIMIT 0;
-SELECT FOUND_ROWS();
-500
 SELECT SQL_CALC_FOUND_ROWS * FROM t1 WHERE f1>10
 ORDER BY f2, f0 LIMIT 20;
 12	11	11
@@ -2282,12 +2302,8 @@ ORDER BY f2, f0 LIMIT 20;
 242	14	14
 342	14	14
 442	14	14
-SELECT FOUND_ROWS();
-445
 SELECT SQL_CALC_FOUND_ROWS * FROM t1 WHERE f1>10
 ORDER BY f2, f0 LIMIT 0;
-SELECT FOUND_ROWS();
-445
 SELECT SQL_CALC_FOUND_ROWS * FROM t1 WHERE f1>10
 ORDER BY f2, f0 LIMIT 10 OFFSET 10;
 14	13	13
@@ -2300,12 +2316,8 @@ ORDER BY f2, f0 LIMIT 10 OFFSET 10;
 242	14	14
 342	14	14
 442	14	14
-SELECT FOUND_ROWS();
-445
 SELECT SQL_CALC_FOUND_ROWS * FROM t1 WHERE f1>10
 ORDER BY f2, f0 LIMIT 0 OFFSET 10;
-SELECT FOUND_ROWS();
-445
 set sort_buffer_size= 327680;
 SELECT * FROM t1 JOIN tmp on t1.f2=tmp.f2
 ORDER BY tmp.f1, f0 LIMIT 30;
@@ -2403,8 +2415,6 @@ ORDER BY tmp.f1, f0 LIMIT 30 OFFSET 30;
 431	3	3	3	3
 431	3	3	3	3
 431	3	3	3	3
-SELECT FOUND_ROWS();
-1500
 SELECT SQL_CALC_FOUND_ROWS * FROM t1 JOIN tmp on t1.f2=tmp.f2
 WHERE t1.f2>20
 ORDER BY tmp.f1, f0 LIMIT 30 OFFSET 30;
@@ -2438,8 +2448,6 @@ ORDER BY tmp.f1, f0 LIMIT 30 OFFSET 30;
 452	24	24	24	24
 452	24	24	24	24
 452	24	24	24	24
-SELECT FOUND_ROWS();
-1185
 CREATE VIEW v1 as SELECT * FROM t1 ORDER BY f1, f0 LIMIT 30;
 SELECT * FROM v1;
 1	0	0
@@ -2635,8 +2643,11 @@ INSERT INTO t1 VALUES (21, 6, 1), (22, 6, 2), (23, 6, 3), (24, 6, 4);
 INSERT INTO t1 VALUES (25, 7, 1), (26, 7, 2), (27, 7, 3), (28, 7, 4);
 INSERT INTO t1 VALUES (29, 8, 1), (30, 8, 2), (31, 8, 3), (32, 8, 4);
 INSERT INTO t1 VALUES (33, 9, 1), (34, 9, 2), (35, 9, 3), (36, 9, 4);
-EXPLAIN SELECT id1 FROM t1 WHERE id2 = 4 ORDER BY id1;
-1	SIMPLE	t1	NULL	ref	PRIMARY,id2_j_id1	id2_j_id1	4	const	4	100.00	Using index; Using filesort
+SELECT id1 FROM t1 WHERE id2 = 4 ORDER BY id1;
+13
+14
+15
+16
 SELECT id1 FROM t1 WHERE id2 = 4 ORDER BY id1;
 13
 14
@@ -2669,10 +2680,6 @@ INSERT INTO t1 SELECT a + 160, b, c  + 160  FROM t1;
 INSERT INTO t1 SELECT a + 320, b, c  + 320  FROM t1;
 INSERT INTO t1 SELECT a + 640, b, c  + 640  FROM t1;
 INSERT INTO t1 SELECT a + 1280, b, c + 1280 FROM t1 LIMIT 80;
-ANALYZE TABLE t1;
-EXPLAIN
-SELECT a FROM t1 WHERE b = 1 ORDER BY c DESC LIMIT 9;
-1	SIMPLE	t1	NULL	ref	b,b_2	b_2	4	const	208	100.00	Using index; Using filesort
 SELECT a FROM t1 WHERE b = 1 ORDER BY c DESC LIMIT 9;
 991
 981
@@ -2683,9 +2690,26 @@ SELECT a FROM t1 WHERE b = 1 ORDER BY c DESC LIMIT 9;
 931
 921
 911
-EXPLAIN
+SELECT a FROM t1 WHERE b = 1 ORDER BY c DESC LIMIT 9;
+991
+981
+971
+961
+951
+941
+931
+921
+911
 SELECT DISTINCT a FROM t1 WHERE b = 1 ORDER BY c DESC LIMIT 0, 9;
-1	SIMPLE	t1	NULL	ref	b,b_2	b_2	4	const	208	100.00	Using index; Using temporary; Using filesort
+991
+981
+971
+961
+951
+941
+931
+921
+911
 SELECT DISTINCT a FROM t1 WHERE b = 1 ORDER BY c DESC LIMIT 0, 9;
 991
 981
@@ -2704,18 +2728,69 @@ INSERT INTO t1 SELECT a+8, b FROM t1;
 CREATE TABLE t2 (a INT, b INT);
 INSERT INTO t2 VALUES (0,NULL), (1,NULL), (2,NULL), (3,NULL), (4,NULL);
 INSERT INTO t2 SELECT a+4, b FROM t2;
-EXPLAIN
 SELECT * FROM t1 FORCE INDEX FOR ORDER BY (a), t2 WHERE t1.a < 2 ORDER BY t1.a;
-1	SIMPLE	t1	NULL	range	a	a	5	NULL	2	100.00	Using index condition
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	NULL
-EXPLAIN
+0	NULL	0	NULL
+0	NULL	1	NULL
+0	NULL	2	NULL
+0	NULL	3	NULL
+0	NULL	4	NULL
+0	NULL	4	NULL
+0	NULL	5	NULL
+0	NULL	6	NULL
+0	NULL	7	NULL
+0	NULL	8	NULL
+1	NULL	0	NULL
+1	NULL	1	NULL
+1	NULL	2	NULL
+1	NULL	3	NULL
+1	NULL	4	NULL
+1	NULL	4	NULL
+1	NULL	5	NULL
+1	NULL	6	NULL
+1	NULL	7	NULL
+1	NULL	8	NULL
 SELECT * FROM t1 USE INDEX FOR ORDER BY (a), t2 WHERE t1.a < 2 ORDER BY t1.a;
-1	SIMPLE	t1	NULL	range	a	a	5	NULL	2	100.00	Using index condition; Using temporary; Using filesort
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	Using join buffer (hash join)
-EXPLAIN
+0	NULL	0	NULL
+0	NULL	1	NULL
+0	NULL	2	NULL
+0	NULL	3	NULL
+0	NULL	4	NULL
+0	NULL	4	NULL
+0	NULL	5	NULL
+0	NULL	6	NULL
+0	NULL	7	NULL
+0	NULL	8	NULL
+1	NULL	0	NULL
+1	NULL	1	NULL
+1	NULL	2	NULL
+1	NULL	3	NULL
+1	NULL	4	NULL
+1	NULL	4	NULL
+1	NULL	5	NULL
+1	NULL	6	NULL
+1	NULL	7	NULL
+1	NULL	8	NULL
 SELECT * FROM t1 FORCE INDEX FOR JOIN (a), t2 WHERE t1.a < 2 ORDER BY t1.a;
-1	SIMPLE	t1	NULL	range	a	a	5	NULL	2	100.00	Using index condition; Using temporary; Using filesort
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	Using join buffer (hash join)
+0	NULL	0	NULL
+0	NULL	1	NULL
+0	NULL	2	NULL
+0	NULL	3	NULL
+0	NULL	4	NULL
+0	NULL	4	NULL
+0	NULL	5	NULL
+0	NULL	6	NULL
+0	NULL	7	NULL
+0	NULL	8	NULL
+1	NULL	0	NULL
+1	NULL	1	NULL
+1	NULL	2	NULL
+1	NULL	3	NULL
+1	NULL	4	NULL
+1	NULL	4	NULL
+1	NULL	5	NULL
+1	NULL	6	NULL
+1	NULL	7	NULL
+1	NULL	8	NULL
 DROP TABLE t1, t2;
 CREATE TABLE t1 ( a INT NOT NULL, b INT NOT NULL, KEY( a, b ) );
 INSERT INTO t1 VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
@@ -2723,7 +2798,6 @@ INSERT INTO t1 SELECT a + 5, b + 5 FROM t1;
 CREATE TABLE t2( a INT PRIMARY KEY, b INT );
 INSERT INTO t2 VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 INSERT INTO t2 SELECT a + 5, b + 5 FROM t2;
-ANALYZE TABLE t1, t2;
 EXPLAIN
 SELECT count(*) AS c, t1.a
 FROM t1 JOIN t2 ON t1.b = t2.a
@@ -2736,9 +2810,16 @@ LIMIT 2;
 DROP TABLE t1, t2;
 CREATE TABLE t1 (a INT,KEY (a));
 INSERT INTO t1 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10);
-ANALYZE TABLE t1;
-EXPLAIN SELECT DISTINCT a,1 FROM t1 WHERE a <> 1 ORDER BY a DESC;
-1	SIMPLE	t1	NULL	index	a	a	5	NULL	10	100.00	Using where; Backward index scan; Using index
+SELECT DISTINCT a,1 FROM t1 WHERE a <> 1 ORDER BY a DESC;
+10	1
+9	1
+8	1
+7	1
+6	1
+5	1
+4	1
+3	1
+2	1
 SELECT DISTINCT a,1 FROM t1 WHERE a <> 1 ORDER BY a DESC;
 10	1
 9	1
@@ -2757,14 +2838,14 @@ CREATE TABLE t2 (i2 integer NOT NULL PRIMARY KEY);
 CREATE TABLE t3 (i3 integer);
 INSERT INTO t1 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12);
 INSERT INTO t2 SELECT * FROM t1;
-ANALYZE TABLE t1, t2, t3;
-EXPLAIN
 SELECT t1.*, t2.* FROM t1 JOIN t2 ON t1.i1 = t2.i2
 LEFT JOIN t3 ON t2.i2 = t3.i3
 ORDER BY t1.i1 LIMIT 5;
-1	SIMPLE	t1	NULL	index	PRIMARY	PRIMARY	4	NULL	12	100.00	Using index; Using temporary; Using filesort
-1	SIMPLE	t2	NULL	eq_ref	PRIMARY	PRIMARY	4	order_by.t1.i1	1	100.00	Using index
-1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	1
+2	2
+3	3
+4	4
+5	5
 SELECT t1.*, t2.* FROM t1 JOIN t2 ON t1.i1 = t2.i2
 LEFT JOIN t3 ON t2.i2 = t3.i3
 ORDER BY t1.i1 LIMIT 5;
@@ -2788,19 +2869,18 @@ c INT,
 UNIQUE KEY a_c (a,c),
 KEY (a)) engine=myisam;
 INSERT INTO t1 VALUES (1,10), (2,NULL), (2,10);
-ANALYZE TABLE t1;
-EXPLAIN
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL);
-1	SIMPLE	t1	NULL	ref	a_c,a	a	5	const	1	55.56	Using where
-EXPLAIN
-SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c;
-1	SIMPLE	t1	NULL	ref	a_c,a	a	5	const	1	55.56	Using where; Using filesort
+NULL
+10
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c;
 NULL
 10
-EXPLAIN
+SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c;
+NULL
+10
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c DESC;
-1	SIMPLE	t1	NULL	ref	a_c,a	a	5	const	1	55.56	Using where; Using filesort
+10
+NULL
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c DESC;
 10
 NULL
@@ -2812,18 +2892,47 @@ CREATE TABLE t2 (p int, a int, INDEX i_a(a)) ENGINE=myisam;
 INSERT INTO t2 VALUES
 (103, 7), (109, 3), (102, 3), (108, 1), (106, 3),
 (107, 7), (105, 1), (101, 3), (100, 7), (110, 1);
-EXPLAIN
 SELECT t1.a FROM t1 LEFT JOIN t2 ON t1.a=t2.a ORDER BY t1.a;
-1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	8	100.00	Using index
-1	SIMPLE	t2	NULL	ref	i_a	i_a	5	order_by.t1.a	2	100.00	Using index
-EXPLAIN
+1
+1
+1
+2
+3
+3
+3
+3
+5
+6
+7
+7
+7
+8
+9
 SELECT t1.a FROM t1 LEFT JOIN t2 ON t1.a=t2.a ORDER BY t1.a LIMIT 8;
-1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	8	100.00	Using index
-1	SIMPLE	t2	NULL	ref	i_a	i_a	5	order_by.t1.a	2	100.00	Using index
-EXPLAIN
+1
+1
+1
+2
+3
+3
+3
+3
 SELECT t1.a FROM t1 LEFT JOIN t2 ON t1.a=t2.a ORDER BY t1.a LIMIT 1000;
-1	SIMPLE	t1	NULL	index	NULL	PRIMARY	4	NULL	8	100.00	Using index
-1	SIMPLE	t2	NULL	ref	i_a	i_a	5	order_by.t1.a	2	100.00	Using index
+1
+1
+1
+2
+3
+3
+3
+3
+5
+6
+7
+7
+7
+8
+9
 DROP TABLE t1, t2;
 CREATE TABLE t1 (a INT, b INT, KEY(b), KEY(b,a)) ENGINE=INNODB;
 INSERT INTO t1 VALUES (0,0);
@@ -2839,7 +2948,6 @@ i1 INTEGER NOT NULL
 ) ENGINE=MyISAM;
 DROP VIEW view_t1;
 DROP TABLE t1, t2;
-SET sql_mode = default;
 CREATE TABLE t1(a INT) ENGINE=INNODB;
 CREATE TABLE t2(c INT) ENGINE=INNODB;
 CREATE TABLE t3(b BLOB NOT NULL) ENGINE=INNODB;

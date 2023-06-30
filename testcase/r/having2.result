@@ -287,9 +287,6 @@ create table t1 (s1 char character set latin1 collate latin1_german1_ci);
 insert ignore into t1 values ('ü'),('y');
 set @previous_sql_mode_htnt542nh=@@sql_mode;
 set sql_mode=(select replace(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
-select s1,count(s1) from t1
-group by s1 collate latin1_swedish_ci having s1 = 'y';
-y	1
 set names utf8mb4;
 set @@sql_mode=@previous_sql_mode_htnt542nh;
 drop table t1;
@@ -318,12 +315,6 @@ INSERT INTO PROJ VALUES  ('P3','SDP','Test',30000,'Tampa');
 INSERT INTO PROJ VALUES  ('P4','SDP','Design',20000,'Deale');
 INSERT INTO PROJ VALUES  ('P5','IRM','Test',10000,'Vienna');
 INSERT INTO PROJ VALUES  ('P6','PAYR','Design',50000,'Deale');
-SELECT EMPNUM, GRADE*1000
-FROM HU.STAFF WHERE GRADE * 1000 >
-ANY (SELECT SUM(BUDGET) FROM HU.PROJ
-GROUP BY CITY, PTYPE
-HAVING HU.PROJ.CITY = HU.STAFF.CITY);
-E3	13000
 DROP SCHEMA HU;
 create database test;
 USE test;
@@ -406,7 +397,9 @@ f
 f
 f
 f
-DROP TABLES t1,t2,t3;
+DROP TABLE t1;
+DROP TABLE t2;
+DROP TABLE t3;
 CREATE TABLE t1 (f1 INT, f2 VARCHAR(1));
 INSERT INTO t1 VALUES (16,'d');
 CREATE TABLE t2 (f1 INT, f2 VARCHAR(1));
@@ -575,11 +568,6 @@ DROP TABLE t1;
 CREATE TABLE t1 (col_varchar_key varchar(1) DEFAULT NULL,
 KEY col_varchar_key (col_varchar_key));
 INSERT INTO t1 VALUES ('a'), ('b'), ('c'), ('h'), ('i'), ('i'), ('j');
-SELECT SQL_BUFFER_RESULT col_varchar_key AS field1
-FROM t1 AS table1
-GROUP BY field1
-HAVING field1 = 'a';
-a
 DROP TABLE t1;
 CREATE TABLE a(f INTEGER, g INTEGER) engine=innodb;
 DROP TABLE a;

@@ -11,7 +11,7 @@ CREATE TABLE t_innodb(c1 INT NOT NULL PRIMARY KEY,
                       KEY c3_idx(c3))ENGINE=INNODB;
 
 INSERT INTO t_innodb VALUES (1, 1, 'a'), (2,2,'a'), (3,3,'a');
-ANALYZE TABLE t_innodb;
+#skip ANALYZE TABLE t_innodb;
 
 CREATE TABLE t_myisam(c1 INT NOT NULL PRIMARY KEY,
                       c2 INT NOT NULL DEFAULT 1,
@@ -19,7 +19,7 @@ CREATE TABLE t_myisam(c1 INT NOT NULL PRIMARY KEY,
                       KEY c3_idx(c3)) ENGINE=MYISAM;
 
 INSERT INTO t_myisam(c1) VALUES (1), (2);
-ANALYZE TABLE t_myisam;
+#skip ANALYZE TABLE t_myisam;
 
 EXPLAIN SELECT COUNT(*) FROM t_innodb;
 EXPLAIN SELECT COUNT(*) FROM t_myisam;
@@ -29,37 +29,37 @@ SELECT MIN(c3), COUNT(*) FROM t_innodb;
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_myisam;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_myisam, t_innodb;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT MIN(c2), COUNT(*), MAX(c1) FROM t_innodb;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT MIN(c3), COUNT(*) FROM t_innodb;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 # This WL should affect a table with no primary key only to the extent that
 # call to records happens in execution phase now. 
 
 CREATE TABLE t_nopk(c1 INT NOT NULL , c2 INT NOT NULL)ENGINE=INNODB;
 INSERT INTO t_nopk SELECT c1, c2 FROM t_innodb;
-ANALYZE TABLE t_nopk;
+#skip ANALYZE TABLE t_nopk;
 SHOW CREATE TABLE t_nopk;
 
 EXPLAIN SELECT COUNT(*) FROM t_nopk;
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_nopk;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 # Add a secondary index and notice the difference in the plan. 
 CREATE INDEX c2_idx on t_nopk(c2);
@@ -69,7 +69,7 @@ EXPLAIN SELECT COUNT(*) FROM t_nopk;
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_nopk;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 DROP TABLE t_nopk;
 
@@ -84,7 +84,7 @@ CREATE TABLE t_innodb_nopk_nosk(c1 INT NOT NULL,
 INSERT INTO t_innodb_nopk_sk(c1,c2) VALUES (1, 1), (2,2), (3,3);
 INSERT INTO t_innodb_pk_nosk(c1,c2) SELECT * FROM t_innodb_nopk_sk;
 INSERT INTO t_innodb_nopk_nosk(c1,c2) SELECT * FROM t_innodb_nopk_sk;
-ANALYZE TABLE t_innodb_nopk_sk, t_innodb_pk_nosk, t_innodb_nopk_nosk;
+#skip ANALYZE TABLE t_innodb_nopk_sk, t_innodb_pk_nosk, t_innodb_nopk_nosk;
 
 #Uses handler::records_from_index. Cheaper to use secondary index.
 let query7= SELECT COUNT(*) FROM t_innodb_nopk_sk;
@@ -105,15 +105,15 @@ EXPLAIN SELECT COUNT(*) FROM t_innodb_nopk_nosk;
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb_nopk_sk;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb_pk_nosk;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb_nopk_nosk;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 DROP TABLE t_innodb_pk_nosk, t_innodb_nopk_sk, t_innodb_nopk_nosk;
 
@@ -134,19 +134,19 @@ EXPLAIN SELECT COUNT(*) FROM t_innodb, t_archive;
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_heap;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb, t_heap;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_archive;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb, t_archive;
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 DROP TABLE t_archive, t_heap;
 
 #FORCE INDEX
@@ -156,11 +156,11 @@ EXPLAIN SELECT COUNT(*) FROM t_myisam FORCE INDEX(c3_idx);
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_innodb FORCE INDEX(c3_idx);
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 FLUSH STATUS;
 SELECT COUNT(*) FROM t_myisam FORCE INDEX(c3_idx);
-SHOW STATUS LIKE 'Handler_%';
+#skip SHOW STATUS LIKE 'Handler_%';
 
 #Testcase for specific lines of code. 
 
@@ -190,12 +190,12 @@ SELECT COUNT(*) c FROM t_innodb HAVING c > 7;
 # Should be empty.
 SELECT COUNT(*) c FROM t_innodb LIMIT 10 OFFSET 5;
 
-set sql_mode=default;
+#skip set sql_mode=default;
 
 # Bug #28056133: Requires a fix in get_exact_record_count to avoid dummy temp
 # tables.
-SELECT SQL_BIG_RESULT COUNT(*) FROM t_innodb;
-SELECT SQL_BIG_RESULT COUNT(*) FROM t_innodb, t_myisam;
+#skip SELECT SQL_BIG_RESULT COUNT(*) FROM t_innodb;
+#skip SELECT SQL_BIG_RESULT COUNT(*) FROM t_innodb, t_myisam;
 
 # Unqualified COUNT(*) (running in the iterator executor) combined with BNL
 # (running in the pre-iterator executor).

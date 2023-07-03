@@ -1,0 +1,9982 @@
+drop table if exists t1,t2,t3;
+CREATE TABLE t1 (S1 INT);
+CREATE TABLE t2 (S1 INT);
+INSERT INTO t1 VALUES (1);
+INSERT INTO t2 VALUES (2);
+SELECT * FROM t1 JOIN t2;
+1	2
+SELECT * FROM t1 INNER JOIN t2;
+1	2
+SELECT * from t1 JOIN t2 USING (S1);
+SELECT * FROM t1 INNER JOIN t2 USING (S1);
+SELECT * from t1 CROSS JOIN t2;
+1	2
+SELECT * from t1 LEFT JOIN t2 USING(S1);
+1
+SELECT * from t1 LEFT JOIN t2 ON(t2.S1=2);
+1	2
+SELECT * from t1 RIGHT JOIN t2 USING(S1);
+2
+SELECT * from t1 RIGHT JOIN t2 ON(t1.S1=1);
+1	2
+drop table t1,t2;
+create table t1 (id int primary key);
+create table t2 (id int);
+insert into t1 values (75);
+insert into t1 values (79);
+insert into t1 values (78);
+insert into t1 values (77);
+replace into t1 values (76);
+replace into t1 values (76);
+insert into t1 values (104);
+insert into t1 values (103);
+insert into t1 values (102);
+insert into t1 values (101);
+insert into t1 values (105);
+insert into t1 values (106);
+insert into t1 values (107);
+insert into t2 values (107),(75),(1000);
+select t1.id, t2.id from t1, t2 where t2.id = t1.id;
+107	107
+75	75
+select t1.id, count(t2.id) from t1,t2 where t2.id = t1.id group by t1.id;
+107	1
+75	1
+select t1.id, count(t2.id) from t1,t2 where t2.id = t1.id group by t2.id;
+107	1
+75	1
+select t1.id,t2.id from t2 left join t1 on t1.id>=74 and t1.id<=0 where t2.id=75 and t1.id is null;
+NULL	75
+select t1.id,t2.id from t2 left join t1 on t1.id>=74 and t1.id<=0 where t2.id=75 and t1.id is null;
+NULL	75
+select t1.id, t2.id from t1, t2 where t2.id = t1.id and t1.id <0 and t1.id > 0;
+drop table t1,t2;
+SET sql_mode = 'NO_ENGINE_SUBSTITUTION';
+CREATE TABLE t1 (
+id int(11) NOT NULL auto_increment,
+token varchar(100) DEFAULT '' NOT NULL,
+count int(11) DEFAULT '0' NOT NULL,
+qty int(11),
+phone char(1) DEFAULT '' NOT NULL,
+timestamp datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+PRIMARY KEY (id),
+KEY token (token(15)),
+KEY timestamp (timestamp),
+UNIQUE token_2 (token(75),count,phone)
+);
+INSERT INTO t1 VALUES (21,'e45703b64de71482360de8fec94c3ade',3,7800,'n','1999-12-23 17:22:21');
+INSERT INTO t1 VALUES (22,'e45703b64de71482360de8fec94c3ade',4,5000,'y','1999-12-23 17:22:21');
+INSERT INTO t1 VALUES (18,'346d1cb63c89285b2351f0ca4de40eda',3,13200,'b','1999-12-23 11:58:04');
+INSERT INTO t1 VALUES (17,'ca6ddeb689e1b48a04146b1b5b6f936a',4,15000,'b','1999-12-23 11:36:53');
+INSERT INTO t1 VALUES (16,'ca6ddeb689e1b48a04146b1b5b6f936a',3,13200,'b','1999-12-23 11:36:53');
+INSERT INTO t1 VALUES (26,'a71250b7ed780f6ef3185bfffe027983',5,1500,'b','1999-12-27 09:44:24');
+INSERT INTO t1 VALUES (24,'4d75906f3c37ecff478a1eb56637aa09',3,5400,'y','1999-12-23 17:29:12');
+INSERT INTO t1 VALUES (25,'4d75906f3c37ecff478a1eb56637aa09',4,6500,'y','1999-12-23 17:29:12');
+INSERT INTO t1 VALUES (27,'a71250b7ed780f6ef3185bfffe027983',3,6200,'b','1999-12-27 09:44:24');
+INSERT INTO t1 VALUES (28,'a71250b7ed780f6ef3185bfffe027983',3,5400,'y','1999-12-27 09:44:36');
+INSERT INTO t1 VALUES (29,'a71250b7ed780f6ef3185bfffe027983',4,17700,'b','1999-12-27 09:45:05');
+CREATE TABLE t2 (
+id int(11) NOT NULL auto_increment,
+category int(11) DEFAULT '0' NOT NULL,
+county int(11) DEFAULT '0' NOT NULL,
+state int(11) DEFAULT '0' NOT NULL,
+phones int(11) DEFAULT '0' NOT NULL,
+nophones int(11) DEFAULT '0' NOT NULL,
+PRIMARY KEY (id),
+KEY category (category,county,state)
+);
+INSERT INTO t2 VALUES (3,2,11,12,5400,7800);
+INSERT INTO t2 VALUES (4,2,25,12,6500,11200);
+INSERT INTO t2 VALUES (5,1,37,6,10000,12000);
+select a.id, b.category as catid, b.state as stateid, b.county as countyid from t1 a, t2 b ignore index (primary) where (a.token ='a71250b7ed780f6ef3185bfffe027983') and (a.count = b.id);
+26	1	6	37
+27	2	12	11
+28	2	12	11
+29	2	12	25
+select a.id, b.category as catid, b.state as stateid, b.county as
+countyid from t1 a, t2 b where (a.token =
+'a71250b7ed780f6ef3185bfffe027983') and (a.count = b.id) order by a.id;
+26	1	6	37
+27	2	12	11
+28	2	12	11
+29	2	12	25
+drop table t1, t2;
+create table t1 (a int primary key);
+insert into t1 values(1),(2);
+select t1.a from t1 as t1 left join t1 as t2 using (a) left join t1 as t3 using (a) left join t1 as t4 using (a) left join t1 as t5 using (a) left join t1 as t6 using (a) left join t1 as t7 using (a) left join t1 as t8 using (a) left join t1 as t9 using (a) left join t1 as t10 using (a) left join t1 as t11 using (a) left join t1 as t12 using (a) left join t1 as t13 using (a) left join t1 as t14 using (a) left join t1 as t15 using (a) left join t1 as t16 using (a) left join t1 as t17 using (a) left join t1 as t18 using (a) left join t1 as t19 using (a) left join t1 as t20 using (a) left join t1 as t21 using (a) left join t1 as t22 using (a) left join t1 as t23 using (a) left join t1 as t24 using (a) left join t1 as t25 using (a) left join t1 as t26 using (a) left join t1 as t27 using (a) left join t1 as t28 using (a) left join t1 as t29 using (a) left join t1 as t30 using (a) left join t1 as t31 using (a);
+1
+2
+select a from t1 as t1 left join t1 as t2 using (a) left join t1 as t3 using (a) left join t1 as t4 using (a) left join t1 as t5 using (a) left join t1 as t6 using (a) left join t1 as t7 using (a) left join t1 as t8 using (a) left join t1 as t9 using (a) left join t1 as t10 using (a) left join t1 as t11 using (a) left join t1 as t12 using (a) left join t1 as t13 using (a) left join t1 as t14 using (a) left join t1 as t15 using (a) left join t1 as t16 using (a) left join t1 as t17 using (a) left join t1 as t18 using (a) left join t1 as t19 using (a) left join t1 as t20 using (a) left join t1 as t21 using (a) left join t1 as t22 using (a) left join t1 as t23 using (a) left join t1 as t24 using (a) left join t1 as t25 using (a) left join t1 as t26 using (a) left join t1 as t27 using (a) left join t1 as t28 using (a) left join t1 as t29 using (a) left join t1 as t30 using (a) left join t1 as t31 using (a);
+1
+2
+drop table t1;
+CREATE TABLE t1 (
+a int(11) NOT NULL,
+b int(11) NOT NULL,
+PRIMARY KEY  (a,b)
+) ENGINE=MyISAM;
+INSERT INTO t1 VALUES (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),(2,3);
+CREATE TABLE t2 (
+a int(11) default NULL
+) ENGINE=MyISAM;
+INSERT INTO t2 VALUES (2),(3);
+SELECT t1.a,t2.a,b FROM t1,t2 WHERE t1.a=t2.a AND (t1.a=1 OR t1.a=2) AND b>=1 AND b<=3;
+2	2	3
+DROP TABLE t1, t2;
+CREATE TABLE t1 (d DATE NOT NULL);
+CREATE TABLE t2 (d DATE NOT NULL);
+INSERT INTO t1 (d) VALUES ('2001-08-01'),('1000-01-01');
+SELECT * FROM t1 LEFT JOIN t2 USING (d) WHERE t2.d IS NULL;
+2001-08-01
+1000-01-01
+SELECT * FROM t1 LEFT JOIN t2 USING (d) WHERE d IS NULL;
+SELECT * from t1 WHERE t1.d IS NULL;
+SELECT * FROM t1 WHERE 1/0 IS NULL;
+2001-08-01
+1000-01-01
+DROP TABLE t1,t2;
+CREATE TABLE t1 (
+Document_ID varchar(50) NOT NULL default '',
+Contractor_ID varchar(6) NOT NULL default '',
+Language_ID char(3) NOT NULL default '',
+Expiration_Date datetime default NULL,
+Publishing_Date datetime default NULL,
+Title text,
+Column_ID varchar(50) NOT NULL default '',
+PRIMARY KEY  (Language_ID,Document_ID,Contractor_ID)
+);
+INSERT INTO t1 VALUES ('xep80','1','ger','2001-12-31 20:00:00','2001-11-12 10:58:00','Kartenbestellung - jetzt auch online','anle'),('','999998','',NULL,NULL,NULL,'');
+CREATE TABLE t2 (
+Contractor_ID char(6) NOT NULL default '',
+Language_ID char(3) NOT NULL default '',
+Document_ID char(50) NOT NULL default '',
+CanRead char(1) default NULL,
+Customer_ID int(11) NOT NULL default '0',
+PRIMARY KEY  (Contractor_ID,Language_ID,Document_ID,Customer_ID)
+);
+INSERT INTO t2 VALUES ('5','ger','xep80','1',999999),('1','ger','xep80','1',999999);
+CREATE TABLE t3 (
+Language_ID char(3) NOT NULL default '',
+Column_ID char(50) NOT NULL default '',
+Contractor_ID char(6) NOT NULL default '',
+CanRead char(1) default NULL,
+Active char(1) default NULL,
+PRIMARY KEY  (Language_ID,Column_ID,Contractor_ID)
+);
+INSERT INTO t3 VALUES ('ger','home','1','1','1'),('ger','Test','1','0','0'),('ger','derclu','1','0','0'),('ger','clubne','1','0','0'),('ger','philos','1','0','0'),('ger','clubko','1','0','0'),('ger','clubim','1','1','1'),('ger','progra','1','0','0'),('ger','progvo','1','0','0'),('ger','progsp','1','0','0'),('ger','progau','1','0','0'),('ger','progku','1','0','0'),('ger','progss','1','0','0'),('ger','nachl','1','0','0'),('ger','mitgli','1','0','0'),('ger','mitsu','1','0','0'),('ger','mitbus','1','0','0'),('ger','ergmar','1','1','1'),('ger','home','4','1','1'),('ger','derclu','4','1','1'),('ger','clubne','4','0','0'),('ger','philos','4','1','1'),('ger','clubko','4','1','1'),('ger','clubim','4','1','1'),('ger','progra','4','1','1'),('ger','progvo','4','1','1'),('ger','progsp','4','1','1'),('ger','progau','4','0','0'),('ger','progku','4','1','1'),('ger','progss','4','1','1'),('ger','nachl','4','1','1'),('ger','mitgli','4','0','0'),('ger','mitsu','4','0','0'),('ger','mitbus','4','0','0'),('ger','ergmar','4','1','1'),('ger','progra2','1','0','0'),('ger','archiv','4','1','1'),('ger','anmeld','4','1','1'),('ger','thema','4','1','1'),('ger','edito','4','1','1'),('ger','madis','4','1','1'),('ger','enma','4','1','1'),('ger','madis','1','1','1'),('ger','enma','1','1','1'),('ger','vorsch','4','0','0'),('ger','veranst','4','0','0'),('ger','anle','4','1','1'),('ger','redak','4','1','1'),('ger','nele','4','1','1'),('ger','aukt','4','1','1'),('ger','callcenter','4','1','1'),('ger','anle','1','0','0');
+delete from t1 where Contractor_ID='999998';
+insert into t1 (Contractor_ID) Values ('999998');
+SELECT DISTINCT COUNT(t1.Title) FROM t1,
+t2, t3 WHERE
+t1.Document_ID='xep80' AND t1.Contractor_ID='1' AND
+t1.Language_ID='ger' AND '2001-12-21 23:14:24' >=
+Publishing_Date AND '2001-12-21 23:14:24' <= Expiration_Date AND
+t1.Document_ID = t2.Document_ID AND
+t1.Language_ID = t2.Language_ID AND
+t1.Contractor_ID = t2.Contractor_ID AND (
+t2.Customer_ID = '4'  OR
+t2.Customer_ID = '999999'  OR
+t2.Customer_ID = '1' )AND t2.CanRead
+= '1'  AND t1.Column_ID=t3.Column_ID AND
+t1.Language_ID=t3.Language_ID AND (
+t3.Contractor_ID = '4'  OR
+t3.Contractor_ID = '999999'  OR
+t3.Contractor_ID = '1') AND
+t3.CanRead='1' AND t3.Active='1';
+1
+SELECT DISTINCT COUNT(t1.Title) FROM t1,
+t2, t3 WHERE
+t1.Document_ID='xep80' AND t1.Contractor_ID='1' AND
+t1.Language_ID='ger' AND '2001-12-21 23:14:24' >=
+Publishing_Date AND '2001-12-21 23:14:24' <= Expiration_Date AND
+t1.Document_ID = t2.Document_ID AND
+t1.Language_ID = t2.Language_ID AND
+t1.Contractor_ID = t2.Contractor_ID AND (
+t2.Customer_ID = '4'  OR
+t2.Customer_ID = '999999'  OR
+t2.Customer_ID = '1' )AND t2.CanRead
+= '1'  AND t1.Column_ID=t3.Column_ID AND
+t1.Language_ID=t3.Language_ID AND (
+t3.Contractor_ID = '4'  OR
+t3.Contractor_ID = '999999'  OR
+t3.Contractor_ID = '1') AND
+t3.CanRead='1' AND t3.Active='1';
+1
+drop table t1,t2,t3;
+CREATE TABLE t1 (
+t1_id int(11) default NULL,
+t2_id int(11) default NULL,
+type enum('Cost','Percent') default NULL,
+cost_unit enum('Cost','Unit') default NULL,
+min_value double default NULL,
+max_value double default NULL,
+t3_id int(11) default NULL,
+item_id int(11) default NULL
+) ENGINE=MyISAM;
+INSERT INTO t1 VALUES (12,5,'Percent','Cost',-1,0,-1,-1),(14,4,'Percent','Cost',-1,0,-1,-1),(18,5,'Percent','Cost',-1,0,-1,-1),(19,4,'Percent','Cost',-1,0,-1,-1),(20,5,'Percent','Cost',100,-1,22,291),(21,5,'Percent','Cost',100,-1,18,291),(22,1,'Percent','Cost',100,-1,6,291),(23,1,'Percent','Cost',100,-1,21,291),(24,1,'Percent','Cost',100,-1,9,291),(25,1,'Percent','Cost',100,-1,4,291),(26,1,'Percent','Cost',100,-1,20,291),(27,4,'Percent','Cost',100,-1,7,202),(28,1,'Percent','Cost',50,-1,-1,137),(29,2,'Percent','Cost',100,-1,4,354),(30,2,'Percent','Cost',100,-1,9,137),(93,2,'Cost','Cost',-1,10000000,-1,-1);
+CREATE TABLE t2 (
+id int(10) unsigned NOT NULL auto_increment,
+name varchar(255) default NULL,
+PRIMARY KEY  (id)
+) ENGINE=MyISAM;
+INSERT INTO t2 VALUES (1,'s1'),(2,'s2'),(3,'s3'),(4,'s4'),(5,'s5');
+select t1.*, t2.*  from t1, t2 where t2.id=t1.t2_id limit 2;
+12	5	Percent	Cost	-1	0	-1	-1	5	s5
+14	4	Percent	Cost	-1	0	-1	-1	4	s4
+drop table t1,t2;
+CREATE TABLE t1 (
+siteid varchar(25) NOT NULL default '',
+emp_id varchar(30) NOT NULL default '',
+rate_code varchar(10) default NULL,
+UNIQUE KEY site_emp (siteid,emp_id),
+KEY siteid (siteid)
+) ENGINE=MyISAM;
+INSERT INTO t1 VALUES ('rivercats','psmith','cust'), ('rivercats','KWalker','cust');
+CREATE TABLE t2 (
+siteid varchar(25) NOT NULL default '',
+rate_code varchar(10) NOT NULL default '',
+base_rate float NOT NULL default '0',
+PRIMARY KEY  (siteid,rate_code),
+FULLTEXT KEY rate_code (rate_code)
+) ENGINE=MyISAM;
+INSERT INTO t2 VALUES ('rivercats','cust',20);
+SELECT emp.rate_code, lr.base_rate FROM t1 AS emp LEFT JOIN t2 AS lr USING (siteid, rate_code) WHERE emp.emp_id = 'psmith' AND lr.siteid = 'rivercats';
+cust	20
+SELECT emp.rate_code, lr.base_rate FROM t1 AS emp LEFT JOIN t2 AS lr USING (siteid, rate_code) WHERE lr.siteid = 'rivercats' AND emp.emp_id = 'psmith';
+cust	20
+SELECT rate_code, lr.base_rate FROM t1 AS emp LEFT JOIN t2 AS lr USING (siteid, rate_code) WHERE emp.emp_id = 'psmith' AND siteid = 'rivercats';
+cust	20
+SELECT rate_code, lr.base_rate FROM t1 AS emp LEFT JOIN t2 AS lr USING (siteid, rate_code) WHERE siteid = 'rivercats' AND emp.emp_id = 'psmith';
+cust	20
+drop table t1,t2;
+CREATE TABLE t1 (ID INTEGER NOT NULL PRIMARY KEY, Value1 VARCHAR(255));
+CREATE TABLE t2 (ID INTEGER NOT NULL PRIMARY KEY, Value2 VARCHAR(255));
+INSERT INTO t1 VALUES (1, 'A');
+INSERT INTO t2 VALUES (1, 'B');
+SELECT * FROM t1 NATURAL JOIN t2 WHERE 1 AND (Value1 = 'A' AND Value2 <> 'B');
+SELECT * FROM t1 NATURAL JOIN t2 WHERE 1 AND Value1 = 'A' AND Value2 <> 'B';
+SELECT * FROM t1 NATURAL JOIN t2 WHERE (Value1 = 'A' AND Value2 <> 'B') AND 1;
+drop table t1,t2;
+CREATE TABLE t1 (a int);
+CREATE TABLE t2 (b int);
+CREATE TABLE t3 (c int);
+SELECT * FROM t1 NATURAL JOIN t2 NATURAL JOIN t3;
+DROP TABLE t1, t2, t3;
+create table t1 (i int);
+create table t2 (i int);
+create table t3 (i int);
+insert into t1 values(1),(2);
+insert into t2 values(2),(3);
+insert into t3 values (2),(4);
+select * from t1 natural left join t2;
+1
+2
+select * from t1 left join t2 on (t1.i=t2.i);
+1	NULL
+2	2
+select * from t1 natural left join t2 natural left join t3;
+1
+2
+select * from t1 left join t2 on (t1.i=t2.i) left join t3 on (t2.i=t3.i);
+1	NULL	NULL
+2	2	2
+select * from t3 natural right join t2;
+2
+3
+select * from t3 right join t2 on (t3.i=t2.i);
+2	2
+NULL	3
+select * from t3 natural right join t2 natural right join t1;
+1
+2
+select * from t3 right join t2 on (t3.i=t2.i) right join t1 on (t2.i=t1.i);
+NULL	NULL	1
+2	2	2
+select * from t1,t2 natural left join t3 order by t1.i,t2.i,t3.i;
+1	2
+1	3
+2	2
+2	3
+select * from t1,t2 left join t3 on (t2.i=t3.i) order by t1.i,t2.i,t3.i;
+1	2	2
+1	3	NULL
+2	2	2
+2	3	NULL
+select t1.i,t2.i,t3.i from t2 natural left join t3,t1 order by t1.i,t2.i,t3.i;
+1	2	2
+1	3	NULL
+2	2	2
+2	3	NULL
+select t1.i,t2.i,t3.i from t2 left join t3 on (t2.i=t3.i),t1 order by t1.i,t2.i,t3.i;
+1	2	2
+1	3	NULL
+2	2	2
+2	3	NULL
+select * from t1,t2 natural right join t3 order by t1.i,t2.i,t3.i;
+1	4
+1	2
+2	4
+2	2
+select * from t1,t2 right join t3 on (t2.i=t3.i) order by t1.i,t2.i,t3.i;
+1	NULL	4
+1	2	2
+2	NULL	4
+2	2	2
+select t1.i,t2.i,t3.i from t2 natural right join t3,t1 order by t1.i,t2.i,t3.i;
+1	NULL	4
+1	2	2
+2	NULL	4
+2	2	2
+select t1.i,t2.i,t3.i from t2 right join t3 on (t2.i=t3.i),t1 order by t1.i,t2.i,t3.i;
+1	NULL	4
+1	2	2
+2	NULL	4
+2	2	2
+drop table t1,t2,t3;
+CREATE TABLE t1 (a int, b int default 0, c int default 1);
+INSERT INTO t1 (a) VALUES (1),(2),(3),(4),(5),(6),(7),(8);
+INSERT INTO t1 (a) SELECT a + 8 FROM t1;
+INSERT INTO t1 (a) SELECT a + 16 FROM t1;
+CREATE TABLE t2 (a int, d int, e int default 0);
+INSERT INTO t2 (a, d) VALUES (1,1),(2,2),(3,3),(4,4);
+INSERT INTO t2 (a, d) SELECT a+4, a+4 FROM t2;
+INSERT INTO t2 (a, d) SELECT a+8, a+8 FROM t2;
+SELECT STRAIGHT_JOIN t2.e FROM t1,t2 WHERE t2.d=1 AND t1.b=t2.e
+ORDER BY t1.b, t1.c;
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+SELECT STRAIGHT_JOIN t2.e FROM t1,t2 WHERE t2.d=1 AND t1.b=t2.e
+ORDER BY t1.b, t1.c;
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+DROP TABLE t1,t2;
+create table t1 (c int, b int);
+create table t2 (a int, b int);
+create table t3 (b int, c int);
+create table t4 (y int, c int);
+create table t5 (y int, z int);
+create table t6 (a int, c int);
+insert into t1 values (10,1);
+insert into t1 values (3 ,1);
+insert into t1 values (3 ,2);
+insert into t2 values (2, 1);
+insert into t3 values (1, 3);
+insert into t3 values (1,10);
+insert into t4 values (11,3);
+insert into t4 values (2, 3);
+insert into t5 values (11,4);
+insert into t6 values (2, 3);
+create algorithm=merge view v1a as
+select * from t1 natural join t2;
+create algorithm=merge view v1b(a,b,c) as
+select * from t1 natural join t2;
+create algorithm=merge view v1c as
+select b as a, c as b, a as c from t1 natural join t2;
+create algorithm=merge view v1d(b, a, c) as
+select a as c, c as b, b as a from t1 natural join t2;
+create algorithm=merge view v2a as
+select t1.c, t1.b, t2.a from t1 join (t2 join t4 on b + 1 = y) on t1.c = t4.c;
+create algorithm=merge view v2b as
+select t1.c as b, t1.b as a, t2.a as c
+from t1 join (t2 join t4 on b + 1 = y) on t1.c = t4.c;
+create algorithm=merge view v3a as
+select * from t1 natural join t2 natural join t3;
+create algorithm=merge view v3b as
+select * from t1 natural join (t2 natural join t3);
+create algorithm=merge view v4 as
+select * from v2a natural join v3a;
+select * from (t1 natural join t2) natural join (t3 natural join t4);
+1	3	2	2
+1	3	2	11
+select * from (t1 natural join t2) natural left join (t3 natural join t4);
+1	10	2	NULL
+1	3	2	2
+1	3	2	11
+select * from (t3 natural join t4) natural right join (t1 natural join t2);
+1	10	2	NULL
+1	3	2	2
+1	3	2	11
+select * from (t1 natural left join t2) natural left join (t3 natural left join t4);
+1	10	2	NULL
+1	3	2	11
+1	3	2	2
+2	3	NULL	NULL
+select * from (t4 natural right join t3) natural right join (t2 natural right join t1);
+1	10	2	NULL
+1	3	2	11
+1	3	2	2
+2	3	NULL	NULL
+select * from t1 natural join t2 natural join t3 natural join t4;
+3	1	2	2
+3	1	2	11
+select * from ((t1 natural join t2) natural join t3) natural join t4;
+3	1	2	2
+3	1	2	11
+select * from t1 natural join (t2 natural join (t3 natural join t4));
+3	1	2	2
+3	1	2	11
+select * from t5 natural right join (t4 natural right join ((t2 natural right join t1) natural right join t3));
+2	3	1	2	NULL
+11	3	1	2	4
+NULL	10	1	2	NULL
+select * from (t1 natural join t2), (t3 natural join t4);
+1	10	2	3	1	11
+1	3	2	3	1	11
+1	10	2	3	1	2
+1	3	2	3	1	2
+select * from t5 natural join ((t1 natural join t2), (t3 natural join t4));
+11	4	1	10	2	3	1
+11	4	1	3	2	3	1
+select * from  ((t1 natural join t2),  (t3 natural join t4)) natural join t5;
+11	1	10	2	3	1	4
+11	1	3	2	3	1	4
+select * from t5 natural join ((t1 natural join t2) cross join (t3 natural join t4));
+11	4	1	10	2	3	1
+11	4	1	3	2	3	1
+select * from  ((t1 natural join t2) cross join (t3 natural join t4)) natural join t5;
+11	1	10	2	3	1	4
+11	1	3	2	3	1	4
+select * from (t1 join t2 using (b)) join (t3 join t4 using (c)) using (c);
+3	1	2	1	11
+3	1	2	1	2
+select * from (t1 join t2 using (b)) natural join (t3 join t4 using (c));
+1	3	2	2
+1	3	2	11
+select a,b,c from (t1 natural join t2) natural join (t3 natural join t4)
+where b + 1 = y or b + 10 = y group by b,c,a having min(b) < max(y) order by a;
+2	1	3
+select * from (t1 natural join t2) natural left join (t3 natural join t4)
+where b + 1 = y or b + 10 = y group by b,c,a,y having min(b) < max(y) order by a, y;
+1	3	2	2
+1	3	2	11
+select * from (t3 natural join t4) natural right join (t1 natural join t2)
+where b + 1 = y or b + 10 = y group by b,c,a,y having min(b) < max(y) order by a, y;
+1	3	2	2
+1	3	2	11
+select * from t1 natural join t2 where t1.c > t2.a;
+1	10	2
+1	3	2
+select * from t1 natural join t2 where t1.b > t2.b;
+select * from t1 natural left join (t4 natural join t5) where t5.z is not NULL;
+3	1	11	4
+3	2	11	4
+select * from t1 join (t2 join t4 on b + 1 = y) on t1.c = t4.c;
+3	1	2	1	2	3
+3	2	2	1	2	3
+select * from (t2 join t4 on b + 1 = y) join t1 on t1.c = t4.c;
+2	1	2	3	3	1
+2	1	2	3	3	2
+select * from t1 natural join (t2 join t4 on b + 1 = y);
+3	1	2	2
+select * from (t1 cross join t2) join (t3 cross join t4) on (a < y and t2.b < t3.c);
+10	1	2	1	1	3	11	3
+10	1	2	1	1	10	11	3
+3	1	2	1	1	3	11	3
+3	1	2	1	1	10	11	3
+3	2	2	1	1	3	11	3
+3	2	2	1	1	10	11	3
+select * from (t1, t2) join (t3, t4) on (a < y and t2.b < t3.c);
+10	1	2	1	1	3	11	3
+10	1	2	1	1	10	11	3
+3	1	2	1	1	3	11	3
+3	1	2	1	1	10	11	3
+3	2	2	1	1	3	11	3
+3	2	2	1	1	10	11	3
+select * from (t1 natural join t2) join (t3 natural join t4) on a = y;
+1	10	2	3	1	2
+1	3	2	3	1	2
+select * from ((t3 join (t1 join t2 on c > a) on t3.b < t2.a) join t4 on y > t1.c) join t5 on z = t1.b + 3;
+1	3	3	1	2	1	11	3	11	4
+1	10	3	1	2	1	11	3	11	4
+1	3	10	1	2	1	11	3	11	4
+1	10	10	1	2	1	11	3	11	4
+select * from t1 natural join t2 where t1.b > 0;
+1	10	2
+1	3	2
+select * from t1 natural join (t4 natural join t5) where t4.y > 7;
+3	1	11	4
+3	2	11	4
+select * from t1 natural left join (t4 natural join t5) where t4.y > 7;
+3	1	11	4
+3	2	11	4
+select * from (t4 natural join t5) natural right join t1 where t4.y > 7;
+3	1	11	4
+3	2	11	4
+select * from (t1 natural join t2) join (t3 natural join t4) on t1.b = t3.b;
+1	10	2	3	1	2
+1	10	2	3	1	11
+1	3	2	3	1	2
+1	3	2	3	1	11
+select t1.*, t2.* from t1 natural join t2;
+10	1	2	1
+3	1	2	1
+select t1.*, t2.*, t3.*, t4.* from (t1 natural join t2) natural join (t3 natural join t4);
+3	1	2	1	1	3	2	3
+3	1	2	1	1	3	11	3
+select * from (select * from t1 natural join t2) as t12
+natural join
+(select * from t3 natural join t4) as t34;
+1	3	2	2
+1	3	2	11
+select * from (select * from t1 natural join t2) as t12
+natural left join
+(select * from t3 natural join t4) as t34;
+1	10	2	NULL
+1	3	2	2
+1	3	2	11
+select * from (select * from t3 natural join t4) as t34
+natural right join
+(select * from t1 natural join t2) as t12;
+1	10	2	NULL
+1	3	2	2
+1	3	2	11
+select * from v1a;
+1	10	2
+1	3	2
+select * from v1b;
+1	10	2
+1	3	2
+select * from v1c;
+1	10	2
+1	3	2
+select * from v1d;
+2	10	1
+2	3	1
+select * from v2a;
+3	1	2
+3	2	2
+select * from v2b;
+3	1	2
+3	2	2
+select * from v3a;
+1	10	2
+1	3	2
+select * from v3b;
+10	1	2
+3	1	2
+select * from v4;
+3	1	2
+select * from v1a natural join v2a;
+1	3	2
+select v2a.* from v1a natural join v2a;
+3	1	2
+select * from v1b join v2a on v1b.b = v2a.c;
+1	3	2	3	1	2
+1	3	2	3	2	2
+select * from v1c join v2a on v1c.b = v2a.c;
+1	3	2	3	1	2
+1	3	2	3	2	2
+select * from v1d join v2a on v1d.a = v2a.c;
+2	3	1	3	1	2
+2	3	1	3	2	2
+select * from v1a join (t3 natural join t4) on a = y;
+1	10	2	3	1	2
+1	3	2	3	1	2
+select
+statistics.TABLE_NAME, statistics.COLUMN_NAME, statistics.TABLE_CATALOG, statistics.TABLE_SCHEMA, statistics.NON_UNIQUE, statistics.INDEX_SCHEMA, statistics.INDEX_NAME, statistics.SEQ_IN_INDEX, statistics.COLLATION, statistics.SUB_PART, statistics.PACKED, statistics.NULLABLE, statistics.INDEX_TYPE, statistics.COMMENT,
+columns.TABLE_CATALOG, columns.TABLE_SCHEMA, columns.COLUMN_DEFAULT, columns.IS_NULLABLE, columns.DATA_TYPE, columns.CHARACTER_MAXIMUM_LENGTH, columns.CHARACTER_OCTET_LENGTH, columns.NUMERIC_PRECISION, columns.NUMERIC_SCALE, columns.CHARACTER_SET_NAME, columns.COLLATION_NAME, columns.COLUMN_TYPE, columns.COLUMN_KEY, columns.EXTRA, columns.PRIVILEGES, columns.COLUMN_COMMENT
+from information_schema.statistics join information_schema.columns using(table_name,column_name) where table_name='user';
+user	Host	def	mysql	0	mysql	PRIMARY	1	A	NULL	NULL		BTREE		def	mysql		NO	char	255	255	NULL	NULL	ascii	ascii_general_ci	char(255)	PRI		select,insert,update,references	
+user	User	def	mysql	0	mysql	PRIMARY	2	A	NULL	NULL		BTREE		def	mysql		NO	char	32	96	NULL	NULL	utf8mb3	utf8mb3_bin	char(32)	PRI		select,insert,update,references	
+drop table t1;
+drop table t2;
+drop table t3;
+drop table t4;
+drop table t5;
+drop table t6;
+drop view v1a;
+drop view v1b;
+drop view v1c;
+drop view v1d;
+drop view v2a;
+drop view v2b;
+drop view v3a;
+drop view v3b;
+drop view v4;
+create table t1 (a1 int, a2 int);
+create table t2 (a1 int, b int);
+create table t3 (c1 int, c2 int);
+create table t4 (c2 int);
+insert into t1 values (1,1);
+insert into t2 values (1,1);
+insert into t3 values (1,1);
+insert into t4 values (1);
+select * from t1 join t2 using (a1) join t3 on b=c1 join t4 using (c2);
+1	1	1	1	1
+select * from t3 join (t1 join t2 using (a1)) on b=c1 join t4 using (c2);
+1	1	1	1	1
+select a2 from t1 join t2 using (a1) join t3 on b=c1 join t4 using (c2);
+1
+select a2 from t3 join (t1 join t2 using (a1)) on b=c1 join t4 using (c2);
+1
+select a2 from ((t1 join t2 using (a1)) join t3 on b=c1) join t4 using (c2);
+1
+select a2 from ((t1 natural join t2) join t3 on b=c1) natural join t4;
+1
+drop table t1,t2,t3,t4;
+create table t1 (c int, b int);
+create table t2 (a int, b int);
+create table t3 (b int, c int);
+create table t4 (y int, c int);
+create table t5 (y int, z int);
+insert into t1 values (3,2);
+insert into t2 values (1,2);
+insert into t3 values (2,3);
+insert into t4 values (1,3);
+insert into t5 values (1,4);
+select * from ((t3 natural join (t1 natural join t2)) natural join t4)
+natural join t5;
+1	3	2	1	4
+drop table t1, t2, t3, t4, t5;
+CREATE TABLE t1 (ID INTEGER, Name VARCHAR(50));
+CREATE TABLE t2 (Test_ID INTEGER);
+CREATE VIEW v1 (Test_ID, Description) AS SELECT ID, Name FROM t1;
+CREATE TABLE tv1 SELECT Description AS Name FROM v1 JOIN t2
+USING (Test_ID);
+DESCRIBE tv1;
+Name	varchar(50)	YES		NULL	
+CREATE TABLE tv2 SELECT Description AS Name FROM v1 JOIN t2
+ON v1.Test_ID = t2.Test_ID;
+DESCRIBE tv2;
+Name	varchar(50)	YES		NULL	
+DROP VIEW v1;
+DROP TABLE t1,t2,tv1,tv2;
+create table t1 (a int, b int);
+insert into t1 values
+(NULL, 1),
+(NULL, 2),
+(NULL, 3),
+(NULL, 4);
+create table t2 (a int not null, primary key(a));
+insert into t2 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+create table t3 (a int not null, primary key(a));
+insert into t3 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+flush status;
+select * from t1, t2, t3 where t3.a=t1.a and t2.a=t1.b;
+select * from t1, t2, t3 where t3.a=t1.a and t2.a=t1.b;
+show status like 'Handler_read%';
+Handler_read_first	2
+Handler_read_key	2
+Handler_read_last	0
+Handler_read_next	0
+Handler_read_prev	0
+Handler_read_rnd	0
+Handler_read_rnd_next	10
+drop table t1, t2, t3;
+create table t1 (a int);
+insert into t1 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+create table t2 (a int, b int, filler char(100), key(a), key(b));
+create table t3 (a int, b int, filler char(100), key(a), key(b));
+insert into t3 select * from t2 where a < 800;
+select * from t2,t3 where t2.a < 400 and t2.b=t3.b;
+drop table t1, t2, t3;
+create table t1 (a int);
+insert into t1 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+create table t2 (a int, b int, primary key(a));
+select * from t1;
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+select 'The cost of accessing t1 (dont care if it changes';
+The cost of accessing t1 (dont care if it changes
+select 'vv: Following query must use ALL(t1), eq_ref(A), eq_ref(B): vv' Z;
+vv: Following query must use ALL(t1), eq_ref(A), eq_ref(B): vv
+select * from t1, t2 a, t2 b where a.a = t1.a and b.a=a.b;
+select '^^: The above should be ~= 8 + cost(select * from t1). Value less than 8 is an error' Z;
+^^: The above should be ~= 8 + cost(select * from t1). Value less than 8 is an error
+drop table t1, t2;
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT);
+CREATE TABLE t2 (c INT PRIMARY KEY, d INT);
+INSERT INTO t1 VALUES(1,NULL),(2,NULL),(3,NULL),(4,NULL);
+INSERT INTO t1 SELECT a + 4, b FROM t1;
+INSERT INTO t1 SELECT a + 8, b FROM t1;
+INSERT INTO t1 SELECT a + 16, b FROM t1;
+INSERT INTO t1 SELECT a + 32, b FROM t1;
+INSERT INTO t1 SELECT a + 64, b FROM t1;
+INSERT INTO t2 SELECT a, b FROM t1;
+SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
+SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
+1	NULL	1	NULL
+2	NULL	2	NULL
+SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
+SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
+1	NULL	1	NULL
+2	NULL	2	NULL
+SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
+SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
+1	NULL	1	NULL
+2	NULL	2	NULL
+3	NULL	3	NULL
+4	NULL	4	NULL
+5	NULL	5	NULL
+6	NULL	6	NULL
+7	NULL	7	NULL
+8	NULL	8	NULL
+9	NULL	9	NULL
+10	NULL	10	NULL
+11	NULL	11	NULL
+12	NULL	12	NULL
+13	NULL	13	NULL
+14	NULL	14	NULL
+15	NULL	15	NULL
+16	NULL	16	NULL
+17	NULL	17	NULL
+18	NULL	18	NULL
+19	NULL	19	NULL
+20	NULL	20	NULL
+21	NULL	21	NULL
+22	NULL	22	NULL
+23	NULL	23	NULL
+24	NULL	24	NULL
+25	NULL	25	NULL
+26	NULL	26	NULL
+27	NULL	27	NULL
+28	NULL	28	NULL
+29	NULL	29	NULL
+30	NULL	30	NULL
+31	NULL	31	NULL
+32	NULL	32	NULL
+33	NULL	33	NULL
+34	NULL	34	NULL
+35	NULL	35	NULL
+36	NULL	36	NULL
+37	NULL	37	NULL
+38	NULL	38	NULL
+39	NULL	39	NULL
+40	NULL	40	NULL
+41	NULL	41	NULL
+42	NULL	42	NULL
+43	NULL	43	NULL
+44	NULL	44	NULL
+45	NULL	45	NULL
+46	NULL	46	NULL
+47	NULL	47	NULL
+48	NULL	48	NULL
+49	NULL	49	NULL
+50	NULL	50	NULL
+51	NULL	51	NULL
+52	NULL	52	NULL
+53	NULL	53	NULL
+54	NULL	54	NULL
+55	NULL	55	NULL
+56	NULL	56	NULL
+57	NULL	57	NULL
+58	NULL	58	NULL
+59	NULL	59	NULL
+60	NULL	60	NULL
+61	NULL	61	NULL
+62	NULL	62	NULL
+63	NULL	63	NULL
+64	NULL	64	NULL
+65	NULL	65	NULL
+66	NULL	66	NULL
+67	NULL	67	NULL
+68	NULL	68	NULL
+69	NULL	69	NULL
+70	NULL	70	NULL
+71	NULL	71	NULL
+72	NULL	72	NULL
+73	NULL	73	NULL
+74	NULL	74	NULL
+75	NULL	75	NULL
+76	NULL	76	NULL
+77	NULL	77	NULL
+78	NULL	78	NULL
+79	NULL	79	NULL
+80	NULL	80	NULL
+81	NULL	81	NULL
+82	NULL	82	NULL
+83	NULL	83	NULL
+84	NULL	84	NULL
+85	NULL	85	NULL
+86	NULL	86	NULL
+87	NULL	87	NULL
+88	NULL	88	NULL
+89	NULL	89	NULL
+90	NULL	90	NULL
+91	NULL	91	NULL
+92	NULL	92	NULL
+93	NULL	93	NULL
+94	NULL	94	NULL
+95	NULL	95	NULL
+96	NULL	96	NULL
+97	NULL	97	NULL
+98	NULL	98	NULL
+99	NULL	99	NULL
+100	NULL	100	NULL
+101	NULL	101	NULL
+102	NULL	102	NULL
+103	NULL	103	NULL
+104	NULL	104	NULL
+105	NULL	105	NULL
+106	NULL	106	NULL
+107	NULL	107	NULL
+108	NULL	108	NULL
+109	NULL	109	NULL
+110	NULL	110	NULL
+111	NULL	111	NULL
+112	NULL	112	NULL
+113	NULL	113	NULL
+114	NULL	114	NULL
+115	NULL	115	NULL
+116	NULL	116	NULL
+117	NULL	117	NULL
+118	NULL	118	NULL
+119	NULL	119	NULL
+120	NULL	120	NULL
+121	NULL	121	NULL
+122	NULL	122	NULL
+123	NULL	123	NULL
+124	NULL	124	NULL
+125	NULL	125	NULL
+126	NULL	126	NULL
+127	NULL	127	NULL
+128	NULL	128	NULL
+SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
+SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
+1	NULL	1	NULL
+2	NULL	2	NULL
+3	NULL	3	NULL
+4	NULL	4	NULL
+5	NULL	5	NULL
+6	NULL	6	NULL
+7	NULL	7	NULL
+8	NULL	8	NULL
+9	NULL	9	NULL
+10	NULL	10	NULL
+11	NULL	11	NULL
+12	NULL	12	NULL
+13	NULL	13	NULL
+14	NULL	14	NULL
+15	NULL	15	NULL
+16	NULL	16	NULL
+17	NULL	17	NULL
+18	NULL	18	NULL
+19	NULL	19	NULL
+20	NULL	20	NULL
+21	NULL	21	NULL
+22	NULL	22	NULL
+23	NULL	23	NULL
+24	NULL	24	NULL
+25	NULL	25	NULL
+26	NULL	26	NULL
+27	NULL	27	NULL
+28	NULL	28	NULL
+29	NULL	29	NULL
+30	NULL	30	NULL
+31	NULL	31	NULL
+32	NULL	32	NULL
+33	NULL	33	NULL
+34	NULL	34	NULL
+35	NULL	35	NULL
+36	NULL	36	NULL
+37	NULL	37	NULL
+38	NULL	38	NULL
+39	NULL	39	NULL
+40	NULL	40	NULL
+41	NULL	41	NULL
+42	NULL	42	NULL
+43	NULL	43	NULL
+44	NULL	44	NULL
+45	NULL	45	NULL
+46	NULL	46	NULL
+47	NULL	47	NULL
+48	NULL	48	NULL
+49	NULL	49	NULL
+50	NULL	50	NULL
+51	NULL	51	NULL
+52	NULL	52	NULL
+53	NULL	53	NULL
+54	NULL	54	NULL
+55	NULL	55	NULL
+56	NULL	56	NULL
+57	NULL	57	NULL
+58	NULL	58	NULL
+59	NULL	59	NULL
+60	NULL	60	NULL
+61	NULL	61	NULL
+62	NULL	62	NULL
+63	NULL	63	NULL
+64	NULL	64	NULL
+65	NULL	65	NULL
+66	NULL	66	NULL
+67	NULL	67	NULL
+68	NULL	68	NULL
+69	NULL	69	NULL
+70	NULL	70	NULL
+71	NULL	71	NULL
+72	NULL	72	NULL
+73	NULL	73	NULL
+74	NULL	74	NULL
+75	NULL	75	NULL
+76	NULL	76	NULL
+77	NULL	77	NULL
+78	NULL	78	NULL
+79	NULL	79	NULL
+80	NULL	80	NULL
+81	NULL	81	NULL
+82	NULL	82	NULL
+83	NULL	83	NULL
+84	NULL	84	NULL
+85	NULL	85	NULL
+86	NULL	86	NULL
+87	NULL	87	NULL
+88	NULL	88	NULL
+89	NULL	89	NULL
+90	NULL	90	NULL
+91	NULL	91	NULL
+92	NULL	92	NULL
+93	NULL	93	NULL
+94	NULL	94	NULL
+95	NULL	95	NULL
+96	NULL	96	NULL
+97	NULL	97	NULL
+98	NULL	98	NULL
+99	NULL	99	NULL
+100	NULL	100	NULL
+101	NULL	101	NULL
+102	NULL	102	NULL
+103	NULL	103	NULL
+104	NULL	104	NULL
+105	NULL	105	NULL
+106	NULL	106	NULL
+107	NULL	107	NULL
+108	NULL	108	NULL
+109	NULL	109	NULL
+110	NULL	110	NULL
+111	NULL	111	NULL
+112	NULL	112	NULL
+113	NULL	113	NULL
+114	NULL	114	NULL
+115	NULL	115	NULL
+116	NULL	116	NULL
+117	NULL	117	NULL
+118	NULL	118	NULL
+119	NULL	119	NULL
+120	NULL	120	NULL
+121	NULL	121	NULL
+122	NULL	122	NULL
+123	NULL	123	NULL
+124	NULL	124	NULL
+125	NULL	125	NULL
+126	NULL	126	NULL
+127	NULL	127	NULL
+128	NULL	128	NULL
+DROP TABLE IF EXISTS t1,t2;
+CREATE TABLE t1 (a INT);
+CREATE TABLE t2 (a INT);
+CREATE TABLE t3 (a INT, INDEX (a));
+CREATE TABLE t4 (a INT);
+CREATE TABLE t5 (a INT);
+CREATE TABLE t6 (a INT);
+INSERT INTO t1 VALUES (1), (1), (1);
+INSERT INTO t2 VALUES
+(2), (2), (2), (2), (2), (2), (2), (2), (2), (2);
+INSERT INTO t3 VALUES
+(3), (3), (3), (3), (3), (3), (3), (3), (3), (3);
+SELECT *
+FROM
+t1 JOIN t2 ON t1.a = t2.a
+LEFT JOIN
+(
+(
+t3 LEFT JOIN t4 ON t3.a = t4.a
+)
+LEFT JOIN
+(
+t5 LEFT JOIN t6 ON t5.a = t6.a
+)
+ON t4.a = t5.a
+)
+ON t1.a = t3.a;
+SELECT *
+FROM
+t1 JOIN t2 ON t1.a = t2.a
+LEFT JOIN
+(
+(
+t3 LEFT JOIN t4 ON t3.a = t4.a
+)
+LEFT JOIN
+(
+t5 LEFT JOIN t6 ON t5.a = t6.a
+)
+ON t4.a = t5.a
+)
+ON t1.a = t3.a;
+DROP TABLE t1,t2,t3,t4,t5,t6;
+CREATE TABLE t1(f1 INT);
+INSERT INTO t1 VALUES (1),(2);
+CREATE VIEW v1 AS SELECT 1 FROM t1 LEFT JOIN t1 AS t2 on 1=1;
+SELECT 1 FROM v1 right join v1 AS v2 ON RAND();
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+DROP VIEW v1;
+DROP TABLE t1;
+CREATE TABLE t1 (a TINYINT, b TEXT, KEY (a));
+INSERT INTO t1 VALUES (0,''),(0,'');
+FLUSH TABLES;
+SELECT 1 FROM t1 LEFT JOIN t1 a ON 1
+WHERE ROW(t1.a, 1111.11) = ROW(1111.11, 1111.11) AND
+ROW(t1.b, 1111.11) <=> ROW('','');
+DROP TABLE t1;
+CREATE TABLE t1 (a INT NOT NULL, b INT NOT NULL, PRIMARY KEY (a,b));
+INSERT INTO t1 VALUES (0,0), (1,1);
+SELECT * FROM t1 STRAIGHT_JOIN t1 t2 ON t1.a=t2.a AND t1.a=t2.b ORDER BY t2.a, t1.a;
+0	0	0	0
+1	1	1	1
+DROP TABLE t1;
+CREATE TABLE t1 (f1 int);
+CREATE TABLE t2 (f1 int);
+INSERT INTO t2  VALUES (1);
+CREATE VIEW v1 AS SELECT * FROM t2;
+DROP VIEW v1;
+DROP TABLE t1, t2;
+CREATE TABLE t1(a CHAR(9),b INT,KEY(b),KEY(a)) ENGINE=MYISAM;
+CREATE TABLE t2(a CHAR(9),b INT,KEY(b),KEY(a)) ENGINE=MYISAM;
+INSERT INTO t1 VALUES ('1',null),(null,null);
+INSERT INTO t2 VALUES ('1',null),(null,null);
+CREATE TABLE mm1(a CHAR(9),b INT,KEY(b),KEY(a))
+ENGINE=MERGE  UNION=(t1,t2);
+SELECT t1.a FROM mm1,t1;
+1
+NULL
+1
+NULL
+1
+NULL
+1
+NULL
+DROP TABLE t1, t2, mm1;
+CREATE TABLE t1(a INT, b INT);
+INSERT INTO t1 VALUES (), ();
+SELECT 1 FROM t1
+GROUP BY
+GREATEST(t1.a,
+(SELECT 1 FROM
+(SELECT t1.b FROM t1,t1 t2
+ORDER BY t1.a, t1.a LIMIT 1) AS d)
+);
+1
+DROP TABLE t1;
+CREATE TABLE t1(c INT);
+INSERT INTO t1 VALUES (1), (2);
+DROP TABLE t1;
+CREATE TABLE t1 (
+c1 INTEGER NOT NULL
+);
+INSERT INTO t1 VALUES (1),(2),(3);
+CREATE TABLE t2 (
+pk INTEGER NOT NULL,
+c1 INTEGER NOT NULL,
+PRIMARY KEY (pk)
+);
+INSERT INTO t2 VALUES (1,4),(3,5),(2,6);
+SELECT t2.pk, t2.c1 FROM t2, t1
+WHERE t2.pk = t1.c1 AND t2.pk >= 2;
+2	6
+3	5
+CREATE VIEW v_t2 AS SELECT * FROM t2;
+SELECT v_t2.pk, v_t2.c1 FROM v_t2, t1
+WHERE v_t2.pk = t1.c1 AND v_t2.pk >= 2;
+2	6
+3	5
+DROP VIEW v_t2;
+DROP TABLE t1, t2;
+CREATE TABLE t1 (
+pk INTEGER NOT NULL,
+i1 INTEGER NOT NULL,
+i2 INTEGER NOT NULL,
+PRIMARY KEY (pk)
+);
+INSERT INTO t1 VALUES (7,8,1), (8,2,2);
+CREATE VIEW v1 AS SELECT * FROM t1;
+SELECT t1.pk
+FROM v1, t1
+WHERE (v1.i2 = 211 AND v1.i2 > 7)
+OR (t1.i1 < 3 AND v1.i2 < 10);
+8
+8
+DROP VIEW v1;
+DROP TABLE t1;
+create table t1(c1 int primary key, c2 char(10)) engine=myisam;
+create table t2(c1 int primary key, c2 char(10), ref_t1 int) engine=myisam;
+create table t3(c1 int primary key, c2 char(10), ref_t1 int) engine=myisam;
+create table t4(c1 int primary key, c2 char(10), ref_t1 int) engine=myisam;
+insert into t1 values(1,'a');
+insert into t2 values(1,'a', 1);
+insert into t3 values(1,'a', 1);
+insert into t3 values(2,'b',2);
+insert into t4 values(1,'a', 1);
+insert into t4 values(2,'a', 2);
+insert into t4 values(3,'a', 3);
+insert into t4 values(4,'a', 4);
+insert into t1 values(2,'b');
+insert into t1 values(3,'c');
+drop table t1,t2,t3,t4;
+CREATE TABLE t1(a INTEGER) engine=innodb;
+DROP TABLE t1;
+CREATE TABLE t1
+(pk INTEGER,
+dummy VARCHAR(64),
+col_check TINYINT,
+PRIMARY KEY(pk)
+) engine=innodb;
+INSERT INTO t1 VALUES (13, '13', 13);
+CREATE VIEW v1 AS
+SELECT *
+FROM t1
+WHERE pk BETWEEN 13 AND 14;
+DROP VIEW v1;
+DROP TABLE t1;
+CREATE TABLE t1
+(pk INT,
+col_int_key INT DEFAULT NULL,
+col_varchar_10_latin1_key VARCHAR(10) DEFAULT NULL,
+col_varchar_255_utf8 VARCHAR(255) CHARACTER SET utf8 DEFAULT NULL,
+col_int INT DEFAULT NULL,
+col_datetime_key datetime DEFAULT NULL,
+col_varchar_255_latin1_key VARCHAR(255) DEFAULT NULL,
+col_date_key date DEFAULT NULL,
+col_datetime datetime DEFAULT NULL,
+PRIMARY KEY (pk),
+KEY col_date_key (col_date_key)
+) charset latin1 ENGINE=MyISAM;
+INSERT INTO t1 VALUES
+(8,9,'h','FDUMQ',-1356726272,'2007-09-02 05:48:23','she','2002-04-02','2002-12-20 17:54:07');
+CREATE TABLE t2
+(pk INT,
+col_int INT DEFAULT NULL,
+col_int_key INT DEFAULT NULL,
+PRIMARY KEY (pk)
+) charset latin1 ENGINE=MyISAM;
+CREATE TABLE t3
+(col_int INT DEFAULT NULL,
+col_int_key INT DEFAULT NULL,
+pk INT,
+PRIMARY KEY (pk),
+KEY test_idx (col_int_key,pk,col_int)
+) charset latin1 ENGINE=InnoDB;
+INSERT INTO t3 VALUES
+(NULL,9, 41), (NULL,-1596719104, 48), (-1068105728,9, 49);
+CREATE TABLE t4
+(col_varchar_255_latin1_key VARCHAR(255) DEFAULT NULL,
+pk INT,
+PRIMARY KEY (pk)
+) charset latin1 ENGINE=MyISAM;
+INSERT INTO t4 VALUES ('RUXDY',8);
+DROP TABLE t1, t2, t3, t4;
+create table parent(a int primary key, b int, c int, d int) engine=innodb;
+create table eq_child(a int, b int, c int, d int, primary key(a,b)) engine=innodb;
+insert into parent values (1,1,1,1);
+insert into eq_child select * from parent;
+select straight_join count(*) from parent
+join eq_child as c1 on c1.a = parent.b and c1.b = parent.b
+join eq_child as c2 on c2.a = parent.b and c2.b = parent.b
+join eq_child as c3 on c3.a = parent.b and c3.b = parent.b
+join eq_child as c4 on c4.a = parent.b and c4.b = parent.b
+;
+1
+drop table parent, eq_child;
+CREATE TABLE t (i INTEGER PRIMARY KEY AUTO_INCREMENT, j INTEGER, KEY(j)) ENGINE=InnoDB;
+INSERT INTO t VALUES (NULL, NULL);
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+INSERT INTO t SELECT NULL, NULL FROM t;
+SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
+1	NULL
+2	NULL
+3	NULL
+4	NULL
+6	NULL
+7	NULL
+8	NULL
+9	NULL
+13	NULL
+14	NULL
+15	NULL
+16	NULL
+17	NULL
+18	NULL
+19	NULL
+20	NULL
+28	NULL
+29	NULL
+30	NULL
+31	NULL
+32	NULL
+33	NULL
+34	NULL
+35	NULL
+36	NULL
+37	NULL
+38	NULL
+39	NULL
+40	NULL
+41	NULL
+42	NULL
+43	NULL
+59	NULL
+60	NULL
+61	NULL
+62	NULL
+63	NULL
+64	NULL
+65	NULL
+66	NULL
+67	NULL
+68	NULL
+69	NULL
+70	NULL
+71	NULL
+72	NULL
+73	NULL
+74	NULL
+75	NULL
+76	NULL
+77	NULL
+78	NULL
+79	NULL
+80	NULL
+81	NULL
+82	NULL
+83	NULL
+84	NULL
+85	NULL
+86	NULL
+87	NULL
+88	NULL
+89	NULL
+90	NULL
+122	NULL
+123	NULL
+124	NULL
+125	NULL
+126	NULL
+127	NULL
+128	NULL
+129	NULL
+130	NULL
+131	NULL
+132	NULL
+133	NULL
+134	NULL
+135	NULL
+136	NULL
+137	NULL
+138	NULL
+139	NULL
+140	NULL
+141	NULL
+142	NULL
+143	NULL
+144	NULL
+145	NULL
+146	NULL
+147	NULL
+148	NULL
+149	NULL
+150	NULL
+151	NULL
+152	NULL
+153	NULL
+154	NULL
+155	NULL
+156	NULL
+157	NULL
+158	NULL
+159	NULL
+160	NULL
+161	NULL
+162	NULL
+163	NULL
+164	NULL
+165	NULL
+166	NULL
+167	NULL
+168	NULL
+169	NULL
+170	NULL
+171	NULL
+172	NULL
+173	NULL
+174	NULL
+175	NULL
+176	NULL
+177	NULL
+178	NULL
+179	NULL
+180	NULL
+181	NULL
+182	NULL
+183	NULL
+184	NULL
+185	NULL
+249	NULL
+250	NULL
+251	NULL
+252	NULL
+253	NULL
+254	NULL
+255	NULL
+256	NULL
+257	NULL
+258	NULL
+259	NULL
+260	NULL
+261	NULL
+262	NULL
+263	NULL
+264	NULL
+265	NULL
+266	NULL
+267	NULL
+268	NULL
+269	NULL
+270	NULL
+271	NULL
+272	NULL
+273	NULL
+274	NULL
+275	NULL
+276	NULL
+277	NULL
+278	NULL
+279	NULL
+280	NULL
+281	NULL
+282	NULL
+283	NULL
+284	NULL
+285	NULL
+286	NULL
+287	NULL
+288	NULL
+289	NULL
+290	NULL
+291	NULL
+292	NULL
+293	NULL
+294	NULL
+295	NULL
+296	NULL
+297	NULL
+298	NULL
+299	NULL
+300	NULL
+301	NULL
+302	NULL
+303	NULL
+304	NULL
+305	NULL
+306	NULL
+307	NULL
+308	NULL
+309	NULL
+310	NULL
+311	NULL
+312	NULL
+313	NULL
+314	NULL
+315	NULL
+316	NULL
+317	NULL
+318	NULL
+319	NULL
+320	NULL
+321	NULL
+322	NULL
+323	NULL
+324	NULL
+325	NULL
+326	NULL
+327	NULL
+328	NULL
+329	NULL
+330	NULL
+331	NULL
+332	NULL
+333	NULL
+334	NULL
+335	NULL
+336	NULL
+337	NULL
+338	NULL
+339	NULL
+340	NULL
+341	NULL
+342	NULL
+343	NULL
+344	NULL
+345	NULL
+346	NULL
+347	NULL
+348	NULL
+349	NULL
+350	NULL
+351	NULL
+352	NULL
+353	NULL
+354	NULL
+355	NULL
+356	NULL
+357	NULL
+358	NULL
+359	NULL
+360	NULL
+361	NULL
+362	NULL
+363	NULL
+364	NULL
+365	NULL
+366	NULL
+367	NULL
+368	NULL
+369	NULL
+370	NULL
+371	NULL
+372	NULL
+373	NULL
+374	NULL
+375	NULL
+376	NULL
+504	NULL
+505	NULL
+506	NULL
+507	NULL
+508	NULL
+509	NULL
+510	NULL
+511	NULL
+512	NULL
+513	NULL
+514	NULL
+515	NULL
+516	NULL
+517	NULL
+518	NULL
+519	NULL
+520	NULL
+521	NULL
+522	NULL
+523	NULL
+524	NULL
+525	NULL
+526	NULL
+527	NULL
+528	NULL
+529	NULL
+530	NULL
+531	NULL
+532	NULL
+533	NULL
+534	NULL
+535	NULL
+536	NULL
+537	NULL
+538	NULL
+539	NULL
+540	NULL
+541	NULL
+542	NULL
+543	NULL
+544	NULL
+545	NULL
+546	NULL
+547	NULL
+548	NULL
+549	NULL
+550	NULL
+551	NULL
+552	NULL
+553	NULL
+554	NULL
+555	NULL
+556	NULL
+557	NULL
+558	NULL
+559	NULL
+560	NULL
+561	NULL
+562	NULL
+563	NULL
+564	NULL
+565	NULL
+566	NULL
+567	NULL
+568	NULL
+569	NULL
+570	NULL
+571	NULL
+572	NULL
+573	NULL
+574	NULL
+575	NULL
+576	NULL
+577	NULL
+578	NULL
+579	NULL
+580	NULL
+581	NULL
+582	NULL
+583	NULL
+584	NULL
+585	NULL
+586	NULL
+587	NULL
+588	NULL
+589	NULL
+590	NULL
+591	NULL
+592	NULL
+593	NULL
+594	NULL
+595	NULL
+596	NULL
+597	NULL
+598	NULL
+599	NULL
+600	NULL
+601	NULL
+602	NULL
+603	NULL
+604	NULL
+605	NULL
+606	NULL
+607	NULL
+608	NULL
+609	NULL
+610	NULL
+611	NULL
+612	NULL
+613	NULL
+614	NULL
+615	NULL
+616	NULL
+617	NULL
+618	NULL
+619	NULL
+620	NULL
+621	NULL
+622	NULL
+623	NULL
+624	NULL
+625	NULL
+626	NULL
+627	NULL
+628	NULL
+629	NULL
+630	NULL
+631	NULL
+632	NULL
+633	NULL
+634	NULL
+635	NULL
+636	NULL
+637	NULL
+638	NULL
+639	NULL
+640	NULL
+641	NULL
+642	NULL
+643	NULL
+644	NULL
+645	NULL
+646	NULL
+647	NULL
+648	NULL
+649	NULL
+650	NULL
+651	NULL
+652	NULL
+653	NULL
+654	NULL
+655	NULL
+656	NULL
+657	NULL
+658	NULL
+659	NULL
+660	NULL
+661	NULL
+662	NULL
+663	NULL
+664	NULL
+665	NULL
+666	NULL
+667	NULL
+668	NULL
+669	NULL
+670	NULL
+671	NULL
+672	NULL
+673	NULL
+674	NULL
+675	NULL
+676	NULL
+677	NULL
+678	NULL
+679	NULL
+680	NULL
+681	NULL
+682	NULL
+683	NULL
+684	NULL
+685	NULL
+686	NULL
+687	NULL
+688	NULL
+689	NULL
+690	NULL
+691	NULL
+692	NULL
+693	NULL
+694	NULL
+695	NULL
+696	NULL
+697	NULL
+698	NULL
+699	NULL
+700	NULL
+701	NULL
+702	NULL
+703	NULL
+704	NULL
+705	NULL
+706	NULL
+707	NULL
+708	NULL
+709	NULL
+710	NULL
+711	NULL
+712	NULL
+713	NULL
+714	NULL
+715	NULL
+716	NULL
+717	NULL
+718	NULL
+719	NULL
+720	NULL
+721	NULL
+722	NULL
+723	NULL
+724	NULL
+725	NULL
+726	NULL
+727	NULL
+728	NULL
+729	NULL
+730	NULL
+731	NULL
+732	NULL
+733	NULL
+734	NULL
+735	NULL
+736	NULL
+737	NULL
+738	NULL
+739	NULL
+740	NULL
+741	NULL
+742	NULL
+743	NULL
+744	NULL
+745	NULL
+746	NULL
+747	NULL
+748	NULL
+749	NULL
+750	NULL
+751	NULL
+752	NULL
+753	NULL
+754	NULL
+755	NULL
+756	NULL
+757	NULL
+758	NULL
+759	NULL
+1015	NULL
+1016	NULL
+1017	NULL
+1018	NULL
+1019	NULL
+1020	NULL
+1021	NULL
+1022	NULL
+1023	NULL
+1024	NULL
+1025	NULL
+1026	NULL
+1027	NULL
+1028	NULL
+1029	NULL
+1030	NULL
+1031	NULL
+1032	NULL
+1033	NULL
+1034	NULL
+1035	NULL
+1036	NULL
+1037	NULL
+1038	NULL
+1039	NULL
+1040	NULL
+1041	NULL
+1042	NULL
+1043	NULL
+1044	NULL
+1045	NULL
+1046	NULL
+1047	NULL
+1048	NULL
+1049	NULL
+1050	NULL
+1051	NULL
+1052	NULL
+1053	NULL
+1054	NULL
+1055	NULL
+1056	NULL
+1057	NULL
+1058	NULL
+1059	NULL
+1060	NULL
+1061	NULL
+1062	NULL
+1063	NULL
+1064	NULL
+1065	NULL
+1066	NULL
+1067	NULL
+1068	NULL
+1069	NULL
+1070	NULL
+1071	NULL
+1072	NULL
+1073	NULL
+1074	NULL
+1075	NULL
+1076	NULL
+1077	NULL
+1078	NULL
+1079	NULL
+1080	NULL
+1081	NULL
+1082	NULL
+1083	NULL
+1084	NULL
+1085	NULL
+1086	NULL
+1087	NULL
+1088	NULL
+1089	NULL
+1090	NULL
+1091	NULL
+1092	NULL
+1093	NULL
+1094	NULL
+1095	NULL
+1096	NULL
+1097	NULL
+1098	NULL
+1099	NULL
+1100	NULL
+1101	NULL
+1102	NULL
+1103	NULL
+1104	NULL
+1105	NULL
+1106	NULL
+1107	NULL
+1108	NULL
+1109	NULL
+1110	NULL
+1111	NULL
+1112	NULL
+1113	NULL
+1114	NULL
+1115	NULL
+1116	NULL
+1117	NULL
+1118	NULL
+1119	NULL
+1120	NULL
+1121	NULL
+1122	NULL
+1123	NULL
+1124	NULL
+1125	NULL
+1126	NULL
+1127	NULL
+1128	NULL
+1129	NULL
+1130	NULL
+1131	NULL
+1132	NULL
+1133	NULL
+1134	NULL
+1135	NULL
+1136	NULL
+1137	NULL
+1138	NULL
+1139	NULL
+1140	NULL
+1141	NULL
+1142	NULL
+1143	NULL
+1144	NULL
+1145	NULL
+1146	NULL
+1147	NULL
+1148	NULL
+1149	NULL
+1150	NULL
+1151	NULL
+1152	NULL
+1153	NULL
+1154	NULL
+1155	NULL
+1156	NULL
+1157	NULL
+1158	NULL
+1159	NULL
+1160	NULL
+1161	NULL
+1162	NULL
+1163	NULL
+1164	NULL
+1165	NULL
+1166	NULL
+1167	NULL
+1168	NULL
+1169	NULL
+1170	NULL
+1171	NULL
+1172	NULL
+1173	NULL
+1174	NULL
+1175	NULL
+1176	NULL
+1177	NULL
+1178	NULL
+1179	NULL
+1180	NULL
+1181	NULL
+1182	NULL
+1183	NULL
+1184	NULL
+1185	NULL
+1186	NULL
+1187	NULL
+1188	NULL
+1189	NULL
+1190	NULL
+1191	NULL
+1192	NULL
+1193	NULL
+1194	NULL
+1195	NULL
+1196	NULL
+1197	NULL
+1198	NULL
+1199	NULL
+1200	NULL
+1201	NULL
+1202	NULL
+1203	NULL
+1204	NULL
+1205	NULL
+1206	NULL
+1207	NULL
+1208	NULL
+1209	NULL
+1210	NULL
+1211	NULL
+1212	NULL
+1213	NULL
+1214	NULL
+1215	NULL
+1216	NULL
+1217	NULL
+1218	NULL
+1219	NULL
+1220	NULL
+1221	NULL
+1222	NULL
+1223	NULL
+1224	NULL
+1225	NULL
+1226	NULL
+1227	NULL
+1228	NULL
+1229	NULL
+1230	NULL
+1231	NULL
+1232	NULL
+1233	NULL
+1234	NULL
+1235	NULL
+1236	NULL
+1237	NULL
+1238	NULL
+1239	NULL
+1240	NULL
+1241	NULL
+1242	NULL
+1243	NULL
+1244	NULL
+1245	NULL
+1246	NULL
+1247	NULL
+1248	NULL
+1249	NULL
+1250	NULL
+1251	NULL
+1252	NULL
+1253	NULL
+1254	NULL
+1255	NULL
+1256	NULL
+1257	NULL
+1258	NULL
+1259	NULL
+1260	NULL
+1261	NULL
+1262	NULL
+1263	NULL
+1264	NULL
+1265	NULL
+1266	NULL
+1267	NULL
+1268	NULL
+1269	NULL
+1270	NULL
+1271	NULL
+1272	NULL
+1273	NULL
+1274	NULL
+1275	NULL
+1276	NULL
+1277	NULL
+1278	NULL
+1279	NULL
+1280	NULL
+1281	NULL
+1282	NULL
+1283	NULL
+1284	NULL
+1285	NULL
+1286	NULL
+1287	NULL
+1288	NULL
+1289	NULL
+1290	NULL
+1291	NULL
+1292	NULL
+1293	NULL
+1294	NULL
+1295	NULL
+1296	NULL
+1297	NULL
+1298	NULL
+1299	NULL
+1300	NULL
+1301	NULL
+1302	NULL
+1303	NULL
+1304	NULL
+1305	NULL
+1306	NULL
+1307	NULL
+1308	NULL
+1309	NULL
+1310	NULL
+1311	NULL
+1312	NULL
+1313	NULL
+1314	NULL
+1315	NULL
+1316	NULL
+1317	NULL
+1318	NULL
+1319	NULL
+1320	NULL
+1321	NULL
+1322	NULL
+1323	NULL
+1324	NULL
+1325	NULL
+1326	NULL
+1327	NULL
+1328	NULL
+1329	NULL
+1330	NULL
+1331	NULL
+1332	NULL
+1333	NULL
+1334	NULL
+1335	NULL
+1336	NULL
+1337	NULL
+1338	NULL
+1339	NULL
+1340	NULL
+1341	NULL
+1342	NULL
+1343	NULL
+1344	NULL
+1345	NULL
+1346	NULL
+1347	NULL
+1348	NULL
+1349	NULL
+1350	NULL
+1351	NULL
+1352	NULL
+1353	NULL
+1354	NULL
+1355	NULL
+1356	NULL
+1357	NULL
+1358	NULL
+1359	NULL
+1360	NULL
+1361	NULL
+1362	NULL
+1363	NULL
+1364	NULL
+1365	NULL
+1366	NULL
+1367	NULL
+1368	NULL
+1369	NULL
+1370	NULL
+1371	NULL
+1372	NULL
+1373	NULL
+1374	NULL
+1375	NULL
+1376	NULL
+1377	NULL
+1378	NULL
+1379	NULL
+1380	NULL
+1381	NULL
+1382	NULL
+1383	NULL
+1384	NULL
+1385	NULL
+1386	NULL
+1387	NULL
+1388	NULL
+1389	NULL
+1390	NULL
+1391	NULL
+1392	NULL
+1393	NULL
+1394	NULL
+1395	NULL
+1396	NULL
+1397	NULL
+1398	NULL
+1399	NULL
+1400	NULL
+1401	NULL
+1402	NULL
+1403	NULL
+1404	NULL
+1405	NULL
+1406	NULL
+1407	NULL
+1408	NULL
+1409	NULL
+1410	NULL
+1411	NULL
+1412	NULL
+1413	NULL
+1414	NULL
+1415	NULL
+1416	NULL
+1417	NULL
+1418	NULL
+1419	NULL
+1420	NULL
+1421	NULL
+1422	NULL
+1423	NULL
+1424	NULL
+1425	NULL
+1426	NULL
+1427	NULL
+1428	NULL
+1429	NULL
+1430	NULL
+1431	NULL
+1432	NULL
+1433	NULL
+1434	NULL
+1435	NULL
+1436	NULL
+1437	NULL
+1438	NULL
+1439	NULL
+1440	NULL
+1441	NULL
+1442	NULL
+1443	NULL
+1444	NULL
+1445	NULL
+1446	NULL
+1447	NULL
+1448	NULL
+1449	NULL
+1450	NULL
+1451	NULL
+1452	NULL
+1453	NULL
+1454	NULL
+1455	NULL
+1456	NULL
+1457	NULL
+1458	NULL
+1459	NULL
+1460	NULL
+1461	NULL
+1462	NULL
+1463	NULL
+1464	NULL
+1465	NULL
+1466	NULL
+1467	NULL
+1468	NULL
+1469	NULL
+1470	NULL
+1471	NULL
+1472	NULL
+1473	NULL
+1474	NULL
+1475	NULL
+1476	NULL
+1477	NULL
+1478	NULL
+1479	NULL
+1480	NULL
+1481	NULL
+1482	NULL
+1483	NULL
+1484	NULL
+1485	NULL
+1486	NULL
+1487	NULL
+1488	NULL
+1489	NULL
+1490	NULL
+1491	NULL
+1492	NULL
+1493	NULL
+1494	NULL
+1495	NULL
+1496	NULL
+1497	NULL
+1498	NULL
+1499	NULL
+1500	NULL
+1501	NULL
+1502	NULL
+1503	NULL
+1504	NULL
+1505	NULL
+1506	NULL
+1507	NULL
+1508	NULL
+1509	NULL
+1510	NULL
+1511	NULL
+1512	NULL
+1513	NULL
+1514	NULL
+1515	NULL
+1516	NULL
+1517	NULL
+1518	NULL
+1519	NULL
+1520	NULL
+1521	NULL
+1522	NULL
+1523	NULL
+1524	NULL
+1525	NULL
+1526	NULL
+2038	NULL
+2039	NULL
+2040	NULL
+2041	NULL
+2042	NULL
+2043	NULL
+2044	NULL
+2045	NULL
+2046	NULL
+2047	NULL
+2048	NULL
+2049	NULL
+2050	NULL
+2051	NULL
+2052	NULL
+2053	NULL
+2054	NULL
+2055	NULL
+2056	NULL
+2057	NULL
+2058	NULL
+2059	NULL
+2060	NULL
+2061	NULL
+2062	NULL
+2063	NULL
+2064	NULL
+2065	NULL
+2066	NULL
+2067	NULL
+2068	NULL
+2069	NULL
+2070	NULL
+2071	NULL
+2072	NULL
+2073	NULL
+2074	NULL
+2075	NULL
+2076	NULL
+2077	NULL
+2078	NULL
+2079	NULL
+2080	NULL
+2081	NULL
+2082	NULL
+2083	NULL
+2084	NULL
+2085	NULL
+2086	NULL
+2087	NULL
+2088	NULL
+2089	NULL
+2090	NULL
+2091	NULL
+2092	NULL
+2093	NULL
+2094	NULL
+2095	NULL
+2096	NULL
+2097	NULL
+2098	NULL
+2099	NULL
+2100	NULL
+2101	NULL
+2102	NULL
+2103	NULL
+2104	NULL
+2105	NULL
+2106	NULL
+2107	NULL
+2108	NULL
+2109	NULL
+2110	NULL
+2111	NULL
+2112	NULL
+2113	NULL
+2114	NULL
+2115	NULL
+2116	NULL
+2117	NULL
+2118	NULL
+2119	NULL
+2120	NULL
+2121	NULL
+2122	NULL
+2123	NULL
+2124	NULL
+2125	NULL
+2126	NULL
+2127	NULL
+2128	NULL
+2129	NULL
+2130	NULL
+2131	NULL
+2132	NULL
+2133	NULL
+2134	NULL
+2135	NULL
+2136	NULL
+2137	NULL
+2138	NULL
+2139	NULL
+2140	NULL
+2141	NULL
+2142	NULL
+2143	NULL
+2144	NULL
+2145	NULL
+2146	NULL
+2147	NULL
+2148	NULL
+2149	NULL
+2150	NULL
+2151	NULL
+2152	NULL
+2153	NULL
+2154	NULL
+2155	NULL
+2156	NULL
+2157	NULL
+2158	NULL
+2159	NULL
+2160	NULL
+2161	NULL
+2162	NULL
+2163	NULL
+2164	NULL
+2165	NULL
+2166	NULL
+2167	NULL
+2168	NULL
+2169	NULL
+2170	NULL
+2171	NULL
+2172	NULL
+2173	NULL
+2174	NULL
+2175	NULL
+2176	NULL
+2177	NULL
+2178	NULL
+2179	NULL
+2180	NULL
+2181	NULL
+2182	NULL
+2183	NULL
+2184	NULL
+2185	NULL
+2186	NULL
+2187	NULL
+2188	NULL
+2189	NULL
+2190	NULL
+2191	NULL
+2192	NULL
+2193	NULL
+2194	NULL
+2195	NULL
+2196	NULL
+2197	NULL
+2198	NULL
+2199	NULL
+2200	NULL
+2201	NULL
+2202	NULL
+2203	NULL
+2204	NULL
+2205	NULL
+2206	NULL
+2207	NULL
+2208	NULL
+2209	NULL
+2210	NULL
+2211	NULL
+2212	NULL
+2213	NULL
+2214	NULL
+2215	NULL
+2216	NULL
+2217	NULL
+2218	NULL
+2219	NULL
+2220	NULL
+2221	NULL
+2222	NULL
+2223	NULL
+2224	NULL
+2225	NULL
+2226	NULL
+2227	NULL
+2228	NULL
+2229	NULL
+2230	NULL
+2231	NULL
+2232	NULL
+2233	NULL
+2234	NULL
+2235	NULL
+2236	NULL
+2237	NULL
+2238	NULL
+2239	NULL
+2240	NULL
+2241	NULL
+2242	NULL
+2243	NULL
+2244	NULL
+2245	NULL
+2246	NULL
+2247	NULL
+2248	NULL
+2249	NULL
+2250	NULL
+2251	NULL
+2252	NULL
+2253	NULL
+2254	NULL
+2255	NULL
+2256	NULL
+2257	NULL
+2258	NULL
+2259	NULL
+2260	NULL
+2261	NULL
+2262	NULL
+2263	NULL
+2264	NULL
+2265	NULL
+2266	NULL
+2267	NULL
+2268	NULL
+2269	NULL
+2270	NULL
+2271	NULL
+2272	NULL
+2273	NULL
+2274	NULL
+2275	NULL
+2276	NULL
+2277	NULL
+2278	NULL
+2279	NULL
+2280	NULL
+2281	NULL
+2282	NULL
+2283	NULL
+2284	NULL
+2285	NULL
+2286	NULL
+2287	NULL
+2288	NULL
+2289	NULL
+2290	NULL
+2291	NULL
+2292	NULL
+2293	NULL
+2294	NULL
+2295	NULL
+2296	NULL
+2297	NULL
+2298	NULL
+2299	NULL
+2300	NULL
+2301	NULL
+2302	NULL
+2303	NULL
+2304	NULL
+2305	NULL
+2306	NULL
+2307	NULL
+2308	NULL
+2309	NULL
+2310	NULL
+2311	NULL
+2312	NULL
+2313	NULL
+2314	NULL
+2315	NULL
+2316	NULL
+2317	NULL
+2318	NULL
+2319	NULL
+2320	NULL
+2321	NULL
+2322	NULL
+2323	NULL
+2324	NULL
+2325	NULL
+2326	NULL
+2327	NULL
+2328	NULL
+2329	NULL
+2330	NULL
+2331	NULL
+2332	NULL
+2333	NULL
+2334	NULL
+2335	NULL
+2336	NULL
+2337	NULL
+2338	NULL
+2339	NULL
+2340	NULL
+2341	NULL
+2342	NULL
+2343	NULL
+2344	NULL
+2345	NULL
+2346	NULL
+2347	NULL
+2348	NULL
+2349	NULL
+2350	NULL
+2351	NULL
+2352	NULL
+2353	NULL
+2354	NULL
+2355	NULL
+2356	NULL
+2357	NULL
+2358	NULL
+2359	NULL
+2360	NULL
+2361	NULL
+2362	NULL
+2363	NULL
+2364	NULL
+2365	NULL
+2366	NULL
+2367	NULL
+2368	NULL
+2369	NULL
+2370	NULL
+2371	NULL
+2372	NULL
+2373	NULL
+2374	NULL
+2375	NULL
+2376	NULL
+2377	NULL
+2378	NULL
+2379	NULL
+2380	NULL
+2381	NULL
+2382	NULL
+2383	NULL
+2384	NULL
+2385	NULL
+2386	NULL
+2387	NULL
+2388	NULL
+2389	NULL
+2390	NULL
+2391	NULL
+2392	NULL
+2393	NULL
+2394	NULL
+2395	NULL
+2396	NULL
+2397	NULL
+2398	NULL
+2399	NULL
+2400	NULL
+2401	NULL
+2402	NULL
+2403	NULL
+2404	NULL
+2405	NULL
+2406	NULL
+2407	NULL
+2408	NULL
+2409	NULL
+2410	NULL
+2411	NULL
+2412	NULL
+2413	NULL
+2414	NULL
+2415	NULL
+2416	NULL
+2417	NULL
+2418	NULL
+2419	NULL
+2420	NULL
+2421	NULL
+2422	NULL
+2423	NULL
+2424	NULL
+2425	NULL
+2426	NULL
+2427	NULL
+2428	NULL
+2429	NULL
+2430	NULL
+2431	NULL
+2432	NULL
+2433	NULL
+2434	NULL
+2435	NULL
+2436	NULL
+2437	NULL
+2438	NULL
+2439	NULL
+2440	NULL
+2441	NULL
+2442	NULL
+2443	NULL
+2444	NULL
+2445	NULL
+2446	NULL
+2447	NULL
+2448	NULL
+2449	NULL
+2450	NULL
+2451	NULL
+2452	NULL
+2453	NULL
+2454	NULL
+2455	NULL
+2456	NULL
+2457	NULL
+2458	NULL
+2459	NULL
+2460	NULL
+2461	NULL
+2462	NULL
+2463	NULL
+2464	NULL
+2465	NULL
+2466	NULL
+2467	NULL
+2468	NULL
+2469	NULL
+2470	NULL
+2471	NULL
+2472	NULL
+2473	NULL
+2474	NULL
+2475	NULL
+2476	NULL
+2477	NULL
+2478	NULL
+2479	NULL
+2480	NULL
+2481	NULL
+2482	NULL
+2483	NULL
+2484	NULL
+2485	NULL
+2486	NULL
+2487	NULL
+2488	NULL
+2489	NULL
+2490	NULL
+2491	NULL
+2492	NULL
+2493	NULL
+2494	NULL
+2495	NULL
+2496	NULL
+2497	NULL
+2498	NULL
+2499	NULL
+2500	NULL
+2501	NULL
+2502	NULL
+2503	NULL
+2504	NULL
+2505	NULL
+2506	NULL
+2507	NULL
+2508	NULL
+2509	NULL
+2510	NULL
+2511	NULL
+2512	NULL
+2513	NULL
+2514	NULL
+2515	NULL
+2516	NULL
+2517	NULL
+2518	NULL
+2519	NULL
+2520	NULL
+2521	NULL
+2522	NULL
+2523	NULL
+2524	NULL
+2525	NULL
+2526	NULL
+2527	NULL
+2528	NULL
+2529	NULL
+2530	NULL
+2531	NULL
+2532	NULL
+2533	NULL
+2534	NULL
+2535	NULL
+2536	NULL
+2537	NULL
+2538	NULL
+2539	NULL
+2540	NULL
+2541	NULL
+2542	NULL
+2543	NULL
+2544	NULL
+2545	NULL
+2546	NULL
+2547	NULL
+2548	NULL
+2549	NULL
+2550	NULL
+2551	NULL
+2552	NULL
+2553	NULL
+2554	NULL
+2555	NULL
+2556	NULL
+2557	NULL
+2558	NULL
+2559	NULL
+2560	NULL
+2561	NULL
+2562	NULL
+2563	NULL
+2564	NULL
+2565	NULL
+2566	NULL
+2567	NULL
+2568	NULL
+2569	NULL
+2570	NULL
+2571	NULL
+2572	NULL
+2573	NULL
+2574	NULL
+2575	NULL
+2576	NULL
+2577	NULL
+2578	NULL
+2579	NULL
+2580	NULL
+2581	NULL
+2582	NULL
+2583	NULL
+2584	NULL
+2585	NULL
+2586	NULL
+2587	NULL
+2588	NULL
+2589	NULL
+2590	NULL
+2591	NULL
+2592	NULL
+2593	NULL
+2594	NULL
+2595	NULL
+2596	NULL
+2597	NULL
+2598	NULL
+2599	NULL
+2600	NULL
+2601	NULL
+2602	NULL
+2603	NULL
+2604	NULL
+2605	NULL
+2606	NULL
+2607	NULL
+2608	NULL
+2609	NULL
+2610	NULL
+2611	NULL
+2612	NULL
+2613	NULL
+2614	NULL
+2615	NULL
+2616	NULL
+2617	NULL
+2618	NULL
+2619	NULL
+2620	NULL
+2621	NULL
+2622	NULL
+2623	NULL
+2624	NULL
+2625	NULL
+2626	NULL
+2627	NULL
+2628	NULL
+2629	NULL
+2630	NULL
+2631	NULL
+2632	NULL
+2633	NULL
+2634	NULL
+2635	NULL
+2636	NULL
+2637	NULL
+2638	NULL
+2639	NULL
+2640	NULL
+2641	NULL
+2642	NULL
+2643	NULL
+2644	NULL
+2645	NULL
+2646	NULL
+2647	NULL
+2648	NULL
+2649	NULL
+2650	NULL
+2651	NULL
+2652	NULL
+2653	NULL
+2654	NULL
+2655	NULL
+2656	NULL
+2657	NULL
+2658	NULL
+2659	NULL
+2660	NULL
+2661	NULL
+2662	NULL
+2663	NULL
+2664	NULL
+2665	NULL
+2666	NULL
+2667	NULL
+2668	NULL
+2669	NULL
+2670	NULL
+2671	NULL
+2672	NULL
+2673	NULL
+2674	NULL
+2675	NULL
+2676	NULL
+2677	NULL
+2678	NULL
+2679	NULL
+2680	NULL
+2681	NULL
+2682	NULL
+2683	NULL
+2684	NULL
+2685	NULL
+2686	NULL
+2687	NULL
+2688	NULL
+2689	NULL
+2690	NULL
+2691	NULL
+2692	NULL
+2693	NULL
+2694	NULL
+2695	NULL
+2696	NULL
+2697	NULL
+2698	NULL
+2699	NULL
+2700	NULL
+2701	NULL
+2702	NULL
+2703	NULL
+2704	NULL
+2705	NULL
+2706	NULL
+2707	NULL
+2708	NULL
+2709	NULL
+2710	NULL
+2711	NULL
+2712	NULL
+2713	NULL
+2714	NULL
+2715	NULL
+2716	NULL
+2717	NULL
+2718	NULL
+2719	NULL
+2720	NULL
+2721	NULL
+2722	NULL
+2723	NULL
+2724	NULL
+2725	NULL
+2726	NULL
+2727	NULL
+2728	NULL
+2729	NULL
+2730	NULL
+2731	NULL
+2732	NULL
+2733	NULL
+2734	NULL
+2735	NULL
+2736	NULL
+2737	NULL
+2738	NULL
+2739	NULL
+2740	NULL
+2741	NULL
+2742	NULL
+2743	NULL
+2744	NULL
+2745	NULL
+2746	NULL
+2747	NULL
+2748	NULL
+2749	NULL
+2750	NULL
+2751	NULL
+2752	NULL
+2753	NULL
+2754	NULL
+2755	NULL
+2756	NULL
+2757	NULL
+2758	NULL
+2759	NULL
+2760	NULL
+2761	NULL
+2762	NULL
+2763	NULL
+2764	NULL
+2765	NULL
+2766	NULL
+2767	NULL
+2768	NULL
+2769	NULL
+2770	NULL
+2771	NULL
+2772	NULL
+2773	NULL
+2774	NULL
+2775	NULL
+2776	NULL
+2777	NULL
+2778	NULL
+2779	NULL
+2780	NULL
+2781	NULL
+2782	NULL
+2783	NULL
+2784	NULL
+2785	NULL
+2786	NULL
+2787	NULL
+2788	NULL
+2789	NULL
+2790	NULL
+2791	NULL
+2792	NULL
+2793	NULL
+2794	NULL
+2795	NULL
+2796	NULL
+2797	NULL
+2798	NULL
+2799	NULL
+2800	NULL
+2801	NULL
+2802	NULL
+2803	NULL
+2804	NULL
+2805	NULL
+2806	NULL
+2807	NULL
+2808	NULL
+2809	NULL
+2810	NULL
+2811	NULL
+2812	NULL
+2813	NULL
+2814	NULL
+2815	NULL
+2816	NULL
+2817	NULL
+2818	NULL
+2819	NULL
+2820	NULL
+2821	NULL
+2822	NULL
+2823	NULL
+2824	NULL
+2825	NULL
+2826	NULL
+2827	NULL
+2828	NULL
+2829	NULL
+2830	NULL
+2831	NULL
+2832	NULL
+2833	NULL
+2834	NULL
+2835	NULL
+2836	NULL
+2837	NULL
+2838	NULL
+2839	NULL
+2840	NULL
+2841	NULL
+2842	NULL
+2843	NULL
+2844	NULL
+2845	NULL
+2846	NULL
+2847	NULL
+2848	NULL
+2849	NULL
+2850	NULL
+2851	NULL
+2852	NULL
+2853	NULL
+2854	NULL
+2855	NULL
+2856	NULL
+2857	NULL
+2858	NULL
+2859	NULL
+2860	NULL
+2861	NULL
+2862	NULL
+2863	NULL
+2864	NULL
+2865	NULL
+2866	NULL
+2867	NULL
+2868	NULL
+2869	NULL
+2870	NULL
+2871	NULL
+2872	NULL
+2873	NULL
+2874	NULL
+2875	NULL
+2876	NULL
+2877	NULL
+2878	NULL
+2879	NULL
+2880	NULL
+2881	NULL
+2882	NULL
+2883	NULL
+2884	NULL
+2885	NULL
+2886	NULL
+2887	NULL
+2888	NULL
+2889	NULL
+2890	NULL
+2891	NULL
+2892	NULL
+2893	NULL
+2894	NULL
+2895	NULL
+2896	NULL
+2897	NULL
+2898	NULL
+2899	NULL
+2900	NULL
+2901	NULL
+2902	NULL
+2903	NULL
+2904	NULL
+2905	NULL
+2906	NULL
+2907	NULL
+2908	NULL
+2909	NULL
+2910	NULL
+2911	NULL
+2912	NULL
+2913	NULL
+2914	NULL
+2915	NULL
+2916	NULL
+2917	NULL
+2918	NULL
+2919	NULL
+2920	NULL
+2921	NULL
+2922	NULL
+2923	NULL
+2924	NULL
+2925	NULL
+2926	NULL
+2927	NULL
+2928	NULL
+2929	NULL
+2930	NULL
+2931	NULL
+2932	NULL
+2933	NULL
+2934	NULL
+2935	NULL
+2936	NULL
+2937	NULL
+2938	NULL
+2939	NULL
+2940	NULL
+2941	NULL
+2942	NULL
+2943	NULL
+2944	NULL
+2945	NULL
+2946	NULL
+2947	NULL
+2948	NULL
+2949	NULL
+2950	NULL
+2951	NULL
+2952	NULL
+2953	NULL
+2954	NULL
+2955	NULL
+2956	NULL
+2957	NULL
+2958	NULL
+2959	NULL
+2960	NULL
+2961	NULL
+2962	NULL
+2963	NULL
+2964	NULL
+2965	NULL
+2966	NULL
+2967	NULL
+2968	NULL
+2969	NULL
+2970	NULL
+2971	NULL
+2972	NULL
+2973	NULL
+2974	NULL
+2975	NULL
+2976	NULL
+2977	NULL
+2978	NULL
+2979	NULL
+2980	NULL
+2981	NULL
+2982	NULL
+2983	NULL
+2984	NULL
+2985	NULL
+2986	NULL
+2987	NULL
+2988	NULL
+2989	NULL
+2990	NULL
+2991	NULL
+2992	NULL
+2993	NULL
+2994	NULL
+2995	NULL
+2996	NULL
+2997	NULL
+2998	NULL
+2999	NULL
+3000	NULL
+3001	NULL
+3002	NULL
+3003	NULL
+3004	NULL
+3005	NULL
+3006	NULL
+3007	NULL
+3008	NULL
+3009	NULL
+3010	NULL
+3011	NULL
+3012	NULL
+3013	NULL
+3014	NULL
+3015	NULL
+3016	NULL
+3017	NULL
+3018	NULL
+3019	NULL
+3020	NULL
+3021	NULL
+3022	NULL
+3023	NULL
+3024	NULL
+3025	NULL
+3026	NULL
+3027	NULL
+3028	NULL
+3029	NULL
+3030	NULL
+3031	NULL
+3032	NULL
+3033	NULL
+3034	NULL
+3035	NULL
+3036	NULL
+3037	NULL
+3038	NULL
+3039	NULL
+3040	NULL
+3041	NULL
+3042	NULL
+3043	NULL
+3044	NULL
+3045	NULL
+3046	NULL
+3047	NULL
+3048	NULL
+3049	NULL
+3050	NULL
+3051	NULL
+3052	NULL
+3053	NULL
+3054	NULL
+3055	NULL
+3056	NULL
+3057	NULL
+3058	NULL
+3059	NULL
+3060	NULL
+3061	NULL
+4085	NULL
+4086	NULL
+4087	NULL
+4088	NULL
+4089	NULL
+4090	NULL
+4091	NULL
+4092	NULL
+4093	NULL
+4094	NULL
+4095	NULL
+4096	NULL
+4097	NULL
+4098	NULL
+4099	NULL
+4100	NULL
+4101	NULL
+4102	NULL
+4103	NULL
+4104	NULL
+4105	NULL
+4106	NULL
+4107	NULL
+4108	NULL
+4109	NULL
+4110	NULL
+4111	NULL
+4112	NULL
+4113	NULL
+4114	NULL
+4115	NULL
+4116	NULL
+4117	NULL
+4118	NULL
+4119	NULL
+4120	NULL
+4121	NULL
+4122	NULL
+4123	NULL
+4124	NULL
+4125	NULL
+4126	NULL
+4127	NULL
+4128	NULL
+4129	NULL
+4130	NULL
+4131	NULL
+4132	NULL
+4133	NULL
+4134	NULL
+4135	NULL
+4136	NULL
+4137	NULL
+4138	NULL
+4139	NULL
+4140	NULL
+4141	NULL
+4142	NULL
+4143	NULL
+4144	NULL
+4145	NULL
+4146	NULL
+4147	NULL
+4148	NULL
+4149	NULL
+4150	NULL
+4151	NULL
+4152	NULL
+4153	NULL
+4154	NULL
+4155	NULL
+4156	NULL
+4157	NULL
+4158	NULL
+4159	NULL
+4160	NULL
+4161	NULL
+4162	NULL
+4163	NULL
+4164	NULL
+4165	NULL
+4166	NULL
+4167	NULL
+4168	NULL
+4169	NULL
+4170	NULL
+4171	NULL
+4172	NULL
+4173	NULL
+4174	NULL
+4175	NULL
+4176	NULL
+4177	NULL
+4178	NULL
+4179	NULL
+4180	NULL
+4181	NULL
+4182	NULL
+4183	NULL
+4184	NULL
+4185	NULL
+4186	NULL
+4187	NULL
+4188	NULL
+4189	NULL
+4190	NULL
+4191	NULL
+4192	NULL
+4193	NULL
+4194	NULL
+4195	NULL
+4196	NULL
+4197	NULL
+4198	NULL
+4199	NULL
+4200	NULL
+4201	NULL
+4202	NULL
+4203	NULL
+4204	NULL
+4205	NULL
+4206	NULL
+4207	NULL
+4208	NULL
+4209	NULL
+4210	NULL
+4211	NULL
+4212	NULL
+4213	NULL
+4214	NULL
+4215	NULL
+4216	NULL
+4217	NULL
+4218	NULL
+4219	NULL
+4220	NULL
+4221	NULL
+4222	NULL
+4223	NULL
+4224	NULL
+4225	NULL
+4226	NULL
+4227	NULL
+4228	NULL
+4229	NULL
+4230	NULL
+4231	NULL
+4232	NULL
+4233	NULL
+4234	NULL
+4235	NULL
+4236	NULL
+4237	NULL
+4238	NULL
+4239	NULL
+4240	NULL
+4241	NULL
+4242	NULL
+4243	NULL
+4244	NULL
+4245	NULL
+4246	NULL
+4247	NULL
+4248	NULL
+4249	NULL
+4250	NULL
+4251	NULL
+4252	NULL
+4253	NULL
+4254	NULL
+4255	NULL
+4256	NULL
+4257	NULL
+4258	NULL
+4259	NULL
+4260	NULL
+4261	NULL
+4262	NULL
+4263	NULL
+4264	NULL
+4265	NULL
+4266	NULL
+4267	NULL
+4268	NULL
+4269	NULL
+4270	NULL
+4271	NULL
+4272	NULL
+4273	NULL
+4274	NULL
+4275	NULL
+4276	NULL
+4277	NULL
+4278	NULL
+4279	NULL
+4280	NULL
+4281	NULL
+4282	NULL
+4283	NULL
+4284	NULL
+4285	NULL
+4286	NULL
+4287	NULL
+4288	NULL
+4289	NULL
+4290	NULL
+4291	NULL
+4292	NULL
+4293	NULL
+4294	NULL
+4295	NULL
+4296	NULL
+4297	NULL
+4298	NULL
+4299	NULL
+4300	NULL
+4301	NULL
+4302	NULL
+4303	NULL
+4304	NULL
+4305	NULL
+4306	NULL
+4307	NULL
+4308	NULL
+4309	NULL
+4310	NULL
+4311	NULL
+4312	NULL
+4313	NULL
+4314	NULL
+4315	NULL
+4316	NULL
+4317	NULL
+4318	NULL
+4319	NULL
+4320	NULL
+4321	NULL
+4322	NULL
+4323	NULL
+4324	NULL
+4325	NULL
+4326	NULL
+4327	NULL
+4328	NULL
+4329	NULL
+4330	NULL
+4331	NULL
+4332	NULL
+4333	NULL
+4334	NULL
+4335	NULL
+4336	NULL
+4337	NULL
+4338	NULL
+4339	NULL
+4340	NULL
+4341	NULL
+4342	NULL
+4343	NULL
+4344	NULL
+4345	NULL
+4346	NULL
+4347	NULL
+4348	NULL
+4349	NULL
+4350	NULL
+4351	NULL
+4352	NULL
+4353	NULL
+4354	NULL
+4355	NULL
+4356	NULL
+4357	NULL
+4358	NULL
+4359	NULL
+4360	NULL
+4361	NULL
+4362	NULL
+4363	NULL
+4364	NULL
+4365	NULL
+4366	NULL
+4367	NULL
+4368	NULL
+4369	NULL
+4370	NULL
+4371	NULL
+4372	NULL
+4373	NULL
+4374	NULL
+4375	NULL
+4376	NULL
+4377	NULL
+4378	NULL
+4379	NULL
+4380	NULL
+4381	NULL
+4382	NULL
+4383	NULL
+4384	NULL
+4385	NULL
+4386	NULL
+4387	NULL
+4388	NULL
+4389	NULL
+4390	NULL
+4391	NULL
+4392	NULL
+4393	NULL
+4394	NULL
+4395	NULL
+4396	NULL
+4397	NULL
+4398	NULL
+4399	NULL
+4400	NULL
+4401	NULL
+4402	NULL
+4403	NULL
+4404	NULL
+4405	NULL
+4406	NULL
+4407	NULL
+4408	NULL
+4409	NULL
+4410	NULL
+4411	NULL
+4412	NULL
+4413	NULL
+4414	NULL
+4415	NULL
+4416	NULL
+4417	NULL
+4418	NULL
+4419	NULL
+4420	NULL
+4421	NULL
+4422	NULL
+4423	NULL
+4424	NULL
+4425	NULL
+4426	NULL
+4427	NULL
+4428	NULL
+4429	NULL
+4430	NULL
+4431	NULL
+4432	NULL
+4433	NULL
+4434	NULL
+4435	NULL
+4436	NULL
+4437	NULL
+4438	NULL
+4439	NULL
+4440	NULL
+4441	NULL
+4442	NULL
+4443	NULL
+4444	NULL
+4445	NULL
+4446	NULL
+4447	NULL
+4448	NULL
+4449	NULL
+4450	NULL
+4451	NULL
+4452	NULL
+4453	NULL
+4454	NULL
+4455	NULL
+4456	NULL
+4457	NULL
+4458	NULL
+4459	NULL
+4460	NULL
+4461	NULL
+4462	NULL
+4463	NULL
+4464	NULL
+4465	NULL
+4466	NULL
+4467	NULL
+4468	NULL
+4469	NULL
+4470	NULL
+4471	NULL
+4472	NULL
+4473	NULL
+4474	NULL
+4475	NULL
+4476	NULL
+4477	NULL
+4478	NULL
+4479	NULL
+4480	NULL
+4481	NULL
+4482	NULL
+4483	NULL
+4484	NULL
+4485	NULL
+4486	NULL
+4487	NULL
+4488	NULL
+4489	NULL
+4490	NULL
+4491	NULL
+4492	NULL
+4493	NULL
+4494	NULL
+4495	NULL
+4496	NULL
+4497	NULL
+4498	NULL
+4499	NULL
+4500	NULL
+4501	NULL
+4502	NULL
+4503	NULL
+4504	NULL
+4505	NULL
+4506	NULL
+4507	NULL
+4508	NULL
+4509	NULL
+4510	NULL
+4511	NULL
+4512	NULL
+4513	NULL
+4514	NULL
+4515	NULL
+4516	NULL
+4517	NULL
+4518	NULL
+4519	NULL
+4520	NULL
+4521	NULL
+4522	NULL
+4523	NULL
+4524	NULL
+4525	NULL
+4526	NULL
+4527	NULL
+4528	NULL
+4529	NULL
+4530	NULL
+4531	NULL
+4532	NULL
+4533	NULL
+4534	NULL
+4535	NULL
+4536	NULL
+4537	NULL
+4538	NULL
+4539	NULL
+4540	NULL
+4541	NULL
+4542	NULL
+4543	NULL
+4544	NULL
+4545	NULL
+4546	NULL
+4547	NULL
+4548	NULL
+4549	NULL
+4550	NULL
+4551	NULL
+4552	NULL
+4553	NULL
+4554	NULL
+4555	NULL
+4556	NULL
+4557	NULL
+4558	NULL
+4559	NULL
+4560	NULL
+4561	NULL
+4562	NULL
+4563	NULL
+4564	NULL
+4565	NULL
+4566	NULL
+4567	NULL
+4568	NULL
+4569	NULL
+4570	NULL
+4571	NULL
+4572	NULL
+4573	NULL
+4574	NULL
+4575	NULL
+4576	NULL
+4577	NULL
+4578	NULL
+4579	NULL
+4580	NULL
+4581	NULL
+4582	NULL
+4583	NULL
+4584	NULL
+4585	NULL
+4586	NULL
+4587	NULL
+4588	NULL
+4589	NULL
+4590	NULL
+4591	NULL
+4592	NULL
+4593	NULL
+4594	NULL
+4595	NULL
+4596	NULL
+4597	NULL
+4598	NULL
+4599	NULL
+4600	NULL
+4601	NULL
+4602	NULL
+4603	NULL
+4604	NULL
+4605	NULL
+4606	NULL
+4607	NULL
+4608	NULL
+4609	NULL
+4610	NULL
+4611	NULL
+4612	NULL
+4613	NULL
+4614	NULL
+4615	NULL
+4616	NULL
+4617	NULL
+4618	NULL
+4619	NULL
+4620	NULL
+4621	NULL
+4622	NULL
+4623	NULL
+4624	NULL
+4625	NULL
+4626	NULL
+4627	NULL
+4628	NULL
+4629	NULL
+4630	NULL
+4631	NULL
+4632	NULL
+4633	NULL
+4634	NULL
+4635	NULL
+4636	NULL
+4637	NULL
+4638	NULL
+4639	NULL
+4640	NULL
+4641	NULL
+4642	NULL
+4643	NULL
+4644	NULL
+4645	NULL
+4646	NULL
+4647	NULL
+4648	NULL
+4649	NULL
+4650	NULL
+4651	NULL
+4652	NULL
+4653	NULL
+4654	NULL
+4655	NULL
+4656	NULL
+4657	NULL
+4658	NULL
+4659	NULL
+4660	NULL
+4661	NULL
+4662	NULL
+4663	NULL
+4664	NULL
+4665	NULL
+4666	NULL
+4667	NULL
+4668	NULL
+4669	NULL
+4670	NULL
+4671	NULL
+4672	NULL
+4673	NULL
+4674	NULL
+4675	NULL
+4676	NULL
+4677	NULL
+4678	NULL
+4679	NULL
+4680	NULL
+4681	NULL
+4682	NULL
+4683	NULL
+4684	NULL
+4685	NULL
+4686	NULL
+4687	NULL
+4688	NULL
+4689	NULL
+4690	NULL
+4691	NULL
+4692	NULL
+4693	NULL
+4694	NULL
+4695	NULL
+4696	NULL
+4697	NULL
+4698	NULL
+4699	NULL
+4700	NULL
+4701	NULL
+4702	NULL
+4703	NULL
+4704	NULL
+4705	NULL
+4706	NULL
+4707	NULL
+4708	NULL
+4709	NULL
+4710	NULL
+4711	NULL
+4712	NULL
+4713	NULL
+4714	NULL
+4715	NULL
+4716	NULL
+4717	NULL
+4718	NULL
+4719	NULL
+4720	NULL
+4721	NULL
+4722	NULL
+4723	NULL
+4724	NULL
+4725	NULL
+4726	NULL
+4727	NULL
+4728	NULL
+4729	NULL
+4730	NULL
+4731	NULL
+4732	NULL
+4733	NULL
+4734	NULL
+4735	NULL
+4736	NULL
+4737	NULL
+4738	NULL
+4739	NULL
+4740	NULL
+4741	NULL
+4742	NULL
+4743	NULL
+4744	NULL
+4745	NULL
+4746	NULL
+4747	NULL
+4748	NULL
+4749	NULL
+4750	NULL
+4751	NULL
+4752	NULL
+4753	NULL
+4754	NULL
+4755	NULL
+4756	NULL
+4757	NULL
+4758	NULL
+4759	NULL
+4760	NULL
+4761	NULL
+4762	NULL
+4763	NULL
+4764	NULL
+4765	NULL
+4766	NULL
+4767	NULL
+4768	NULL
+4769	NULL
+4770	NULL
+4771	NULL
+4772	NULL
+4773	NULL
+4774	NULL
+4775	NULL
+4776	NULL
+4777	NULL
+4778	NULL
+4779	NULL
+4780	NULL
+4781	NULL
+4782	NULL
+4783	NULL
+4784	NULL
+4785	NULL
+4786	NULL
+4787	NULL
+4788	NULL
+4789	NULL
+4790	NULL
+4791	NULL
+4792	NULL
+4793	NULL
+4794	NULL
+4795	NULL
+4796	NULL
+4797	NULL
+4798	NULL
+4799	NULL
+4800	NULL
+4801	NULL
+4802	NULL
+4803	NULL
+4804	NULL
+4805	NULL
+4806	NULL
+4807	NULL
+4808	NULL
+4809	NULL
+4810	NULL
+4811	NULL
+4812	NULL
+4813	NULL
+4814	NULL
+4815	NULL
+4816	NULL
+4817	NULL
+4818	NULL
+4819	NULL
+4820	NULL
+4821	NULL
+4822	NULL
+4823	NULL
+4824	NULL
+4825	NULL
+4826	NULL
+4827	NULL
+4828	NULL
+4829	NULL
+4830	NULL
+4831	NULL
+4832	NULL
+4833	NULL
+4834	NULL
+4835	NULL
+4836	NULL
+4837	NULL
+4838	NULL
+4839	NULL
+4840	NULL
+4841	NULL
+4842	NULL
+4843	NULL
+4844	NULL
+4845	NULL
+4846	NULL
+4847	NULL
+4848	NULL
+4849	NULL
+4850	NULL
+4851	NULL
+4852	NULL
+4853	NULL
+4854	NULL
+4855	NULL
+4856	NULL
+4857	NULL
+4858	NULL
+4859	NULL
+4860	NULL
+4861	NULL
+4862	NULL
+4863	NULL
+4864	NULL
+4865	NULL
+4866	NULL
+4867	NULL
+4868	NULL
+4869	NULL
+4870	NULL
+4871	NULL
+4872	NULL
+4873	NULL
+4874	NULL
+4875	NULL
+4876	NULL
+4877	NULL
+4878	NULL
+4879	NULL
+4880	NULL
+4881	NULL
+4882	NULL
+4883	NULL
+4884	NULL
+4885	NULL
+4886	NULL
+4887	NULL
+4888	NULL
+4889	NULL
+4890	NULL
+4891	NULL
+4892	NULL
+4893	NULL
+4894	NULL
+4895	NULL
+4896	NULL
+4897	NULL
+4898	NULL
+4899	NULL
+4900	NULL
+4901	NULL
+4902	NULL
+4903	NULL
+4904	NULL
+4905	NULL
+4906	NULL
+4907	NULL
+4908	NULL
+4909	NULL
+4910	NULL
+4911	NULL
+4912	NULL
+4913	NULL
+4914	NULL
+4915	NULL
+4916	NULL
+4917	NULL
+4918	NULL
+4919	NULL
+4920	NULL
+4921	NULL
+4922	NULL
+4923	NULL
+4924	NULL
+4925	NULL
+4926	NULL
+4927	NULL
+4928	NULL
+4929	NULL
+4930	NULL
+4931	NULL
+4932	NULL
+4933	NULL
+4934	NULL
+4935	NULL
+4936	NULL
+4937	NULL
+4938	NULL
+4939	NULL
+4940	NULL
+4941	NULL
+4942	NULL
+4943	NULL
+4944	NULL
+4945	NULL
+4946	NULL
+4947	NULL
+4948	NULL
+4949	NULL
+4950	NULL
+4951	NULL
+4952	NULL
+4953	NULL
+4954	NULL
+4955	NULL
+4956	NULL
+4957	NULL
+4958	NULL
+4959	NULL
+4960	NULL
+4961	NULL
+4962	NULL
+4963	NULL
+4964	NULL
+4965	NULL
+4966	NULL
+4967	NULL
+4968	NULL
+4969	NULL
+4970	NULL
+4971	NULL
+4972	NULL
+4973	NULL
+4974	NULL
+4975	NULL
+4976	NULL
+4977	NULL
+4978	NULL
+4979	NULL
+4980	NULL
+4981	NULL
+4982	NULL
+4983	NULL
+4984	NULL
+4985	NULL
+4986	NULL
+4987	NULL
+4988	NULL
+4989	NULL
+4990	NULL
+4991	NULL
+4992	NULL
+4993	NULL
+4994	NULL
+4995	NULL
+4996	NULL
+4997	NULL
+4998	NULL
+4999	NULL
+5000	NULL
+5001	NULL
+5002	NULL
+5003	NULL
+5004	NULL
+5005	NULL
+5006	NULL
+5007	NULL
+5008	NULL
+5009	NULL
+5010	NULL
+5011	NULL
+5012	NULL
+5013	NULL
+5014	NULL
+5015	NULL
+5016	NULL
+5017	NULL
+5018	NULL
+5019	NULL
+5020	NULL
+5021	NULL
+5022	NULL
+5023	NULL
+5024	NULL
+5025	NULL
+5026	NULL
+5027	NULL
+5028	NULL
+5029	NULL
+5030	NULL
+5031	NULL
+5032	NULL
+5033	NULL
+5034	NULL
+5035	NULL
+5036	NULL
+5037	NULL
+5038	NULL
+5039	NULL
+5040	NULL
+5041	NULL
+5042	NULL
+5043	NULL
+5044	NULL
+5045	NULL
+5046	NULL
+5047	NULL
+5048	NULL
+5049	NULL
+5050	NULL
+5051	NULL
+5052	NULL
+5053	NULL
+5054	NULL
+5055	NULL
+5056	NULL
+5057	NULL
+5058	NULL
+5059	NULL
+5060	NULL
+5061	NULL
+5062	NULL
+5063	NULL
+5064	NULL
+5065	NULL
+5066	NULL
+5067	NULL
+5068	NULL
+5069	NULL
+5070	NULL
+5071	NULL
+5072	NULL
+5073	NULL
+5074	NULL
+5075	NULL
+5076	NULL
+5077	NULL
+5078	NULL
+5079	NULL
+5080	NULL
+5081	NULL
+5082	NULL
+5083	NULL
+5084	NULL
+5085	NULL
+5086	NULL
+5087	NULL
+5088	NULL
+5089	NULL
+5090	NULL
+5091	NULL
+5092	NULL
+5093	NULL
+5094	NULL
+5095	NULL
+5096	NULL
+5097	NULL
+5098	NULL
+5099	NULL
+5100	NULL
+5101	NULL
+5102	NULL
+5103	NULL
+5104	NULL
+5105	NULL
+5106	NULL
+5107	NULL
+5108	NULL
+5109	NULL
+5110	NULL
+5111	NULL
+5112	NULL
+5113	NULL
+5114	NULL
+5115	NULL
+5116	NULL
+5117	NULL
+5118	NULL
+5119	NULL
+5120	NULL
+5121	NULL
+5122	NULL
+5123	NULL
+5124	NULL
+5125	NULL
+5126	NULL
+5127	NULL
+5128	NULL
+5129	NULL
+5130	NULL
+5131	NULL
+5132	NULL
+5133	NULL
+5134	NULL
+5135	NULL
+5136	NULL
+5137	NULL
+5138	NULL
+5139	NULL
+5140	NULL
+5141	NULL
+5142	NULL
+5143	NULL
+5144	NULL
+5145	NULL
+5146	NULL
+5147	NULL
+5148	NULL
+5149	NULL
+5150	NULL
+5151	NULL
+5152	NULL
+5153	NULL
+5154	NULL
+5155	NULL
+5156	NULL
+5157	NULL
+5158	NULL
+5159	NULL
+5160	NULL
+5161	NULL
+5162	NULL
+5163	NULL
+5164	NULL
+5165	NULL
+5166	NULL
+5167	NULL
+5168	NULL
+5169	NULL
+5170	NULL
+5171	NULL
+5172	NULL
+5173	NULL
+5174	NULL
+5175	NULL
+5176	NULL
+5177	NULL
+5178	NULL
+5179	NULL
+5180	NULL
+5181	NULL
+5182	NULL
+5183	NULL
+5184	NULL
+5185	NULL
+5186	NULL
+5187	NULL
+5188	NULL
+5189	NULL
+5190	NULL
+5191	NULL
+5192	NULL
+5193	NULL
+5194	NULL
+5195	NULL
+5196	NULL
+5197	NULL
+5198	NULL
+5199	NULL
+5200	NULL
+5201	NULL
+5202	NULL
+5203	NULL
+5204	NULL
+5205	NULL
+5206	NULL
+5207	NULL
+5208	NULL
+5209	NULL
+5210	NULL
+5211	NULL
+5212	NULL
+5213	NULL
+5214	NULL
+5215	NULL
+5216	NULL
+5217	NULL
+5218	NULL
+5219	NULL
+5220	NULL
+5221	NULL
+5222	NULL
+5223	NULL
+5224	NULL
+5225	NULL
+5226	NULL
+5227	NULL
+5228	NULL
+5229	NULL
+5230	NULL
+5231	NULL
+5232	NULL
+5233	NULL
+5234	NULL
+5235	NULL
+5236	NULL
+5237	NULL
+5238	NULL
+5239	NULL
+5240	NULL
+5241	NULL
+5242	NULL
+5243	NULL
+5244	NULL
+5245	NULL
+5246	NULL
+5247	NULL
+5248	NULL
+5249	NULL
+5250	NULL
+5251	NULL
+5252	NULL
+5253	NULL
+5254	NULL
+5255	NULL
+5256	NULL
+5257	NULL
+5258	NULL
+5259	NULL
+5260	NULL
+5261	NULL
+5262	NULL
+5263	NULL
+5264	NULL
+5265	NULL
+5266	NULL
+5267	NULL
+5268	NULL
+5269	NULL
+5270	NULL
+5271	NULL
+5272	NULL
+5273	NULL
+5274	NULL
+5275	NULL
+5276	NULL
+5277	NULL
+5278	NULL
+5279	NULL
+5280	NULL
+5281	NULL
+5282	NULL
+5283	NULL
+5284	NULL
+5285	NULL
+5286	NULL
+5287	NULL
+5288	NULL
+5289	NULL
+5290	NULL
+5291	NULL
+5292	NULL
+5293	NULL
+5294	NULL
+5295	NULL
+5296	NULL
+5297	NULL
+5298	NULL
+5299	NULL
+5300	NULL
+5301	NULL
+5302	NULL
+5303	NULL
+5304	NULL
+5305	NULL
+5306	NULL
+5307	NULL
+5308	NULL
+5309	NULL
+5310	NULL
+5311	NULL
+5312	NULL
+5313	NULL
+5314	NULL
+5315	NULL
+5316	NULL
+5317	NULL
+5318	NULL
+5319	NULL
+5320	NULL
+5321	NULL
+5322	NULL
+5323	NULL
+5324	NULL
+5325	NULL
+5326	NULL
+5327	NULL
+5328	NULL
+5329	NULL
+5330	NULL
+5331	NULL
+5332	NULL
+5333	NULL
+5334	NULL
+5335	NULL
+5336	NULL
+5337	NULL
+5338	NULL
+5339	NULL
+5340	NULL
+5341	NULL
+5342	NULL
+5343	NULL
+5344	NULL
+5345	NULL
+5346	NULL
+5347	NULL
+5348	NULL
+5349	NULL
+5350	NULL
+5351	NULL
+5352	NULL
+5353	NULL
+5354	NULL
+5355	NULL
+5356	NULL
+5357	NULL
+5358	NULL
+5359	NULL
+5360	NULL
+5361	NULL
+5362	NULL
+5363	NULL
+5364	NULL
+5365	NULL
+5366	NULL
+5367	NULL
+5368	NULL
+5369	NULL
+5370	NULL
+5371	NULL
+5372	NULL
+5373	NULL
+5374	NULL
+5375	NULL
+5376	NULL
+5377	NULL
+5378	NULL
+5379	NULL
+5380	NULL
+5381	NULL
+5382	NULL
+5383	NULL
+5384	NULL
+5385	NULL
+5386	NULL
+5387	NULL
+5388	NULL
+5389	NULL
+5390	NULL
+5391	NULL
+5392	NULL
+5393	NULL
+5394	NULL
+5395	NULL
+5396	NULL
+5397	NULL
+5398	NULL
+5399	NULL
+5400	NULL
+5401	NULL
+5402	NULL
+5403	NULL
+5404	NULL
+5405	NULL
+5406	NULL
+5407	NULL
+5408	NULL
+5409	NULL
+5410	NULL
+5411	NULL
+5412	NULL
+5413	NULL
+5414	NULL
+5415	NULL
+5416	NULL
+5417	NULL
+5418	NULL
+5419	NULL
+5420	NULL
+5421	NULL
+5422	NULL
+5423	NULL
+5424	NULL
+5425	NULL
+5426	NULL
+5427	NULL
+5428	NULL
+5429	NULL
+5430	NULL
+5431	NULL
+5432	NULL
+5433	NULL
+5434	NULL
+5435	NULL
+5436	NULL
+5437	NULL
+5438	NULL
+5439	NULL
+5440	NULL
+5441	NULL
+5442	NULL
+5443	NULL
+5444	NULL
+5445	NULL
+5446	NULL
+5447	NULL
+5448	NULL
+5449	NULL
+5450	NULL
+5451	NULL
+5452	NULL
+5453	NULL
+5454	NULL
+5455	NULL
+5456	NULL
+5457	NULL
+5458	NULL
+5459	NULL
+5460	NULL
+5461	NULL
+5462	NULL
+5463	NULL
+5464	NULL
+5465	NULL
+5466	NULL
+5467	NULL
+5468	NULL
+5469	NULL
+5470	NULL
+5471	NULL
+5472	NULL
+5473	NULL
+5474	NULL
+5475	NULL
+5476	NULL
+5477	NULL
+5478	NULL
+5479	NULL
+5480	NULL
+5481	NULL
+5482	NULL
+5483	NULL
+5484	NULL
+5485	NULL
+5486	NULL
+5487	NULL
+5488	NULL
+5489	NULL
+5490	NULL
+5491	NULL
+5492	NULL
+5493	NULL
+5494	NULL
+5495	NULL
+5496	NULL
+5497	NULL
+5498	NULL
+5499	NULL
+5500	NULL
+5501	NULL
+5502	NULL
+5503	NULL
+5504	NULL
+5505	NULL
+5506	NULL
+5507	NULL
+5508	NULL
+5509	NULL
+5510	NULL
+5511	NULL
+5512	NULL
+5513	NULL
+5514	NULL
+5515	NULL
+5516	NULL
+5517	NULL
+5518	NULL
+5519	NULL
+5520	NULL
+5521	NULL
+5522	NULL
+5523	NULL
+5524	NULL
+5525	NULL
+5526	NULL
+5527	NULL
+5528	NULL
+5529	NULL
+5530	NULL
+5531	NULL
+5532	NULL
+5533	NULL
+5534	NULL
+5535	NULL
+5536	NULL
+5537	NULL
+5538	NULL
+5539	NULL
+5540	NULL
+5541	NULL
+5542	NULL
+5543	NULL
+5544	NULL
+5545	NULL
+5546	NULL
+5547	NULL
+5548	NULL
+5549	NULL
+5550	NULL
+5551	NULL
+5552	NULL
+5553	NULL
+5554	NULL
+5555	NULL
+5556	NULL
+5557	NULL
+5558	NULL
+5559	NULL
+5560	NULL
+5561	NULL
+5562	NULL
+5563	NULL
+5564	NULL
+5565	NULL
+5566	NULL
+5567	NULL
+5568	NULL
+5569	NULL
+5570	NULL
+5571	NULL
+5572	NULL
+5573	NULL
+5574	NULL
+5575	NULL
+5576	NULL
+5577	NULL
+5578	NULL
+5579	NULL
+5580	NULL
+5581	NULL
+5582	NULL
+5583	NULL
+5584	NULL
+5585	NULL
+5586	NULL
+5587	NULL
+5588	NULL
+5589	NULL
+5590	NULL
+5591	NULL
+5592	NULL
+5593	NULL
+5594	NULL
+5595	NULL
+5596	NULL
+5597	NULL
+5598	NULL
+5599	NULL
+5600	NULL
+5601	NULL
+5602	NULL
+5603	NULL
+5604	NULL
+5605	NULL
+5606	NULL
+5607	NULL
+5608	NULL
+5609	NULL
+5610	NULL
+5611	NULL
+5612	NULL
+5613	NULL
+5614	NULL
+5615	NULL
+5616	NULL
+5617	NULL
+5618	NULL
+5619	NULL
+5620	NULL
+5621	NULL
+5622	NULL
+5623	NULL
+5624	NULL
+5625	NULL
+5626	NULL
+5627	NULL
+5628	NULL
+5629	NULL
+5630	NULL
+5631	NULL
+5632	NULL
+5633	NULL
+5634	NULL
+5635	NULL
+5636	NULL
+5637	NULL
+5638	NULL
+5639	NULL
+5640	NULL
+5641	NULL
+5642	NULL
+5643	NULL
+5644	NULL
+5645	NULL
+5646	NULL
+5647	NULL
+5648	NULL
+5649	NULL
+5650	NULL
+5651	NULL
+5652	NULL
+5653	NULL
+5654	NULL
+5655	NULL
+5656	NULL
+5657	NULL
+5658	NULL
+5659	NULL
+5660	NULL
+5661	NULL
+5662	NULL
+5663	NULL
+5664	NULL
+5665	NULL
+5666	NULL
+5667	NULL
+5668	NULL
+5669	NULL
+5670	NULL
+5671	NULL
+5672	NULL
+5673	NULL
+5674	NULL
+5675	NULL
+5676	NULL
+5677	NULL
+5678	NULL
+5679	NULL
+5680	NULL
+5681	NULL
+5682	NULL
+5683	NULL
+5684	NULL
+5685	NULL
+5686	NULL
+5687	NULL
+5688	NULL
+5689	NULL
+5690	NULL
+5691	NULL
+5692	NULL
+5693	NULL
+5694	NULL
+5695	NULL
+5696	NULL
+5697	NULL
+5698	NULL
+5699	NULL
+5700	NULL
+5701	NULL
+5702	NULL
+5703	NULL
+5704	NULL
+5705	NULL
+5706	NULL
+5707	NULL
+5708	NULL
+5709	NULL
+5710	NULL
+5711	NULL
+5712	NULL
+5713	NULL
+5714	NULL
+5715	NULL
+5716	NULL
+5717	NULL
+5718	NULL
+5719	NULL
+5720	NULL
+5721	NULL
+5722	NULL
+5723	NULL
+5724	NULL
+5725	NULL
+5726	NULL
+5727	NULL
+5728	NULL
+5729	NULL
+5730	NULL
+5731	NULL
+5732	NULL
+5733	NULL
+5734	NULL
+5735	NULL
+5736	NULL
+5737	NULL
+5738	NULL
+5739	NULL
+5740	NULL
+5741	NULL
+5742	NULL
+5743	NULL
+5744	NULL
+5745	NULL
+5746	NULL
+5747	NULL
+5748	NULL
+5749	NULL
+5750	NULL
+5751	NULL
+5752	NULL
+5753	NULL
+5754	NULL
+5755	NULL
+5756	NULL
+5757	NULL
+5758	NULL
+5759	NULL
+5760	NULL
+5761	NULL
+5762	NULL
+5763	NULL
+5764	NULL
+5765	NULL
+5766	NULL
+5767	NULL
+5768	NULL
+5769	NULL
+5770	NULL
+5771	NULL
+5772	NULL
+5773	NULL
+5774	NULL
+5775	NULL
+5776	NULL
+5777	NULL
+5778	NULL
+5779	NULL
+5780	NULL
+5781	NULL
+5782	NULL
+5783	NULL
+5784	NULL
+5785	NULL
+5786	NULL
+5787	NULL
+5788	NULL
+5789	NULL
+5790	NULL
+5791	NULL
+5792	NULL
+5793	NULL
+5794	NULL
+5795	NULL
+5796	NULL
+5797	NULL
+5798	NULL
+5799	NULL
+5800	NULL
+5801	NULL
+5802	NULL
+5803	NULL
+5804	NULL
+5805	NULL
+5806	NULL
+5807	NULL
+5808	NULL
+5809	NULL
+5810	NULL
+5811	NULL
+5812	NULL
+5813	NULL
+5814	NULL
+5815	NULL
+5816	NULL
+5817	NULL
+5818	NULL
+5819	NULL
+5820	NULL
+5821	NULL
+5822	NULL
+5823	NULL
+5824	NULL
+5825	NULL
+5826	NULL
+5827	NULL
+5828	NULL
+5829	NULL
+5830	NULL
+5831	NULL
+5832	NULL
+5833	NULL
+5834	NULL
+5835	NULL
+5836	NULL
+5837	NULL
+5838	NULL
+5839	NULL
+5840	NULL
+5841	NULL
+5842	NULL
+5843	NULL
+5844	NULL
+5845	NULL
+5846	NULL
+5847	NULL
+5848	NULL
+5849	NULL
+5850	NULL
+5851	NULL
+5852	NULL
+5853	NULL
+5854	NULL
+5855	NULL
+5856	NULL
+5857	NULL
+5858	NULL
+5859	NULL
+5860	NULL
+5861	NULL
+5862	NULL
+5863	NULL
+5864	NULL
+5865	NULL
+5866	NULL
+5867	NULL
+5868	NULL
+5869	NULL
+5870	NULL
+5871	NULL
+5872	NULL
+5873	NULL
+5874	NULL
+5875	NULL
+5876	NULL
+5877	NULL
+5878	NULL
+5879	NULL
+5880	NULL
+5881	NULL
+5882	NULL
+5883	NULL
+5884	NULL
+5885	NULL
+5886	NULL
+5887	NULL
+5888	NULL
+5889	NULL
+5890	NULL
+5891	NULL
+5892	NULL
+5893	NULL
+5894	NULL
+5895	NULL
+5896	NULL
+5897	NULL
+5898	NULL
+5899	NULL
+5900	NULL
+5901	NULL
+5902	NULL
+5903	NULL
+5904	NULL
+5905	NULL
+5906	NULL
+5907	NULL
+5908	NULL
+5909	NULL
+5910	NULL
+5911	NULL
+5912	NULL
+5913	NULL
+5914	NULL
+5915	NULL
+5916	NULL
+5917	NULL
+5918	NULL
+5919	NULL
+5920	NULL
+5921	NULL
+5922	NULL
+5923	NULL
+5924	NULL
+5925	NULL
+5926	NULL
+5927	NULL
+5928	NULL
+5929	NULL
+5930	NULL
+5931	NULL
+5932	NULL
+5933	NULL
+5934	NULL
+5935	NULL
+5936	NULL
+5937	NULL
+5938	NULL
+5939	NULL
+5940	NULL
+5941	NULL
+5942	NULL
+5943	NULL
+5944	NULL
+5945	NULL
+5946	NULL
+5947	NULL
+5948	NULL
+5949	NULL
+5950	NULL
+5951	NULL
+5952	NULL
+5953	NULL
+5954	NULL
+5955	NULL
+5956	NULL
+5957	NULL
+5958	NULL
+5959	NULL
+5960	NULL
+5961	NULL
+5962	NULL
+5963	NULL
+5964	NULL
+5965	NULL
+5966	NULL
+5967	NULL
+5968	NULL
+5969	NULL
+5970	NULL
+5971	NULL
+5972	NULL
+5973	NULL
+5974	NULL
+5975	NULL
+5976	NULL
+5977	NULL
+5978	NULL
+5979	NULL
+5980	NULL
+5981	NULL
+5982	NULL
+5983	NULL
+5984	NULL
+5985	NULL
+5986	NULL
+5987	NULL
+5988	NULL
+5989	NULL
+5990	NULL
+5991	NULL
+5992	NULL
+5993	NULL
+5994	NULL
+5995	NULL
+5996	NULL
+5997	NULL
+5998	NULL
+5999	NULL
+6000	NULL
+6001	NULL
+6002	NULL
+6003	NULL
+6004	NULL
+6005	NULL
+6006	NULL
+6007	NULL
+6008	NULL
+6009	NULL
+6010	NULL
+6011	NULL
+6012	NULL
+6013	NULL
+6014	NULL
+6015	NULL
+6016	NULL
+6017	NULL
+6018	NULL
+6019	NULL
+6020	NULL
+6021	NULL
+6022	NULL
+6023	NULL
+6024	NULL
+6025	NULL
+6026	NULL
+6027	NULL
+6028	NULL
+6029	NULL
+6030	NULL
+6031	NULL
+6032	NULL
+6033	NULL
+6034	NULL
+6035	NULL
+6036	NULL
+6037	NULL
+6038	NULL
+6039	NULL
+6040	NULL
+6041	NULL
+6042	NULL
+6043	NULL
+6044	NULL
+6045	NULL
+6046	NULL
+6047	NULL
+6048	NULL
+6049	NULL
+6050	NULL
+6051	NULL
+6052	NULL
+6053	NULL
+6054	NULL
+6055	NULL
+6056	NULL
+6057	NULL
+6058	NULL
+6059	NULL
+6060	NULL
+6061	NULL
+6062	NULL
+6063	NULL
+6064	NULL
+6065	NULL
+6066	NULL
+6067	NULL
+6068	NULL
+6069	NULL
+6070	NULL
+6071	NULL
+6072	NULL
+6073	NULL
+6074	NULL
+6075	NULL
+6076	NULL
+6077	NULL
+6078	NULL
+6079	NULL
+6080	NULL
+6081	NULL
+6082	NULL
+6083	NULL
+6084	NULL
+6085	NULL
+6086	NULL
+6087	NULL
+6088	NULL
+6089	NULL
+6090	NULL
+6091	NULL
+6092	NULL
+6093	NULL
+6094	NULL
+6095	NULL
+6096	NULL
+6097	NULL
+6098	NULL
+6099	NULL
+6100	NULL
+6101	NULL
+6102	NULL
+6103	NULL
+6104	NULL
+6105	NULL
+6106	NULL
+6107	NULL
+6108	NULL
+6109	NULL
+6110	NULL
+6111	NULL
+6112	NULL
+6113	NULL
+6114	NULL
+6115	NULL
+6116	NULL
+6117	NULL
+6118	NULL
+6119	NULL
+6120	NULL
+6121	NULL
+6122	NULL
+6123	NULL
+6124	NULL
+6125	NULL
+6126	NULL
+6127	NULL
+6128	NULL
+6129	NULL
+6130	NULL
+6131	NULL
+6132	NULL
+FLUSH STATUS;
+SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
+1	NULL
+2	NULL
+3	NULL
+4	NULL
+6	NULL
+7	NULL
+8	NULL
+9	NULL
+13	NULL
+14	NULL
+15	NULL
+16	NULL
+17	NULL
+18	NULL
+19	NULL
+20	NULL
+28	NULL
+29	NULL
+30	NULL
+31	NULL
+32	NULL
+33	NULL
+34	NULL
+35	NULL
+36	NULL
+37	NULL
+38	NULL
+39	NULL
+40	NULL
+41	NULL
+42	NULL
+43	NULL
+59	NULL
+60	NULL
+61	NULL
+62	NULL
+63	NULL
+64	NULL
+65	NULL
+66	NULL
+67	NULL
+68	NULL
+69	NULL
+70	NULL
+71	NULL
+72	NULL
+73	NULL
+74	NULL
+75	NULL
+76	NULL
+77	NULL
+78	NULL
+79	NULL
+80	NULL
+81	NULL
+82	NULL
+83	NULL
+84	NULL
+85	NULL
+86	NULL
+87	NULL
+88	NULL
+89	NULL
+90	NULL
+122	NULL
+123	NULL
+124	NULL
+125	NULL
+126	NULL
+127	NULL
+128	NULL
+129	NULL
+130	NULL
+131	NULL
+132	NULL
+133	NULL
+134	NULL
+135	NULL
+136	NULL
+137	NULL
+138	NULL
+139	NULL
+140	NULL
+141	NULL
+142	NULL
+143	NULL
+144	NULL
+145	NULL
+146	NULL
+147	NULL
+148	NULL
+149	NULL
+150	NULL
+151	NULL
+152	NULL
+153	NULL
+154	NULL
+155	NULL
+156	NULL
+157	NULL
+158	NULL
+159	NULL
+160	NULL
+161	NULL
+162	NULL
+163	NULL
+164	NULL
+165	NULL
+166	NULL
+167	NULL
+168	NULL
+169	NULL
+170	NULL
+171	NULL
+172	NULL
+173	NULL
+174	NULL
+175	NULL
+176	NULL
+177	NULL
+178	NULL
+179	NULL
+180	NULL
+181	NULL
+182	NULL
+183	NULL
+184	NULL
+185	NULL
+249	NULL
+250	NULL
+251	NULL
+252	NULL
+253	NULL
+254	NULL
+255	NULL
+256	NULL
+257	NULL
+258	NULL
+259	NULL
+260	NULL
+261	NULL
+262	NULL
+263	NULL
+264	NULL
+265	NULL
+266	NULL
+267	NULL
+268	NULL
+269	NULL
+270	NULL
+271	NULL
+272	NULL
+273	NULL
+274	NULL
+275	NULL
+276	NULL
+277	NULL
+278	NULL
+279	NULL
+280	NULL
+281	NULL
+282	NULL
+283	NULL
+284	NULL
+285	NULL
+286	NULL
+287	NULL
+288	NULL
+289	NULL
+290	NULL
+291	NULL
+292	NULL
+293	NULL
+294	NULL
+295	NULL
+296	NULL
+297	NULL
+298	NULL
+299	NULL
+300	NULL
+301	NULL
+302	NULL
+303	NULL
+304	NULL
+305	NULL
+306	NULL
+307	NULL
+308	NULL
+309	NULL
+310	NULL
+311	NULL
+312	NULL
+313	NULL
+314	NULL
+315	NULL
+316	NULL
+317	NULL
+318	NULL
+319	NULL
+320	NULL
+321	NULL
+322	NULL
+323	NULL
+324	NULL
+325	NULL
+326	NULL
+327	NULL
+328	NULL
+329	NULL
+330	NULL
+331	NULL
+332	NULL
+333	NULL
+334	NULL
+335	NULL
+336	NULL
+337	NULL
+338	NULL
+339	NULL
+340	NULL
+341	NULL
+342	NULL
+343	NULL
+344	NULL
+345	NULL
+346	NULL
+347	NULL
+348	NULL
+349	NULL
+350	NULL
+351	NULL
+352	NULL
+353	NULL
+354	NULL
+355	NULL
+356	NULL
+357	NULL
+358	NULL
+359	NULL
+360	NULL
+361	NULL
+362	NULL
+363	NULL
+364	NULL
+365	NULL
+366	NULL
+367	NULL
+368	NULL
+369	NULL
+370	NULL
+371	NULL
+372	NULL
+373	NULL
+374	NULL
+375	NULL
+376	NULL
+504	NULL
+505	NULL
+506	NULL
+507	NULL
+508	NULL
+509	NULL
+510	NULL
+511	NULL
+512	NULL
+513	NULL
+514	NULL
+515	NULL
+516	NULL
+517	NULL
+518	NULL
+519	NULL
+520	NULL
+521	NULL
+522	NULL
+523	NULL
+524	NULL
+525	NULL
+526	NULL
+527	NULL
+528	NULL
+529	NULL
+530	NULL
+531	NULL
+532	NULL
+533	NULL
+534	NULL
+535	NULL
+536	NULL
+537	NULL
+538	NULL
+539	NULL
+540	NULL
+541	NULL
+542	NULL
+543	NULL
+544	NULL
+545	NULL
+546	NULL
+547	NULL
+548	NULL
+549	NULL
+550	NULL
+551	NULL
+552	NULL
+553	NULL
+554	NULL
+555	NULL
+556	NULL
+557	NULL
+558	NULL
+559	NULL
+560	NULL
+561	NULL
+562	NULL
+563	NULL
+564	NULL
+565	NULL
+566	NULL
+567	NULL
+568	NULL
+569	NULL
+570	NULL
+571	NULL
+572	NULL
+573	NULL
+574	NULL
+575	NULL
+576	NULL
+577	NULL
+578	NULL
+579	NULL
+580	NULL
+581	NULL
+582	NULL
+583	NULL
+584	NULL
+585	NULL
+586	NULL
+587	NULL
+588	NULL
+589	NULL
+590	NULL
+591	NULL
+592	NULL
+593	NULL
+594	NULL
+595	NULL
+596	NULL
+597	NULL
+598	NULL
+599	NULL
+600	NULL
+601	NULL
+602	NULL
+603	NULL
+604	NULL
+605	NULL
+606	NULL
+607	NULL
+608	NULL
+609	NULL
+610	NULL
+611	NULL
+612	NULL
+613	NULL
+614	NULL
+615	NULL
+616	NULL
+617	NULL
+618	NULL
+619	NULL
+620	NULL
+621	NULL
+622	NULL
+623	NULL
+624	NULL
+625	NULL
+626	NULL
+627	NULL
+628	NULL
+629	NULL
+630	NULL
+631	NULL
+632	NULL
+633	NULL
+634	NULL
+635	NULL
+636	NULL
+637	NULL
+638	NULL
+639	NULL
+640	NULL
+641	NULL
+642	NULL
+643	NULL
+644	NULL
+645	NULL
+646	NULL
+647	NULL
+648	NULL
+649	NULL
+650	NULL
+651	NULL
+652	NULL
+653	NULL
+654	NULL
+655	NULL
+656	NULL
+657	NULL
+658	NULL
+659	NULL
+660	NULL
+661	NULL
+662	NULL
+663	NULL
+664	NULL
+665	NULL
+666	NULL
+667	NULL
+668	NULL
+669	NULL
+670	NULL
+671	NULL
+672	NULL
+673	NULL
+674	NULL
+675	NULL
+676	NULL
+677	NULL
+678	NULL
+679	NULL
+680	NULL
+681	NULL
+682	NULL
+683	NULL
+684	NULL
+685	NULL
+686	NULL
+687	NULL
+688	NULL
+689	NULL
+690	NULL
+691	NULL
+692	NULL
+693	NULL
+694	NULL
+695	NULL
+696	NULL
+697	NULL
+698	NULL
+699	NULL
+700	NULL
+701	NULL
+702	NULL
+703	NULL
+704	NULL
+705	NULL
+706	NULL
+707	NULL
+708	NULL
+709	NULL
+710	NULL
+711	NULL
+712	NULL
+713	NULL
+714	NULL
+715	NULL
+716	NULL
+717	NULL
+718	NULL
+719	NULL
+720	NULL
+721	NULL
+722	NULL
+723	NULL
+724	NULL
+725	NULL
+726	NULL
+727	NULL
+728	NULL
+729	NULL
+730	NULL
+731	NULL
+732	NULL
+733	NULL
+734	NULL
+735	NULL
+736	NULL
+737	NULL
+738	NULL
+739	NULL
+740	NULL
+741	NULL
+742	NULL
+743	NULL
+744	NULL
+745	NULL
+746	NULL
+747	NULL
+748	NULL
+749	NULL
+750	NULL
+751	NULL
+752	NULL
+753	NULL
+754	NULL
+755	NULL
+756	NULL
+757	NULL
+758	NULL
+759	NULL
+1015	NULL
+1016	NULL
+1017	NULL
+1018	NULL
+1019	NULL
+1020	NULL
+1021	NULL
+1022	NULL
+1023	NULL
+1024	NULL
+1025	NULL
+1026	NULL
+1027	NULL
+1028	NULL
+1029	NULL
+1030	NULL
+1031	NULL
+1032	NULL
+1033	NULL
+1034	NULL
+1035	NULL
+1036	NULL
+1037	NULL
+1038	NULL
+1039	NULL
+1040	NULL
+1041	NULL
+1042	NULL
+1043	NULL
+1044	NULL
+1045	NULL
+1046	NULL
+1047	NULL
+1048	NULL
+1049	NULL
+1050	NULL
+1051	NULL
+1052	NULL
+1053	NULL
+1054	NULL
+1055	NULL
+1056	NULL
+1057	NULL
+1058	NULL
+1059	NULL
+1060	NULL
+1061	NULL
+1062	NULL
+1063	NULL
+1064	NULL
+1065	NULL
+1066	NULL
+1067	NULL
+1068	NULL
+1069	NULL
+1070	NULL
+1071	NULL
+1072	NULL
+1073	NULL
+1074	NULL
+1075	NULL
+1076	NULL
+1077	NULL
+1078	NULL
+1079	NULL
+1080	NULL
+1081	NULL
+1082	NULL
+1083	NULL
+1084	NULL
+1085	NULL
+1086	NULL
+1087	NULL
+1088	NULL
+1089	NULL
+1090	NULL
+1091	NULL
+1092	NULL
+1093	NULL
+1094	NULL
+1095	NULL
+1096	NULL
+1097	NULL
+1098	NULL
+1099	NULL
+1100	NULL
+1101	NULL
+1102	NULL
+1103	NULL
+1104	NULL
+1105	NULL
+1106	NULL
+1107	NULL
+1108	NULL
+1109	NULL
+1110	NULL
+1111	NULL
+1112	NULL
+1113	NULL
+1114	NULL
+1115	NULL
+1116	NULL
+1117	NULL
+1118	NULL
+1119	NULL
+1120	NULL
+1121	NULL
+1122	NULL
+1123	NULL
+1124	NULL
+1125	NULL
+1126	NULL
+1127	NULL
+1128	NULL
+1129	NULL
+1130	NULL
+1131	NULL
+1132	NULL
+1133	NULL
+1134	NULL
+1135	NULL
+1136	NULL
+1137	NULL
+1138	NULL
+1139	NULL
+1140	NULL
+1141	NULL
+1142	NULL
+1143	NULL
+1144	NULL
+1145	NULL
+1146	NULL
+1147	NULL
+1148	NULL
+1149	NULL
+1150	NULL
+1151	NULL
+1152	NULL
+1153	NULL
+1154	NULL
+1155	NULL
+1156	NULL
+1157	NULL
+1158	NULL
+1159	NULL
+1160	NULL
+1161	NULL
+1162	NULL
+1163	NULL
+1164	NULL
+1165	NULL
+1166	NULL
+1167	NULL
+1168	NULL
+1169	NULL
+1170	NULL
+1171	NULL
+1172	NULL
+1173	NULL
+1174	NULL
+1175	NULL
+1176	NULL
+1177	NULL
+1178	NULL
+1179	NULL
+1180	NULL
+1181	NULL
+1182	NULL
+1183	NULL
+1184	NULL
+1185	NULL
+1186	NULL
+1187	NULL
+1188	NULL
+1189	NULL
+1190	NULL
+1191	NULL
+1192	NULL
+1193	NULL
+1194	NULL
+1195	NULL
+1196	NULL
+1197	NULL
+1198	NULL
+1199	NULL
+1200	NULL
+1201	NULL
+1202	NULL
+1203	NULL
+1204	NULL
+1205	NULL
+1206	NULL
+1207	NULL
+1208	NULL
+1209	NULL
+1210	NULL
+1211	NULL
+1212	NULL
+1213	NULL
+1214	NULL
+1215	NULL
+1216	NULL
+1217	NULL
+1218	NULL
+1219	NULL
+1220	NULL
+1221	NULL
+1222	NULL
+1223	NULL
+1224	NULL
+1225	NULL
+1226	NULL
+1227	NULL
+1228	NULL
+1229	NULL
+1230	NULL
+1231	NULL
+1232	NULL
+1233	NULL
+1234	NULL
+1235	NULL
+1236	NULL
+1237	NULL
+1238	NULL
+1239	NULL
+1240	NULL
+1241	NULL
+1242	NULL
+1243	NULL
+1244	NULL
+1245	NULL
+1246	NULL
+1247	NULL
+1248	NULL
+1249	NULL
+1250	NULL
+1251	NULL
+1252	NULL
+1253	NULL
+1254	NULL
+1255	NULL
+1256	NULL
+1257	NULL
+1258	NULL
+1259	NULL
+1260	NULL
+1261	NULL
+1262	NULL
+1263	NULL
+1264	NULL
+1265	NULL
+1266	NULL
+1267	NULL
+1268	NULL
+1269	NULL
+1270	NULL
+1271	NULL
+1272	NULL
+1273	NULL
+1274	NULL
+1275	NULL
+1276	NULL
+1277	NULL
+1278	NULL
+1279	NULL
+1280	NULL
+1281	NULL
+1282	NULL
+1283	NULL
+1284	NULL
+1285	NULL
+1286	NULL
+1287	NULL
+1288	NULL
+1289	NULL
+1290	NULL
+1291	NULL
+1292	NULL
+1293	NULL
+1294	NULL
+1295	NULL
+1296	NULL
+1297	NULL
+1298	NULL
+1299	NULL
+1300	NULL
+1301	NULL
+1302	NULL
+1303	NULL
+1304	NULL
+1305	NULL
+1306	NULL
+1307	NULL
+1308	NULL
+1309	NULL
+1310	NULL
+1311	NULL
+1312	NULL
+1313	NULL
+1314	NULL
+1315	NULL
+1316	NULL
+1317	NULL
+1318	NULL
+1319	NULL
+1320	NULL
+1321	NULL
+1322	NULL
+1323	NULL
+1324	NULL
+1325	NULL
+1326	NULL
+1327	NULL
+1328	NULL
+1329	NULL
+1330	NULL
+1331	NULL
+1332	NULL
+1333	NULL
+1334	NULL
+1335	NULL
+1336	NULL
+1337	NULL
+1338	NULL
+1339	NULL
+1340	NULL
+1341	NULL
+1342	NULL
+1343	NULL
+1344	NULL
+1345	NULL
+1346	NULL
+1347	NULL
+1348	NULL
+1349	NULL
+1350	NULL
+1351	NULL
+1352	NULL
+1353	NULL
+1354	NULL
+1355	NULL
+1356	NULL
+1357	NULL
+1358	NULL
+1359	NULL
+1360	NULL
+1361	NULL
+1362	NULL
+1363	NULL
+1364	NULL
+1365	NULL
+1366	NULL
+1367	NULL
+1368	NULL
+1369	NULL
+1370	NULL
+1371	NULL
+1372	NULL
+1373	NULL
+1374	NULL
+1375	NULL
+1376	NULL
+1377	NULL
+1378	NULL
+1379	NULL
+1380	NULL
+1381	NULL
+1382	NULL
+1383	NULL
+1384	NULL
+1385	NULL
+1386	NULL
+1387	NULL
+1388	NULL
+1389	NULL
+1390	NULL
+1391	NULL
+1392	NULL
+1393	NULL
+1394	NULL
+1395	NULL
+1396	NULL
+1397	NULL
+1398	NULL
+1399	NULL
+1400	NULL
+1401	NULL
+1402	NULL
+1403	NULL
+1404	NULL
+1405	NULL
+1406	NULL
+1407	NULL
+1408	NULL
+1409	NULL
+1410	NULL
+1411	NULL
+1412	NULL
+1413	NULL
+1414	NULL
+1415	NULL
+1416	NULL
+1417	NULL
+1418	NULL
+1419	NULL
+1420	NULL
+1421	NULL
+1422	NULL
+1423	NULL
+1424	NULL
+1425	NULL
+1426	NULL
+1427	NULL
+1428	NULL
+1429	NULL
+1430	NULL
+1431	NULL
+1432	NULL
+1433	NULL
+1434	NULL
+1435	NULL
+1436	NULL
+1437	NULL
+1438	NULL
+1439	NULL
+1440	NULL
+1441	NULL
+1442	NULL
+1443	NULL
+1444	NULL
+1445	NULL
+1446	NULL
+1447	NULL
+1448	NULL
+1449	NULL
+1450	NULL
+1451	NULL
+1452	NULL
+1453	NULL
+1454	NULL
+1455	NULL
+1456	NULL
+1457	NULL
+1458	NULL
+1459	NULL
+1460	NULL
+1461	NULL
+1462	NULL
+1463	NULL
+1464	NULL
+1465	NULL
+1466	NULL
+1467	NULL
+1468	NULL
+1469	NULL
+1470	NULL
+1471	NULL
+1472	NULL
+1473	NULL
+1474	NULL
+1475	NULL
+1476	NULL
+1477	NULL
+1478	NULL
+1479	NULL
+1480	NULL
+1481	NULL
+1482	NULL
+1483	NULL
+1484	NULL
+1485	NULL
+1486	NULL
+1487	NULL
+1488	NULL
+1489	NULL
+1490	NULL
+1491	NULL
+1492	NULL
+1493	NULL
+1494	NULL
+1495	NULL
+1496	NULL
+1497	NULL
+1498	NULL
+1499	NULL
+1500	NULL
+1501	NULL
+1502	NULL
+1503	NULL
+1504	NULL
+1505	NULL
+1506	NULL
+1507	NULL
+1508	NULL
+1509	NULL
+1510	NULL
+1511	NULL
+1512	NULL
+1513	NULL
+1514	NULL
+1515	NULL
+1516	NULL
+1517	NULL
+1518	NULL
+1519	NULL
+1520	NULL
+1521	NULL
+1522	NULL
+1523	NULL
+1524	NULL
+1525	NULL
+1526	NULL
+2038	NULL
+2039	NULL
+2040	NULL
+2041	NULL
+2042	NULL
+2043	NULL
+2044	NULL
+2045	NULL
+2046	NULL
+2047	NULL
+2048	NULL
+2049	NULL
+2050	NULL
+2051	NULL
+2052	NULL
+2053	NULL
+2054	NULL
+2055	NULL
+2056	NULL
+2057	NULL
+2058	NULL
+2059	NULL
+2060	NULL
+2061	NULL
+2062	NULL
+2063	NULL
+2064	NULL
+2065	NULL
+2066	NULL
+2067	NULL
+2068	NULL
+2069	NULL
+2070	NULL
+2071	NULL
+2072	NULL
+2073	NULL
+2074	NULL
+2075	NULL
+2076	NULL
+2077	NULL
+2078	NULL
+2079	NULL
+2080	NULL
+2081	NULL
+2082	NULL
+2083	NULL
+2084	NULL
+2085	NULL
+2086	NULL
+2087	NULL
+2088	NULL
+2089	NULL
+2090	NULL
+2091	NULL
+2092	NULL
+2093	NULL
+2094	NULL
+2095	NULL
+2096	NULL
+2097	NULL
+2098	NULL
+2099	NULL
+2100	NULL
+2101	NULL
+2102	NULL
+2103	NULL
+2104	NULL
+2105	NULL
+2106	NULL
+2107	NULL
+2108	NULL
+2109	NULL
+2110	NULL
+2111	NULL
+2112	NULL
+2113	NULL
+2114	NULL
+2115	NULL
+2116	NULL
+2117	NULL
+2118	NULL
+2119	NULL
+2120	NULL
+2121	NULL
+2122	NULL
+2123	NULL
+2124	NULL
+2125	NULL
+2126	NULL
+2127	NULL
+2128	NULL
+2129	NULL
+2130	NULL
+2131	NULL
+2132	NULL
+2133	NULL
+2134	NULL
+2135	NULL
+2136	NULL
+2137	NULL
+2138	NULL
+2139	NULL
+2140	NULL
+2141	NULL
+2142	NULL
+2143	NULL
+2144	NULL
+2145	NULL
+2146	NULL
+2147	NULL
+2148	NULL
+2149	NULL
+2150	NULL
+2151	NULL
+2152	NULL
+2153	NULL
+2154	NULL
+2155	NULL
+2156	NULL
+2157	NULL
+2158	NULL
+2159	NULL
+2160	NULL
+2161	NULL
+2162	NULL
+2163	NULL
+2164	NULL
+2165	NULL
+2166	NULL
+2167	NULL
+2168	NULL
+2169	NULL
+2170	NULL
+2171	NULL
+2172	NULL
+2173	NULL
+2174	NULL
+2175	NULL
+2176	NULL
+2177	NULL
+2178	NULL
+2179	NULL
+2180	NULL
+2181	NULL
+2182	NULL
+2183	NULL
+2184	NULL
+2185	NULL
+2186	NULL
+2187	NULL
+2188	NULL
+2189	NULL
+2190	NULL
+2191	NULL
+2192	NULL
+2193	NULL
+2194	NULL
+2195	NULL
+2196	NULL
+2197	NULL
+2198	NULL
+2199	NULL
+2200	NULL
+2201	NULL
+2202	NULL
+2203	NULL
+2204	NULL
+2205	NULL
+2206	NULL
+2207	NULL
+2208	NULL
+2209	NULL
+2210	NULL
+2211	NULL
+2212	NULL
+2213	NULL
+2214	NULL
+2215	NULL
+2216	NULL
+2217	NULL
+2218	NULL
+2219	NULL
+2220	NULL
+2221	NULL
+2222	NULL
+2223	NULL
+2224	NULL
+2225	NULL
+2226	NULL
+2227	NULL
+2228	NULL
+2229	NULL
+2230	NULL
+2231	NULL
+2232	NULL
+2233	NULL
+2234	NULL
+2235	NULL
+2236	NULL
+2237	NULL
+2238	NULL
+2239	NULL
+2240	NULL
+2241	NULL
+2242	NULL
+2243	NULL
+2244	NULL
+2245	NULL
+2246	NULL
+2247	NULL
+2248	NULL
+2249	NULL
+2250	NULL
+2251	NULL
+2252	NULL
+2253	NULL
+2254	NULL
+2255	NULL
+2256	NULL
+2257	NULL
+2258	NULL
+2259	NULL
+2260	NULL
+2261	NULL
+2262	NULL
+2263	NULL
+2264	NULL
+2265	NULL
+2266	NULL
+2267	NULL
+2268	NULL
+2269	NULL
+2270	NULL
+2271	NULL
+2272	NULL
+2273	NULL
+2274	NULL
+2275	NULL
+2276	NULL
+2277	NULL
+2278	NULL
+2279	NULL
+2280	NULL
+2281	NULL
+2282	NULL
+2283	NULL
+2284	NULL
+2285	NULL
+2286	NULL
+2287	NULL
+2288	NULL
+2289	NULL
+2290	NULL
+2291	NULL
+2292	NULL
+2293	NULL
+2294	NULL
+2295	NULL
+2296	NULL
+2297	NULL
+2298	NULL
+2299	NULL
+2300	NULL
+2301	NULL
+2302	NULL
+2303	NULL
+2304	NULL
+2305	NULL
+2306	NULL
+2307	NULL
+2308	NULL
+2309	NULL
+2310	NULL
+2311	NULL
+2312	NULL
+2313	NULL
+2314	NULL
+2315	NULL
+2316	NULL
+2317	NULL
+2318	NULL
+2319	NULL
+2320	NULL
+2321	NULL
+2322	NULL
+2323	NULL
+2324	NULL
+2325	NULL
+2326	NULL
+2327	NULL
+2328	NULL
+2329	NULL
+2330	NULL
+2331	NULL
+2332	NULL
+2333	NULL
+2334	NULL
+2335	NULL
+2336	NULL
+2337	NULL
+2338	NULL
+2339	NULL
+2340	NULL
+2341	NULL
+2342	NULL
+2343	NULL
+2344	NULL
+2345	NULL
+2346	NULL
+2347	NULL
+2348	NULL
+2349	NULL
+2350	NULL
+2351	NULL
+2352	NULL
+2353	NULL
+2354	NULL
+2355	NULL
+2356	NULL
+2357	NULL
+2358	NULL
+2359	NULL
+2360	NULL
+2361	NULL
+2362	NULL
+2363	NULL
+2364	NULL
+2365	NULL
+2366	NULL
+2367	NULL
+2368	NULL
+2369	NULL
+2370	NULL
+2371	NULL
+2372	NULL
+2373	NULL
+2374	NULL
+2375	NULL
+2376	NULL
+2377	NULL
+2378	NULL
+2379	NULL
+2380	NULL
+2381	NULL
+2382	NULL
+2383	NULL
+2384	NULL
+2385	NULL
+2386	NULL
+2387	NULL
+2388	NULL
+2389	NULL
+2390	NULL
+2391	NULL
+2392	NULL
+2393	NULL
+2394	NULL
+2395	NULL
+2396	NULL
+2397	NULL
+2398	NULL
+2399	NULL
+2400	NULL
+2401	NULL
+2402	NULL
+2403	NULL
+2404	NULL
+2405	NULL
+2406	NULL
+2407	NULL
+2408	NULL
+2409	NULL
+2410	NULL
+2411	NULL
+2412	NULL
+2413	NULL
+2414	NULL
+2415	NULL
+2416	NULL
+2417	NULL
+2418	NULL
+2419	NULL
+2420	NULL
+2421	NULL
+2422	NULL
+2423	NULL
+2424	NULL
+2425	NULL
+2426	NULL
+2427	NULL
+2428	NULL
+2429	NULL
+2430	NULL
+2431	NULL
+2432	NULL
+2433	NULL
+2434	NULL
+2435	NULL
+2436	NULL
+2437	NULL
+2438	NULL
+2439	NULL
+2440	NULL
+2441	NULL
+2442	NULL
+2443	NULL
+2444	NULL
+2445	NULL
+2446	NULL
+2447	NULL
+2448	NULL
+2449	NULL
+2450	NULL
+2451	NULL
+2452	NULL
+2453	NULL
+2454	NULL
+2455	NULL
+2456	NULL
+2457	NULL
+2458	NULL
+2459	NULL
+2460	NULL
+2461	NULL
+2462	NULL
+2463	NULL
+2464	NULL
+2465	NULL
+2466	NULL
+2467	NULL
+2468	NULL
+2469	NULL
+2470	NULL
+2471	NULL
+2472	NULL
+2473	NULL
+2474	NULL
+2475	NULL
+2476	NULL
+2477	NULL
+2478	NULL
+2479	NULL
+2480	NULL
+2481	NULL
+2482	NULL
+2483	NULL
+2484	NULL
+2485	NULL
+2486	NULL
+2487	NULL
+2488	NULL
+2489	NULL
+2490	NULL
+2491	NULL
+2492	NULL
+2493	NULL
+2494	NULL
+2495	NULL
+2496	NULL
+2497	NULL
+2498	NULL
+2499	NULL
+2500	NULL
+2501	NULL
+2502	NULL
+2503	NULL
+2504	NULL
+2505	NULL
+2506	NULL
+2507	NULL
+2508	NULL
+2509	NULL
+2510	NULL
+2511	NULL
+2512	NULL
+2513	NULL
+2514	NULL
+2515	NULL
+2516	NULL
+2517	NULL
+2518	NULL
+2519	NULL
+2520	NULL
+2521	NULL
+2522	NULL
+2523	NULL
+2524	NULL
+2525	NULL
+2526	NULL
+2527	NULL
+2528	NULL
+2529	NULL
+2530	NULL
+2531	NULL
+2532	NULL
+2533	NULL
+2534	NULL
+2535	NULL
+2536	NULL
+2537	NULL
+2538	NULL
+2539	NULL
+2540	NULL
+2541	NULL
+2542	NULL
+2543	NULL
+2544	NULL
+2545	NULL
+2546	NULL
+2547	NULL
+2548	NULL
+2549	NULL
+2550	NULL
+2551	NULL
+2552	NULL
+2553	NULL
+2554	NULL
+2555	NULL
+2556	NULL
+2557	NULL
+2558	NULL
+2559	NULL
+2560	NULL
+2561	NULL
+2562	NULL
+2563	NULL
+2564	NULL
+2565	NULL
+2566	NULL
+2567	NULL
+2568	NULL
+2569	NULL
+2570	NULL
+2571	NULL
+2572	NULL
+2573	NULL
+2574	NULL
+2575	NULL
+2576	NULL
+2577	NULL
+2578	NULL
+2579	NULL
+2580	NULL
+2581	NULL
+2582	NULL
+2583	NULL
+2584	NULL
+2585	NULL
+2586	NULL
+2587	NULL
+2588	NULL
+2589	NULL
+2590	NULL
+2591	NULL
+2592	NULL
+2593	NULL
+2594	NULL
+2595	NULL
+2596	NULL
+2597	NULL
+2598	NULL
+2599	NULL
+2600	NULL
+2601	NULL
+2602	NULL
+2603	NULL
+2604	NULL
+2605	NULL
+2606	NULL
+2607	NULL
+2608	NULL
+2609	NULL
+2610	NULL
+2611	NULL
+2612	NULL
+2613	NULL
+2614	NULL
+2615	NULL
+2616	NULL
+2617	NULL
+2618	NULL
+2619	NULL
+2620	NULL
+2621	NULL
+2622	NULL
+2623	NULL
+2624	NULL
+2625	NULL
+2626	NULL
+2627	NULL
+2628	NULL
+2629	NULL
+2630	NULL
+2631	NULL
+2632	NULL
+2633	NULL
+2634	NULL
+2635	NULL
+2636	NULL
+2637	NULL
+2638	NULL
+2639	NULL
+2640	NULL
+2641	NULL
+2642	NULL
+2643	NULL
+2644	NULL
+2645	NULL
+2646	NULL
+2647	NULL
+2648	NULL
+2649	NULL
+2650	NULL
+2651	NULL
+2652	NULL
+2653	NULL
+2654	NULL
+2655	NULL
+2656	NULL
+2657	NULL
+2658	NULL
+2659	NULL
+2660	NULL
+2661	NULL
+2662	NULL
+2663	NULL
+2664	NULL
+2665	NULL
+2666	NULL
+2667	NULL
+2668	NULL
+2669	NULL
+2670	NULL
+2671	NULL
+2672	NULL
+2673	NULL
+2674	NULL
+2675	NULL
+2676	NULL
+2677	NULL
+2678	NULL
+2679	NULL
+2680	NULL
+2681	NULL
+2682	NULL
+2683	NULL
+2684	NULL
+2685	NULL
+2686	NULL
+2687	NULL
+2688	NULL
+2689	NULL
+2690	NULL
+2691	NULL
+2692	NULL
+2693	NULL
+2694	NULL
+2695	NULL
+2696	NULL
+2697	NULL
+2698	NULL
+2699	NULL
+2700	NULL
+2701	NULL
+2702	NULL
+2703	NULL
+2704	NULL
+2705	NULL
+2706	NULL
+2707	NULL
+2708	NULL
+2709	NULL
+2710	NULL
+2711	NULL
+2712	NULL
+2713	NULL
+2714	NULL
+2715	NULL
+2716	NULL
+2717	NULL
+2718	NULL
+2719	NULL
+2720	NULL
+2721	NULL
+2722	NULL
+2723	NULL
+2724	NULL
+2725	NULL
+2726	NULL
+2727	NULL
+2728	NULL
+2729	NULL
+2730	NULL
+2731	NULL
+2732	NULL
+2733	NULL
+2734	NULL
+2735	NULL
+2736	NULL
+2737	NULL
+2738	NULL
+2739	NULL
+2740	NULL
+2741	NULL
+2742	NULL
+2743	NULL
+2744	NULL
+2745	NULL
+2746	NULL
+2747	NULL
+2748	NULL
+2749	NULL
+2750	NULL
+2751	NULL
+2752	NULL
+2753	NULL
+2754	NULL
+2755	NULL
+2756	NULL
+2757	NULL
+2758	NULL
+2759	NULL
+2760	NULL
+2761	NULL
+2762	NULL
+2763	NULL
+2764	NULL
+2765	NULL
+2766	NULL
+2767	NULL
+2768	NULL
+2769	NULL
+2770	NULL
+2771	NULL
+2772	NULL
+2773	NULL
+2774	NULL
+2775	NULL
+2776	NULL
+2777	NULL
+2778	NULL
+2779	NULL
+2780	NULL
+2781	NULL
+2782	NULL
+2783	NULL
+2784	NULL
+2785	NULL
+2786	NULL
+2787	NULL
+2788	NULL
+2789	NULL
+2790	NULL
+2791	NULL
+2792	NULL
+2793	NULL
+2794	NULL
+2795	NULL
+2796	NULL
+2797	NULL
+2798	NULL
+2799	NULL
+2800	NULL
+2801	NULL
+2802	NULL
+2803	NULL
+2804	NULL
+2805	NULL
+2806	NULL
+2807	NULL
+2808	NULL
+2809	NULL
+2810	NULL
+2811	NULL
+2812	NULL
+2813	NULL
+2814	NULL
+2815	NULL
+2816	NULL
+2817	NULL
+2818	NULL
+2819	NULL
+2820	NULL
+2821	NULL
+2822	NULL
+2823	NULL
+2824	NULL
+2825	NULL
+2826	NULL
+2827	NULL
+2828	NULL
+2829	NULL
+2830	NULL
+2831	NULL
+2832	NULL
+2833	NULL
+2834	NULL
+2835	NULL
+2836	NULL
+2837	NULL
+2838	NULL
+2839	NULL
+2840	NULL
+2841	NULL
+2842	NULL
+2843	NULL
+2844	NULL
+2845	NULL
+2846	NULL
+2847	NULL
+2848	NULL
+2849	NULL
+2850	NULL
+2851	NULL
+2852	NULL
+2853	NULL
+2854	NULL
+2855	NULL
+2856	NULL
+2857	NULL
+2858	NULL
+2859	NULL
+2860	NULL
+2861	NULL
+2862	NULL
+2863	NULL
+2864	NULL
+2865	NULL
+2866	NULL
+2867	NULL
+2868	NULL
+2869	NULL
+2870	NULL
+2871	NULL
+2872	NULL
+2873	NULL
+2874	NULL
+2875	NULL
+2876	NULL
+2877	NULL
+2878	NULL
+2879	NULL
+2880	NULL
+2881	NULL
+2882	NULL
+2883	NULL
+2884	NULL
+2885	NULL
+2886	NULL
+2887	NULL
+2888	NULL
+2889	NULL
+2890	NULL
+2891	NULL
+2892	NULL
+2893	NULL
+2894	NULL
+2895	NULL
+2896	NULL
+2897	NULL
+2898	NULL
+2899	NULL
+2900	NULL
+2901	NULL
+2902	NULL
+2903	NULL
+2904	NULL
+2905	NULL
+2906	NULL
+2907	NULL
+2908	NULL
+2909	NULL
+2910	NULL
+2911	NULL
+2912	NULL
+2913	NULL
+2914	NULL
+2915	NULL
+2916	NULL
+2917	NULL
+2918	NULL
+2919	NULL
+2920	NULL
+2921	NULL
+2922	NULL
+2923	NULL
+2924	NULL
+2925	NULL
+2926	NULL
+2927	NULL
+2928	NULL
+2929	NULL
+2930	NULL
+2931	NULL
+2932	NULL
+2933	NULL
+2934	NULL
+2935	NULL
+2936	NULL
+2937	NULL
+2938	NULL
+2939	NULL
+2940	NULL
+2941	NULL
+2942	NULL
+2943	NULL
+2944	NULL
+2945	NULL
+2946	NULL
+2947	NULL
+2948	NULL
+2949	NULL
+2950	NULL
+2951	NULL
+2952	NULL
+2953	NULL
+2954	NULL
+2955	NULL
+2956	NULL
+2957	NULL
+2958	NULL
+2959	NULL
+2960	NULL
+2961	NULL
+2962	NULL
+2963	NULL
+2964	NULL
+2965	NULL
+2966	NULL
+2967	NULL
+2968	NULL
+2969	NULL
+2970	NULL
+2971	NULL
+2972	NULL
+2973	NULL
+2974	NULL
+2975	NULL
+2976	NULL
+2977	NULL
+2978	NULL
+2979	NULL
+2980	NULL
+2981	NULL
+2982	NULL
+2983	NULL
+2984	NULL
+2985	NULL
+2986	NULL
+2987	NULL
+2988	NULL
+2989	NULL
+2990	NULL
+2991	NULL
+2992	NULL
+2993	NULL
+2994	NULL
+2995	NULL
+2996	NULL
+2997	NULL
+2998	NULL
+2999	NULL
+3000	NULL
+3001	NULL
+3002	NULL
+3003	NULL
+3004	NULL
+3005	NULL
+3006	NULL
+3007	NULL
+3008	NULL
+3009	NULL
+3010	NULL
+3011	NULL
+3012	NULL
+3013	NULL
+3014	NULL
+3015	NULL
+3016	NULL
+3017	NULL
+3018	NULL
+3019	NULL
+3020	NULL
+3021	NULL
+3022	NULL
+3023	NULL
+3024	NULL
+3025	NULL
+3026	NULL
+3027	NULL
+3028	NULL
+3029	NULL
+3030	NULL
+3031	NULL
+3032	NULL
+3033	NULL
+3034	NULL
+3035	NULL
+3036	NULL
+3037	NULL
+3038	NULL
+3039	NULL
+3040	NULL
+3041	NULL
+3042	NULL
+3043	NULL
+3044	NULL
+3045	NULL
+3046	NULL
+3047	NULL
+3048	NULL
+3049	NULL
+3050	NULL
+3051	NULL
+3052	NULL
+3053	NULL
+3054	NULL
+3055	NULL
+3056	NULL
+3057	NULL
+3058	NULL
+3059	NULL
+3060	NULL
+3061	NULL
+4085	NULL
+4086	NULL
+4087	NULL
+4088	NULL
+4089	NULL
+4090	NULL
+4091	NULL
+4092	NULL
+4093	NULL
+4094	NULL
+4095	NULL
+4096	NULL
+4097	NULL
+4098	NULL
+4099	NULL
+4100	NULL
+4101	NULL
+4102	NULL
+4103	NULL
+4104	NULL
+4105	NULL
+4106	NULL
+4107	NULL
+4108	NULL
+4109	NULL
+4110	NULL
+4111	NULL
+4112	NULL
+4113	NULL
+4114	NULL
+4115	NULL
+4116	NULL
+4117	NULL
+4118	NULL
+4119	NULL
+4120	NULL
+4121	NULL
+4122	NULL
+4123	NULL
+4124	NULL
+4125	NULL
+4126	NULL
+4127	NULL
+4128	NULL
+4129	NULL
+4130	NULL
+4131	NULL
+4132	NULL
+4133	NULL
+4134	NULL
+4135	NULL
+4136	NULL
+4137	NULL
+4138	NULL
+4139	NULL
+4140	NULL
+4141	NULL
+4142	NULL
+4143	NULL
+4144	NULL
+4145	NULL
+4146	NULL
+4147	NULL
+4148	NULL
+4149	NULL
+4150	NULL
+4151	NULL
+4152	NULL
+4153	NULL
+4154	NULL
+4155	NULL
+4156	NULL
+4157	NULL
+4158	NULL
+4159	NULL
+4160	NULL
+4161	NULL
+4162	NULL
+4163	NULL
+4164	NULL
+4165	NULL
+4166	NULL
+4167	NULL
+4168	NULL
+4169	NULL
+4170	NULL
+4171	NULL
+4172	NULL
+4173	NULL
+4174	NULL
+4175	NULL
+4176	NULL
+4177	NULL
+4178	NULL
+4179	NULL
+4180	NULL
+4181	NULL
+4182	NULL
+4183	NULL
+4184	NULL
+4185	NULL
+4186	NULL
+4187	NULL
+4188	NULL
+4189	NULL
+4190	NULL
+4191	NULL
+4192	NULL
+4193	NULL
+4194	NULL
+4195	NULL
+4196	NULL
+4197	NULL
+4198	NULL
+4199	NULL
+4200	NULL
+4201	NULL
+4202	NULL
+4203	NULL
+4204	NULL
+4205	NULL
+4206	NULL
+4207	NULL
+4208	NULL
+4209	NULL
+4210	NULL
+4211	NULL
+4212	NULL
+4213	NULL
+4214	NULL
+4215	NULL
+4216	NULL
+4217	NULL
+4218	NULL
+4219	NULL
+4220	NULL
+4221	NULL
+4222	NULL
+4223	NULL
+4224	NULL
+4225	NULL
+4226	NULL
+4227	NULL
+4228	NULL
+4229	NULL
+4230	NULL
+4231	NULL
+4232	NULL
+4233	NULL
+4234	NULL
+4235	NULL
+4236	NULL
+4237	NULL
+4238	NULL
+4239	NULL
+4240	NULL
+4241	NULL
+4242	NULL
+4243	NULL
+4244	NULL
+4245	NULL
+4246	NULL
+4247	NULL
+4248	NULL
+4249	NULL
+4250	NULL
+4251	NULL
+4252	NULL
+4253	NULL
+4254	NULL
+4255	NULL
+4256	NULL
+4257	NULL
+4258	NULL
+4259	NULL
+4260	NULL
+4261	NULL
+4262	NULL
+4263	NULL
+4264	NULL
+4265	NULL
+4266	NULL
+4267	NULL
+4268	NULL
+4269	NULL
+4270	NULL
+4271	NULL
+4272	NULL
+4273	NULL
+4274	NULL
+4275	NULL
+4276	NULL
+4277	NULL
+4278	NULL
+4279	NULL
+4280	NULL
+4281	NULL
+4282	NULL
+4283	NULL
+4284	NULL
+4285	NULL
+4286	NULL
+4287	NULL
+4288	NULL
+4289	NULL
+4290	NULL
+4291	NULL
+4292	NULL
+4293	NULL
+4294	NULL
+4295	NULL
+4296	NULL
+4297	NULL
+4298	NULL
+4299	NULL
+4300	NULL
+4301	NULL
+4302	NULL
+4303	NULL
+4304	NULL
+4305	NULL
+4306	NULL
+4307	NULL
+4308	NULL
+4309	NULL
+4310	NULL
+4311	NULL
+4312	NULL
+4313	NULL
+4314	NULL
+4315	NULL
+4316	NULL
+4317	NULL
+4318	NULL
+4319	NULL
+4320	NULL
+4321	NULL
+4322	NULL
+4323	NULL
+4324	NULL
+4325	NULL
+4326	NULL
+4327	NULL
+4328	NULL
+4329	NULL
+4330	NULL
+4331	NULL
+4332	NULL
+4333	NULL
+4334	NULL
+4335	NULL
+4336	NULL
+4337	NULL
+4338	NULL
+4339	NULL
+4340	NULL
+4341	NULL
+4342	NULL
+4343	NULL
+4344	NULL
+4345	NULL
+4346	NULL
+4347	NULL
+4348	NULL
+4349	NULL
+4350	NULL
+4351	NULL
+4352	NULL
+4353	NULL
+4354	NULL
+4355	NULL
+4356	NULL
+4357	NULL
+4358	NULL
+4359	NULL
+4360	NULL
+4361	NULL
+4362	NULL
+4363	NULL
+4364	NULL
+4365	NULL
+4366	NULL
+4367	NULL
+4368	NULL
+4369	NULL
+4370	NULL
+4371	NULL
+4372	NULL
+4373	NULL
+4374	NULL
+4375	NULL
+4376	NULL
+4377	NULL
+4378	NULL
+4379	NULL
+4380	NULL
+4381	NULL
+4382	NULL
+4383	NULL
+4384	NULL
+4385	NULL
+4386	NULL
+4387	NULL
+4388	NULL
+4389	NULL
+4390	NULL
+4391	NULL
+4392	NULL
+4393	NULL
+4394	NULL
+4395	NULL
+4396	NULL
+4397	NULL
+4398	NULL
+4399	NULL
+4400	NULL
+4401	NULL
+4402	NULL
+4403	NULL
+4404	NULL
+4405	NULL
+4406	NULL
+4407	NULL
+4408	NULL
+4409	NULL
+4410	NULL
+4411	NULL
+4412	NULL
+4413	NULL
+4414	NULL
+4415	NULL
+4416	NULL
+4417	NULL
+4418	NULL
+4419	NULL
+4420	NULL
+4421	NULL
+4422	NULL
+4423	NULL
+4424	NULL
+4425	NULL
+4426	NULL
+4427	NULL
+4428	NULL
+4429	NULL
+4430	NULL
+4431	NULL
+4432	NULL
+4433	NULL
+4434	NULL
+4435	NULL
+4436	NULL
+4437	NULL
+4438	NULL
+4439	NULL
+4440	NULL
+4441	NULL
+4442	NULL
+4443	NULL
+4444	NULL
+4445	NULL
+4446	NULL
+4447	NULL
+4448	NULL
+4449	NULL
+4450	NULL
+4451	NULL
+4452	NULL
+4453	NULL
+4454	NULL
+4455	NULL
+4456	NULL
+4457	NULL
+4458	NULL
+4459	NULL
+4460	NULL
+4461	NULL
+4462	NULL
+4463	NULL
+4464	NULL
+4465	NULL
+4466	NULL
+4467	NULL
+4468	NULL
+4469	NULL
+4470	NULL
+4471	NULL
+4472	NULL
+4473	NULL
+4474	NULL
+4475	NULL
+4476	NULL
+4477	NULL
+4478	NULL
+4479	NULL
+4480	NULL
+4481	NULL
+4482	NULL
+4483	NULL
+4484	NULL
+4485	NULL
+4486	NULL
+4487	NULL
+4488	NULL
+4489	NULL
+4490	NULL
+4491	NULL
+4492	NULL
+4493	NULL
+4494	NULL
+4495	NULL
+4496	NULL
+4497	NULL
+4498	NULL
+4499	NULL
+4500	NULL
+4501	NULL
+4502	NULL
+4503	NULL
+4504	NULL
+4505	NULL
+4506	NULL
+4507	NULL
+4508	NULL
+4509	NULL
+4510	NULL
+4511	NULL
+4512	NULL
+4513	NULL
+4514	NULL
+4515	NULL
+4516	NULL
+4517	NULL
+4518	NULL
+4519	NULL
+4520	NULL
+4521	NULL
+4522	NULL
+4523	NULL
+4524	NULL
+4525	NULL
+4526	NULL
+4527	NULL
+4528	NULL
+4529	NULL
+4530	NULL
+4531	NULL
+4532	NULL
+4533	NULL
+4534	NULL
+4535	NULL
+4536	NULL
+4537	NULL
+4538	NULL
+4539	NULL
+4540	NULL
+4541	NULL
+4542	NULL
+4543	NULL
+4544	NULL
+4545	NULL
+4546	NULL
+4547	NULL
+4548	NULL
+4549	NULL
+4550	NULL
+4551	NULL
+4552	NULL
+4553	NULL
+4554	NULL
+4555	NULL
+4556	NULL
+4557	NULL
+4558	NULL
+4559	NULL
+4560	NULL
+4561	NULL
+4562	NULL
+4563	NULL
+4564	NULL
+4565	NULL
+4566	NULL
+4567	NULL
+4568	NULL
+4569	NULL
+4570	NULL
+4571	NULL
+4572	NULL
+4573	NULL
+4574	NULL
+4575	NULL
+4576	NULL
+4577	NULL
+4578	NULL
+4579	NULL
+4580	NULL
+4581	NULL
+4582	NULL
+4583	NULL
+4584	NULL
+4585	NULL
+4586	NULL
+4587	NULL
+4588	NULL
+4589	NULL
+4590	NULL
+4591	NULL
+4592	NULL
+4593	NULL
+4594	NULL
+4595	NULL
+4596	NULL
+4597	NULL
+4598	NULL
+4599	NULL
+4600	NULL
+4601	NULL
+4602	NULL
+4603	NULL
+4604	NULL
+4605	NULL
+4606	NULL
+4607	NULL
+4608	NULL
+4609	NULL
+4610	NULL
+4611	NULL
+4612	NULL
+4613	NULL
+4614	NULL
+4615	NULL
+4616	NULL
+4617	NULL
+4618	NULL
+4619	NULL
+4620	NULL
+4621	NULL
+4622	NULL
+4623	NULL
+4624	NULL
+4625	NULL
+4626	NULL
+4627	NULL
+4628	NULL
+4629	NULL
+4630	NULL
+4631	NULL
+4632	NULL
+4633	NULL
+4634	NULL
+4635	NULL
+4636	NULL
+4637	NULL
+4638	NULL
+4639	NULL
+4640	NULL
+4641	NULL
+4642	NULL
+4643	NULL
+4644	NULL
+4645	NULL
+4646	NULL
+4647	NULL
+4648	NULL
+4649	NULL
+4650	NULL
+4651	NULL
+4652	NULL
+4653	NULL
+4654	NULL
+4655	NULL
+4656	NULL
+4657	NULL
+4658	NULL
+4659	NULL
+4660	NULL
+4661	NULL
+4662	NULL
+4663	NULL
+4664	NULL
+4665	NULL
+4666	NULL
+4667	NULL
+4668	NULL
+4669	NULL
+4670	NULL
+4671	NULL
+4672	NULL
+4673	NULL
+4674	NULL
+4675	NULL
+4676	NULL
+4677	NULL
+4678	NULL
+4679	NULL
+4680	NULL
+4681	NULL
+4682	NULL
+4683	NULL
+4684	NULL
+4685	NULL
+4686	NULL
+4687	NULL
+4688	NULL
+4689	NULL
+4690	NULL
+4691	NULL
+4692	NULL
+4693	NULL
+4694	NULL
+4695	NULL
+4696	NULL
+4697	NULL
+4698	NULL
+4699	NULL
+4700	NULL
+4701	NULL
+4702	NULL
+4703	NULL
+4704	NULL
+4705	NULL
+4706	NULL
+4707	NULL
+4708	NULL
+4709	NULL
+4710	NULL
+4711	NULL
+4712	NULL
+4713	NULL
+4714	NULL
+4715	NULL
+4716	NULL
+4717	NULL
+4718	NULL
+4719	NULL
+4720	NULL
+4721	NULL
+4722	NULL
+4723	NULL
+4724	NULL
+4725	NULL
+4726	NULL
+4727	NULL
+4728	NULL
+4729	NULL
+4730	NULL
+4731	NULL
+4732	NULL
+4733	NULL
+4734	NULL
+4735	NULL
+4736	NULL
+4737	NULL
+4738	NULL
+4739	NULL
+4740	NULL
+4741	NULL
+4742	NULL
+4743	NULL
+4744	NULL
+4745	NULL
+4746	NULL
+4747	NULL
+4748	NULL
+4749	NULL
+4750	NULL
+4751	NULL
+4752	NULL
+4753	NULL
+4754	NULL
+4755	NULL
+4756	NULL
+4757	NULL
+4758	NULL
+4759	NULL
+4760	NULL
+4761	NULL
+4762	NULL
+4763	NULL
+4764	NULL
+4765	NULL
+4766	NULL
+4767	NULL
+4768	NULL
+4769	NULL
+4770	NULL
+4771	NULL
+4772	NULL
+4773	NULL
+4774	NULL
+4775	NULL
+4776	NULL
+4777	NULL
+4778	NULL
+4779	NULL
+4780	NULL
+4781	NULL
+4782	NULL
+4783	NULL
+4784	NULL
+4785	NULL
+4786	NULL
+4787	NULL
+4788	NULL
+4789	NULL
+4790	NULL
+4791	NULL
+4792	NULL
+4793	NULL
+4794	NULL
+4795	NULL
+4796	NULL
+4797	NULL
+4798	NULL
+4799	NULL
+4800	NULL
+4801	NULL
+4802	NULL
+4803	NULL
+4804	NULL
+4805	NULL
+4806	NULL
+4807	NULL
+4808	NULL
+4809	NULL
+4810	NULL
+4811	NULL
+4812	NULL
+4813	NULL
+4814	NULL
+4815	NULL
+4816	NULL
+4817	NULL
+4818	NULL
+4819	NULL
+4820	NULL
+4821	NULL
+4822	NULL
+4823	NULL
+4824	NULL
+4825	NULL
+4826	NULL
+4827	NULL
+4828	NULL
+4829	NULL
+4830	NULL
+4831	NULL
+4832	NULL
+4833	NULL
+4834	NULL
+4835	NULL
+4836	NULL
+4837	NULL
+4838	NULL
+4839	NULL
+4840	NULL
+4841	NULL
+4842	NULL
+4843	NULL
+4844	NULL
+4845	NULL
+4846	NULL
+4847	NULL
+4848	NULL
+4849	NULL
+4850	NULL
+4851	NULL
+4852	NULL
+4853	NULL
+4854	NULL
+4855	NULL
+4856	NULL
+4857	NULL
+4858	NULL
+4859	NULL
+4860	NULL
+4861	NULL
+4862	NULL
+4863	NULL
+4864	NULL
+4865	NULL
+4866	NULL
+4867	NULL
+4868	NULL
+4869	NULL
+4870	NULL
+4871	NULL
+4872	NULL
+4873	NULL
+4874	NULL
+4875	NULL
+4876	NULL
+4877	NULL
+4878	NULL
+4879	NULL
+4880	NULL
+4881	NULL
+4882	NULL
+4883	NULL
+4884	NULL
+4885	NULL
+4886	NULL
+4887	NULL
+4888	NULL
+4889	NULL
+4890	NULL
+4891	NULL
+4892	NULL
+4893	NULL
+4894	NULL
+4895	NULL
+4896	NULL
+4897	NULL
+4898	NULL
+4899	NULL
+4900	NULL
+4901	NULL
+4902	NULL
+4903	NULL
+4904	NULL
+4905	NULL
+4906	NULL
+4907	NULL
+4908	NULL
+4909	NULL
+4910	NULL
+4911	NULL
+4912	NULL
+4913	NULL
+4914	NULL
+4915	NULL
+4916	NULL
+4917	NULL
+4918	NULL
+4919	NULL
+4920	NULL
+4921	NULL
+4922	NULL
+4923	NULL
+4924	NULL
+4925	NULL
+4926	NULL
+4927	NULL
+4928	NULL
+4929	NULL
+4930	NULL
+4931	NULL
+4932	NULL
+4933	NULL
+4934	NULL
+4935	NULL
+4936	NULL
+4937	NULL
+4938	NULL
+4939	NULL
+4940	NULL
+4941	NULL
+4942	NULL
+4943	NULL
+4944	NULL
+4945	NULL
+4946	NULL
+4947	NULL
+4948	NULL
+4949	NULL
+4950	NULL
+4951	NULL
+4952	NULL
+4953	NULL
+4954	NULL
+4955	NULL
+4956	NULL
+4957	NULL
+4958	NULL
+4959	NULL
+4960	NULL
+4961	NULL
+4962	NULL
+4963	NULL
+4964	NULL
+4965	NULL
+4966	NULL
+4967	NULL
+4968	NULL
+4969	NULL
+4970	NULL
+4971	NULL
+4972	NULL
+4973	NULL
+4974	NULL
+4975	NULL
+4976	NULL
+4977	NULL
+4978	NULL
+4979	NULL
+4980	NULL
+4981	NULL
+4982	NULL
+4983	NULL
+4984	NULL
+4985	NULL
+4986	NULL
+4987	NULL
+4988	NULL
+4989	NULL
+4990	NULL
+4991	NULL
+4992	NULL
+4993	NULL
+4994	NULL
+4995	NULL
+4996	NULL
+4997	NULL
+4998	NULL
+4999	NULL
+5000	NULL
+5001	NULL
+5002	NULL
+5003	NULL
+5004	NULL
+5005	NULL
+5006	NULL
+5007	NULL
+5008	NULL
+5009	NULL
+5010	NULL
+5011	NULL
+5012	NULL
+5013	NULL
+5014	NULL
+5015	NULL
+5016	NULL
+5017	NULL
+5018	NULL
+5019	NULL
+5020	NULL
+5021	NULL
+5022	NULL
+5023	NULL
+5024	NULL
+5025	NULL
+5026	NULL
+5027	NULL
+5028	NULL
+5029	NULL
+5030	NULL
+5031	NULL
+5032	NULL
+5033	NULL
+5034	NULL
+5035	NULL
+5036	NULL
+5037	NULL
+5038	NULL
+5039	NULL
+5040	NULL
+5041	NULL
+5042	NULL
+5043	NULL
+5044	NULL
+5045	NULL
+5046	NULL
+5047	NULL
+5048	NULL
+5049	NULL
+5050	NULL
+5051	NULL
+5052	NULL
+5053	NULL
+5054	NULL
+5055	NULL
+5056	NULL
+5057	NULL
+5058	NULL
+5059	NULL
+5060	NULL
+5061	NULL
+5062	NULL
+5063	NULL
+5064	NULL
+5065	NULL
+5066	NULL
+5067	NULL
+5068	NULL
+5069	NULL
+5070	NULL
+5071	NULL
+5072	NULL
+5073	NULL
+5074	NULL
+5075	NULL
+5076	NULL
+5077	NULL
+5078	NULL
+5079	NULL
+5080	NULL
+5081	NULL
+5082	NULL
+5083	NULL
+5084	NULL
+5085	NULL
+5086	NULL
+5087	NULL
+5088	NULL
+5089	NULL
+5090	NULL
+5091	NULL
+5092	NULL
+5093	NULL
+5094	NULL
+5095	NULL
+5096	NULL
+5097	NULL
+5098	NULL
+5099	NULL
+5100	NULL
+5101	NULL
+5102	NULL
+5103	NULL
+5104	NULL
+5105	NULL
+5106	NULL
+5107	NULL
+5108	NULL
+5109	NULL
+5110	NULL
+5111	NULL
+5112	NULL
+5113	NULL
+5114	NULL
+5115	NULL
+5116	NULL
+5117	NULL
+5118	NULL
+5119	NULL
+5120	NULL
+5121	NULL
+5122	NULL
+5123	NULL
+5124	NULL
+5125	NULL
+5126	NULL
+5127	NULL
+5128	NULL
+5129	NULL
+5130	NULL
+5131	NULL
+5132	NULL
+5133	NULL
+5134	NULL
+5135	NULL
+5136	NULL
+5137	NULL
+5138	NULL
+5139	NULL
+5140	NULL
+5141	NULL
+5142	NULL
+5143	NULL
+5144	NULL
+5145	NULL
+5146	NULL
+5147	NULL
+5148	NULL
+5149	NULL
+5150	NULL
+5151	NULL
+5152	NULL
+5153	NULL
+5154	NULL
+5155	NULL
+5156	NULL
+5157	NULL
+5158	NULL
+5159	NULL
+5160	NULL
+5161	NULL
+5162	NULL
+5163	NULL
+5164	NULL
+5165	NULL
+5166	NULL
+5167	NULL
+5168	NULL
+5169	NULL
+5170	NULL
+5171	NULL
+5172	NULL
+5173	NULL
+5174	NULL
+5175	NULL
+5176	NULL
+5177	NULL
+5178	NULL
+5179	NULL
+5180	NULL
+5181	NULL
+5182	NULL
+5183	NULL
+5184	NULL
+5185	NULL
+5186	NULL
+5187	NULL
+5188	NULL
+5189	NULL
+5190	NULL
+5191	NULL
+5192	NULL
+5193	NULL
+5194	NULL
+5195	NULL
+5196	NULL
+5197	NULL
+5198	NULL
+5199	NULL
+5200	NULL
+5201	NULL
+5202	NULL
+5203	NULL
+5204	NULL
+5205	NULL
+5206	NULL
+5207	NULL
+5208	NULL
+5209	NULL
+5210	NULL
+5211	NULL
+5212	NULL
+5213	NULL
+5214	NULL
+5215	NULL
+5216	NULL
+5217	NULL
+5218	NULL
+5219	NULL
+5220	NULL
+5221	NULL
+5222	NULL
+5223	NULL
+5224	NULL
+5225	NULL
+5226	NULL
+5227	NULL
+5228	NULL
+5229	NULL
+5230	NULL
+5231	NULL
+5232	NULL
+5233	NULL
+5234	NULL
+5235	NULL
+5236	NULL
+5237	NULL
+5238	NULL
+5239	NULL
+5240	NULL
+5241	NULL
+5242	NULL
+5243	NULL
+5244	NULL
+5245	NULL
+5246	NULL
+5247	NULL
+5248	NULL
+5249	NULL
+5250	NULL
+5251	NULL
+5252	NULL
+5253	NULL
+5254	NULL
+5255	NULL
+5256	NULL
+5257	NULL
+5258	NULL
+5259	NULL
+5260	NULL
+5261	NULL
+5262	NULL
+5263	NULL
+5264	NULL
+5265	NULL
+5266	NULL
+5267	NULL
+5268	NULL
+5269	NULL
+5270	NULL
+5271	NULL
+5272	NULL
+5273	NULL
+5274	NULL
+5275	NULL
+5276	NULL
+5277	NULL
+5278	NULL
+5279	NULL
+5280	NULL
+5281	NULL
+5282	NULL
+5283	NULL
+5284	NULL
+5285	NULL
+5286	NULL
+5287	NULL
+5288	NULL
+5289	NULL
+5290	NULL
+5291	NULL
+5292	NULL
+5293	NULL
+5294	NULL
+5295	NULL
+5296	NULL
+5297	NULL
+5298	NULL
+5299	NULL
+5300	NULL
+5301	NULL
+5302	NULL
+5303	NULL
+5304	NULL
+5305	NULL
+5306	NULL
+5307	NULL
+5308	NULL
+5309	NULL
+5310	NULL
+5311	NULL
+5312	NULL
+5313	NULL
+5314	NULL
+5315	NULL
+5316	NULL
+5317	NULL
+5318	NULL
+5319	NULL
+5320	NULL
+5321	NULL
+5322	NULL
+5323	NULL
+5324	NULL
+5325	NULL
+5326	NULL
+5327	NULL
+5328	NULL
+5329	NULL
+5330	NULL
+5331	NULL
+5332	NULL
+5333	NULL
+5334	NULL
+5335	NULL
+5336	NULL
+5337	NULL
+5338	NULL
+5339	NULL
+5340	NULL
+5341	NULL
+5342	NULL
+5343	NULL
+5344	NULL
+5345	NULL
+5346	NULL
+5347	NULL
+5348	NULL
+5349	NULL
+5350	NULL
+5351	NULL
+5352	NULL
+5353	NULL
+5354	NULL
+5355	NULL
+5356	NULL
+5357	NULL
+5358	NULL
+5359	NULL
+5360	NULL
+5361	NULL
+5362	NULL
+5363	NULL
+5364	NULL
+5365	NULL
+5366	NULL
+5367	NULL
+5368	NULL
+5369	NULL
+5370	NULL
+5371	NULL
+5372	NULL
+5373	NULL
+5374	NULL
+5375	NULL
+5376	NULL
+5377	NULL
+5378	NULL
+5379	NULL
+5380	NULL
+5381	NULL
+5382	NULL
+5383	NULL
+5384	NULL
+5385	NULL
+5386	NULL
+5387	NULL
+5388	NULL
+5389	NULL
+5390	NULL
+5391	NULL
+5392	NULL
+5393	NULL
+5394	NULL
+5395	NULL
+5396	NULL
+5397	NULL
+5398	NULL
+5399	NULL
+5400	NULL
+5401	NULL
+5402	NULL
+5403	NULL
+5404	NULL
+5405	NULL
+5406	NULL
+5407	NULL
+5408	NULL
+5409	NULL
+5410	NULL
+5411	NULL
+5412	NULL
+5413	NULL
+5414	NULL
+5415	NULL
+5416	NULL
+5417	NULL
+5418	NULL
+5419	NULL
+5420	NULL
+5421	NULL
+5422	NULL
+5423	NULL
+5424	NULL
+5425	NULL
+5426	NULL
+5427	NULL
+5428	NULL
+5429	NULL
+5430	NULL
+5431	NULL
+5432	NULL
+5433	NULL
+5434	NULL
+5435	NULL
+5436	NULL
+5437	NULL
+5438	NULL
+5439	NULL
+5440	NULL
+5441	NULL
+5442	NULL
+5443	NULL
+5444	NULL
+5445	NULL
+5446	NULL
+5447	NULL
+5448	NULL
+5449	NULL
+5450	NULL
+5451	NULL
+5452	NULL
+5453	NULL
+5454	NULL
+5455	NULL
+5456	NULL
+5457	NULL
+5458	NULL
+5459	NULL
+5460	NULL
+5461	NULL
+5462	NULL
+5463	NULL
+5464	NULL
+5465	NULL
+5466	NULL
+5467	NULL
+5468	NULL
+5469	NULL
+5470	NULL
+5471	NULL
+5472	NULL
+5473	NULL
+5474	NULL
+5475	NULL
+5476	NULL
+5477	NULL
+5478	NULL
+5479	NULL
+5480	NULL
+5481	NULL
+5482	NULL
+5483	NULL
+5484	NULL
+5485	NULL
+5486	NULL
+5487	NULL
+5488	NULL
+5489	NULL
+5490	NULL
+5491	NULL
+5492	NULL
+5493	NULL
+5494	NULL
+5495	NULL
+5496	NULL
+5497	NULL
+5498	NULL
+5499	NULL
+5500	NULL
+5501	NULL
+5502	NULL
+5503	NULL
+5504	NULL
+5505	NULL
+5506	NULL
+5507	NULL
+5508	NULL
+5509	NULL
+5510	NULL
+5511	NULL
+5512	NULL
+5513	NULL
+5514	NULL
+5515	NULL
+5516	NULL
+5517	NULL
+5518	NULL
+5519	NULL
+5520	NULL
+5521	NULL
+5522	NULL
+5523	NULL
+5524	NULL
+5525	NULL
+5526	NULL
+5527	NULL
+5528	NULL
+5529	NULL
+5530	NULL
+5531	NULL
+5532	NULL
+5533	NULL
+5534	NULL
+5535	NULL
+5536	NULL
+5537	NULL
+5538	NULL
+5539	NULL
+5540	NULL
+5541	NULL
+5542	NULL
+5543	NULL
+5544	NULL
+5545	NULL
+5546	NULL
+5547	NULL
+5548	NULL
+5549	NULL
+5550	NULL
+5551	NULL
+5552	NULL
+5553	NULL
+5554	NULL
+5555	NULL
+5556	NULL
+5557	NULL
+5558	NULL
+5559	NULL
+5560	NULL
+5561	NULL
+5562	NULL
+5563	NULL
+5564	NULL
+5565	NULL
+5566	NULL
+5567	NULL
+5568	NULL
+5569	NULL
+5570	NULL
+5571	NULL
+5572	NULL
+5573	NULL
+5574	NULL
+5575	NULL
+5576	NULL
+5577	NULL
+5578	NULL
+5579	NULL
+5580	NULL
+5581	NULL
+5582	NULL
+5583	NULL
+5584	NULL
+5585	NULL
+5586	NULL
+5587	NULL
+5588	NULL
+5589	NULL
+5590	NULL
+5591	NULL
+5592	NULL
+5593	NULL
+5594	NULL
+5595	NULL
+5596	NULL
+5597	NULL
+5598	NULL
+5599	NULL
+5600	NULL
+5601	NULL
+5602	NULL
+5603	NULL
+5604	NULL
+5605	NULL
+5606	NULL
+5607	NULL
+5608	NULL
+5609	NULL
+5610	NULL
+5611	NULL
+5612	NULL
+5613	NULL
+5614	NULL
+5615	NULL
+5616	NULL
+5617	NULL
+5618	NULL
+5619	NULL
+5620	NULL
+5621	NULL
+5622	NULL
+5623	NULL
+5624	NULL
+5625	NULL
+5626	NULL
+5627	NULL
+5628	NULL
+5629	NULL
+5630	NULL
+5631	NULL
+5632	NULL
+5633	NULL
+5634	NULL
+5635	NULL
+5636	NULL
+5637	NULL
+5638	NULL
+5639	NULL
+5640	NULL
+5641	NULL
+5642	NULL
+5643	NULL
+5644	NULL
+5645	NULL
+5646	NULL
+5647	NULL
+5648	NULL
+5649	NULL
+5650	NULL
+5651	NULL
+5652	NULL
+5653	NULL
+5654	NULL
+5655	NULL
+5656	NULL
+5657	NULL
+5658	NULL
+5659	NULL
+5660	NULL
+5661	NULL
+5662	NULL
+5663	NULL
+5664	NULL
+5665	NULL
+5666	NULL
+5667	NULL
+5668	NULL
+5669	NULL
+5670	NULL
+5671	NULL
+5672	NULL
+5673	NULL
+5674	NULL
+5675	NULL
+5676	NULL
+5677	NULL
+5678	NULL
+5679	NULL
+5680	NULL
+5681	NULL
+5682	NULL
+5683	NULL
+5684	NULL
+5685	NULL
+5686	NULL
+5687	NULL
+5688	NULL
+5689	NULL
+5690	NULL
+5691	NULL
+5692	NULL
+5693	NULL
+5694	NULL
+5695	NULL
+5696	NULL
+5697	NULL
+5698	NULL
+5699	NULL
+5700	NULL
+5701	NULL
+5702	NULL
+5703	NULL
+5704	NULL
+5705	NULL
+5706	NULL
+5707	NULL
+5708	NULL
+5709	NULL
+5710	NULL
+5711	NULL
+5712	NULL
+5713	NULL
+5714	NULL
+5715	NULL
+5716	NULL
+5717	NULL
+5718	NULL
+5719	NULL
+5720	NULL
+5721	NULL
+5722	NULL
+5723	NULL
+5724	NULL
+5725	NULL
+5726	NULL
+5727	NULL
+5728	NULL
+5729	NULL
+5730	NULL
+5731	NULL
+5732	NULL
+5733	NULL
+5734	NULL
+5735	NULL
+5736	NULL
+5737	NULL
+5738	NULL
+5739	NULL
+5740	NULL
+5741	NULL
+5742	NULL
+5743	NULL
+5744	NULL
+5745	NULL
+5746	NULL
+5747	NULL
+5748	NULL
+5749	NULL
+5750	NULL
+5751	NULL
+5752	NULL
+5753	NULL
+5754	NULL
+5755	NULL
+5756	NULL
+5757	NULL
+5758	NULL
+5759	NULL
+5760	NULL
+5761	NULL
+5762	NULL
+5763	NULL
+5764	NULL
+5765	NULL
+5766	NULL
+5767	NULL
+5768	NULL
+5769	NULL
+5770	NULL
+5771	NULL
+5772	NULL
+5773	NULL
+5774	NULL
+5775	NULL
+5776	NULL
+5777	NULL
+5778	NULL
+5779	NULL
+5780	NULL
+5781	NULL
+5782	NULL
+5783	NULL
+5784	NULL
+5785	NULL
+5786	NULL
+5787	NULL
+5788	NULL
+5789	NULL
+5790	NULL
+5791	NULL
+5792	NULL
+5793	NULL
+5794	NULL
+5795	NULL
+5796	NULL
+5797	NULL
+5798	NULL
+5799	NULL
+5800	NULL
+5801	NULL
+5802	NULL
+5803	NULL
+5804	NULL
+5805	NULL
+5806	NULL
+5807	NULL
+5808	NULL
+5809	NULL
+5810	NULL
+5811	NULL
+5812	NULL
+5813	NULL
+5814	NULL
+5815	NULL
+5816	NULL
+5817	NULL
+5818	NULL
+5819	NULL
+5820	NULL
+5821	NULL
+5822	NULL
+5823	NULL
+5824	NULL
+5825	NULL
+5826	NULL
+5827	NULL
+5828	NULL
+5829	NULL
+5830	NULL
+5831	NULL
+5832	NULL
+5833	NULL
+5834	NULL
+5835	NULL
+5836	NULL
+5837	NULL
+5838	NULL
+5839	NULL
+5840	NULL
+5841	NULL
+5842	NULL
+5843	NULL
+5844	NULL
+5845	NULL
+5846	NULL
+5847	NULL
+5848	NULL
+5849	NULL
+5850	NULL
+5851	NULL
+5852	NULL
+5853	NULL
+5854	NULL
+5855	NULL
+5856	NULL
+5857	NULL
+5858	NULL
+5859	NULL
+5860	NULL
+5861	NULL
+5862	NULL
+5863	NULL
+5864	NULL
+5865	NULL
+5866	NULL
+5867	NULL
+5868	NULL
+5869	NULL
+5870	NULL
+5871	NULL
+5872	NULL
+5873	NULL
+5874	NULL
+5875	NULL
+5876	NULL
+5877	NULL
+5878	NULL
+5879	NULL
+5880	NULL
+5881	NULL
+5882	NULL
+5883	NULL
+5884	NULL
+5885	NULL
+5886	NULL
+5887	NULL
+5888	NULL
+5889	NULL
+5890	NULL
+5891	NULL
+5892	NULL
+5893	NULL
+5894	NULL
+5895	NULL
+5896	NULL
+5897	NULL
+5898	NULL
+5899	NULL
+5900	NULL
+5901	NULL
+5902	NULL
+5903	NULL
+5904	NULL
+5905	NULL
+5906	NULL
+5907	NULL
+5908	NULL
+5909	NULL
+5910	NULL
+5911	NULL
+5912	NULL
+5913	NULL
+5914	NULL
+5915	NULL
+5916	NULL
+5917	NULL
+5918	NULL
+5919	NULL
+5920	NULL
+5921	NULL
+5922	NULL
+5923	NULL
+5924	NULL
+5925	NULL
+5926	NULL
+5927	NULL
+5928	NULL
+5929	NULL
+5930	NULL
+5931	NULL
+5932	NULL
+5933	NULL
+5934	NULL
+5935	NULL
+5936	NULL
+5937	NULL
+5938	NULL
+5939	NULL
+5940	NULL
+5941	NULL
+5942	NULL
+5943	NULL
+5944	NULL
+5945	NULL
+5946	NULL
+5947	NULL
+5948	NULL
+5949	NULL
+5950	NULL
+5951	NULL
+5952	NULL
+5953	NULL
+5954	NULL
+5955	NULL
+5956	NULL
+5957	NULL
+5958	NULL
+5959	NULL
+5960	NULL
+5961	NULL
+5962	NULL
+5963	NULL
+5964	NULL
+5965	NULL
+5966	NULL
+5967	NULL
+5968	NULL
+5969	NULL
+5970	NULL
+5971	NULL
+5972	NULL
+5973	NULL
+5974	NULL
+5975	NULL
+5976	NULL
+5977	NULL
+5978	NULL
+5979	NULL
+5980	NULL
+5981	NULL
+5982	NULL
+5983	NULL
+5984	NULL
+5985	NULL
+5986	NULL
+5987	NULL
+5988	NULL
+5989	NULL
+5990	NULL
+5991	NULL
+5992	NULL
+5993	NULL
+5994	NULL
+5995	NULL
+5996	NULL
+5997	NULL
+5998	NULL
+5999	NULL
+6000	NULL
+6001	NULL
+6002	NULL
+6003	NULL
+6004	NULL
+6005	NULL
+6006	NULL
+6007	NULL
+6008	NULL
+6009	NULL
+6010	NULL
+6011	NULL
+6012	NULL
+6013	NULL
+6014	NULL
+6015	NULL
+6016	NULL
+6017	NULL
+6018	NULL
+6019	NULL
+6020	NULL
+6021	NULL
+6022	NULL
+6023	NULL
+6024	NULL
+6025	NULL
+6026	NULL
+6027	NULL
+6028	NULL
+6029	NULL
+6030	NULL
+6031	NULL
+6032	NULL
+6033	NULL
+6034	NULL
+6035	NULL
+6036	NULL
+6037	NULL
+6038	NULL
+6039	NULL
+6040	NULL
+6041	NULL
+6042	NULL
+6043	NULL
+6044	NULL
+6045	NULL
+6046	NULL
+6047	NULL
+6048	NULL
+6049	NULL
+6050	NULL
+6051	NULL
+6052	NULL
+6053	NULL
+6054	NULL
+6055	NULL
+6056	NULL
+6057	NULL
+6058	NULL
+6059	NULL
+6060	NULL
+6061	NULL
+6062	NULL
+6063	NULL
+6064	NULL
+6065	NULL
+6066	NULL
+6067	NULL
+6068	NULL
+6069	NULL
+6070	NULL
+6071	NULL
+6072	NULL
+6073	NULL
+6074	NULL
+6075	NULL
+6076	NULL
+6077	NULL
+6078	NULL
+6079	NULL
+6080	NULL
+6081	NULL
+6082	NULL
+6083	NULL
+6084	NULL
+6085	NULL
+6086	NULL
+6087	NULL
+6088	NULL
+6089	NULL
+6090	NULL
+6091	NULL
+6092	NULL
+6093	NULL
+6094	NULL
+6095	NULL
+6096	NULL
+6097	NULL
+6098	NULL
+6099	NULL
+6100	NULL
+6101	NULL
+6102	NULL
+6103	NULL
+6104	NULL
+6105	NULL
+6106	NULL
+6107	NULL
+6108	NULL
+6109	NULL
+6110	NULL
+6111	NULL
+6112	NULL
+6113	NULL
+6114	NULL
+6115	NULL
+6116	NULL
+6117	NULL
+6118	NULL
+6119	NULL
+6120	NULL
+6121	NULL
+6122	NULL
+6123	NULL
+6124	NULL
+6125	NULL
+6126	NULL
+6127	NULL
+6128	NULL
+6129	NULL
+6130	NULL
+6131	NULL
+6132	NULL
+SHOW STATUS LIKE 'Handler_read_key';
+Handler_read_key	1
+DROP TABLE t;
+set global default_storage_engine=innodb;
+set session default_storage_engine=innodb;
+create table t(a int, b int);
+insert into t values(1,10),(2,20);
+set optimizer_switch="block_nested_loop=off";
+select t1.* from t t0 cross join t t1 join t t2
+on 100=(select count(*)
+from t t3
+left join t t4
+on t4.a>t3.a-t0.a);
+drop table t;
+create table t(a int);
+insert into t values(1),(2);
+set optimizer_switch="firstmatch=off,block_nested_loop=off";
+drop table t;
+set global default_storage_engine=innodb;
+CREATE TABLE t1 (
+a INTEGER
+);
+CREATE TABLE t2 (
+pk INTEGER NOT NULL,
+a INTEGER
+);
+SELECT * FROM
+(
+t2 LEFT JOIN t2 AS t3 ON t2.pk IS NULL
+) LEFT JOIN t1 ON t1.a = t3.a;
+DROP TABLE t1, t2;
+CREATE TABLE t1 ( pk INTEGER );
+INSERT INTO t1 VALUES (1);
+CREATE TABLE t2 ( pk INTEGER );
+SELECT * FROM t1 LEFT JOIN t2 ON TRUE WHERE t2.pk <=> 3;
+DROP TABLE t1, t2;
+CREATE TABLE A ( pk INTEGER );
+SELECT t1.pk FROM A t1, A t2, A t3, A t4, A t5 GROUP BY t1.pk;
+DROP TABLE A;
+CREATE TABLE t (
+a BIT(50),
+b VARCHAR(22772) character set ascii,
+c INTEGER,
+d TINYBLOB,
+PRIMARY KEY (a),
+KEY i0001 (c,d(163))
+);
+INSERT INTO t VALUES (1,'',1,'1');
+INSERT INTO t VALUES (0x03ffffffffffff,'2',0,'2');
+DROP TABLE t;
+CREATE TABLE t1 (
+ts datetime,
+x integer,
+y integer
+);
+INSERT INTO t1 VALUES ('2020-11-20 10:38:31',1,2);
+CREATE TABLE t2 (
+x integer,
+ts datetime,
+KEY i1 (x)
+);
+INSERT INTO t2 VALUES (1,'2020-11-16 14:18:55');
+CREATE TABLE t3 (
+ts datetime,
+y integer,
+z INTEGER,
+KEY i2 (y,ts)
+);
+INSERT INTO t3 VALUES ('2020-12-29 18:23:02',2,100);
+CREATE TABLE t4 (
+z INTEGER
+);
+SET optimizer_switch='mrr=on,batched_key_access=on,mrr_cost_based=off';
+SELECT COUNT(*)
+FROM
+t1
+LEFT JOIN t2 ON t1.x = t2.x AND t2.ts <= t1.ts
+JOIN t3 ON t1.y = t3.y AND t3.ts <= t1.ts
+LEFT JOIN t4 ON t3.z = t4.z;
+0
+DROP TABLE t1, t2, t3, t4;
+CREATE TABLE t1 ( a INTEGER );
+INSERT INTO t1 VALUES (0), (0), (0), (1), (1), (0), (1), (0);
+SELECT * FROM
+t1, t1 AS t2, t1 AS t3
+WHERE ((t1.a = 5 AND t3.a < t1.a) OR t1.a > 0) AND t3.a <= t2.a;
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	1	0
+1	1	0
+1	1	0
+1	1	1
+1	1	1
+1	1	0
+1	1	1
+1	1	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+1	0	0
+DROP TABLE t1;
+CREATE TABLE t1 ( a VARCHAR(10) );
+CREATE TABLE t2 ( a VARCHAR(10) );
+INSERT INTO t1 VALUES ('x');
+SELECT *
+FROM t1
+LEFT JOIN t2 ON TRUE
+LEFT JOIN ( t1 AS t1i JOIN t2 AS t2i ON t1i.a = t2i.a ) ON t2.a = t2i.a
+WHERE t1i.a = '' OR t2i.a = '';
+DROP TABLE t1, t2;
+CREATE TABLE t1 (
+a INTEGER NOT NULL,
+KEY (a)
+);
+INSERT INTO t1 VALUES (1), (2);
+SELECT *
+FROM t1 LEFT JOIN t1 AS t2 ON TRUE
+WHERE t1.a IS NULL OR t1.a = t2.a
+ORDER BY t2.a;
+1	1
+2	2
+SELECT t1.a
+FROM t1 LEFT JOIN t1 AS t2 ON t1.a = t2.a
+WHERE t1.a IS NULL OR t1.a = t2.a
+GROUP BY t1.a;
+1
+2
+DROP TABLE t1;
+CREATE TABLE t1 (c1 INTEGER, c2 INTEGER, c3 INTEGER, c4 INTEGER, c5 INTEGER, c6 INTEGER, c7 INTEGER, c8 INTEGER, c9 INTEGER, c10 INTEGER, c11 INTEGER, c12 INTEGER, c13 INTEGER, c14 INTEGER, c15 INTEGER, c16 INTEGER, c17 INTEGER, c18 INTEGER, c19 INTEGER, c20 INTEGER, c21 INTEGER, c22 INTEGER, c23 INTEGER, c24 INTEGER, c25 INTEGER, c26 INTEGER, c27 INTEGER, c28 INTEGER, c29 INTEGER, c30 INTEGER, c31 INTEGER, c32 INTEGER, c33 INTEGER, c34 INTEGER, c35 INTEGER, c36 INTEGER, c37 INTEGER, c38 INTEGER, c39 INTEGER, c40 INTEGER, c41 INTEGER, c42 INTEGER, c43 INTEGER, c44 INTEGER, c45 INTEGER, c46 INTEGER, c47 INTEGER, c48 INTEGER, c49 INTEGER, c50 INTEGER, c51 INTEGER, c52 INTEGER, c53 INTEGER, c54 INTEGER, c55 INTEGER, c56 INTEGER, c57 INTEGER, c58 INTEGER, c59 INTEGER, c60 INTEGER, c61 INTEGER);
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER );
+SELECT *
+FROM t1 AS outer_t1
+WHERE EXISTS (
+SELECT t2.a
+FROM t1
+LEFT JOIN t1 AS t2 ON t2.a = outer_t1.a
+);
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER );
+SELECT *
+FROM (t1 STRAIGHT_JOIN t1 AS t2) JOIN t1 AS t3 ON t1.a = t3.a
+WHERE t2.a = t3.a
+ORDER BY t1.a;
+DROP TABLE t1;
+CREATE TABLE t1 (a INTEGER, b INTEGER);
+SELECT *
+FROM (t1 STRAIGHT_JOIN t1 AS t2 ON t1.b = t2.b) JOIN t1 AS t3 ON t1.a = t3.b
+WHERE t1.a < t2.b AND t2.a < t3.b
+ORDER BY t1.b;
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER );
+SELECT *
+FROM t1
+LEFT JOIN t1 AS t2 ON t1.a = t2.a
+LEFT JOIN t1 AS t3 ON t2.a = t3.a
+WHERE t2.a = t3.a OR t2.a <> t2.a;
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER, b INTEGER );
+INSERT INTO t1 VALUES (1,2);
+SELECT * FROM t1, t1 AS t2, t1 AS t3 WHERE t1.a = t2.a AND t1.a = t3.b AND t1.a = t3.a;
+DROP TABLE t1;
+CREATE TABLE t1 ( pk INTEGER );
+SELECT * FROM
+t1
+JOIN t1 AS t2 ON t1.pk = t2.pk
+JOIN t1 AS t3
+LEFT JOIN t1 AS t4 ON t2.pk = t3.pk AND t4.pk = 135;
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER, b INTEGER );
+SELECT *
+FROM
+t1
+JOIN t1 AS t2 ON t1.a = t2.b
+LEFT JOIN t1 AS t3 ON t2.b = t3.b
+LEFT JOIN (
+t1 AS t4
+JOIN t1 AS t5 ON t4.b = t5.b
+) ON t2.b = t4.a
+WHERE t1.b >= 6 OR t3.b <> t4.b;
+DROP TABLE t1;
+CREATE TABLE t1(a INT NOT NULL, b INT, PRIMARY KEY(a));
+INSERT INTO t1 VALUES (1,1), (2,2), (3,3);
+DROP TABLE t1;
+CREATE TABLE t1 (
+a VARCHAR(1),
+b INTEGER
+);
+SELECT *
+FROM
+t1
+JOIN t1 AS t2 ON t1.b = t2.b
+JOIN t1 AS t3
+JOIN (
+t1 AS t4 STRAIGHT_JOIN t1 AS t5 ON t4.a = t5.b
+) ON t1.b = t4.b
+WHERE t1.a = t5.b;
+DROP TABLE t1;
+CREATE TABLE t1 (a INTEGER);
+INSERT INTO t1 VALUES (1), (2), (3), (4);
+SELECT *
+FROM
+t1
+LEFT JOIN (
+t1 AS t2
+LEFT JOIN t1 AS t3 ON FALSE
+) ON t1.a <=> t3.a
+WHERE t1.a <=> t3.a;
+DROP TABLE t1;
+CREATE TABLE t1(a INT);
+INSERT INTO t1 VALUES(1);
+CREATE TABLE t2(x INT);
+INSERT INTO t2 VALUES(2),(3);
+SELECT 6 FROM t1 WHERE EXISTS
+(SELECT 7 FROM (SELECT a) d1 WHERE EXISTS (SELECT 8 FROM t2));
+6
+DROP TABLE t1,t2;
+CREATE TABLE t1(
+k INTEGER PRIMARY KEY,
+t2ref INTEGER
+);
+INSERT INTO t1 VALUES(1,1), (2,NULL), (3,3);
+CREATE TABLE t2(
+k INTEGER PRIMARY KEY,
+d INTEGER,
+t3ref INTEGER NOT NULL
+);
+INSERT INTO t2 VALUES(1,11,1), (3,33,3);
+CREATE TABLE t3(
+k INTEGER UNIQUE,
+e INTEGER
+);
+INSERT INTO t3 VALUES(1,111), (3,333);
+SET optimizer_switch='block_nested_loop=off';
+DROP TABLE t1, t2, t3;
+CREATE TABLE t1 ( a INTEGER );
+SELECT *
+FROM t1, t1 AS t2, t1 AS t3
+WHERE rand() > 0.5 OR (t1.a = 1 AND t2.a = 1);
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER, b INTEGER );
+SELECT * FROM
+t1
+STRAIGHT_JOIN t1 AS t2 ON t1.b = t2.b
+JOIN (t1 AS t3 JOIN t1 AS t4 ON t3.a = t4.a AND t3.b = t4.b) ON t2.b = t3.b AND t2.a < t3.a
+ORDER BY t2.b;
+DROP TABLE t1;
+CREATE TABLE t1 ( i INTEGER );
+INSERT INTO t1 VALUES (1), (2);
+SELECT * FROM
+t1 LEFT JOIN (SELECT i FROM t1 WHERE FALSE) AS d1 ON t1.i = d1.i
+WHERE NOT EXISTS (SELECT 1 FROM t1 AS inner_t1 WHERE i = d1.i);
+1	NULL
+2	NULL
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER, b INTEGER, c INTEGER, d INTEGER, e INTEGER, f INTEGER, g INTEGER, h INTEGER, i INTEGER, j INTEGER, k INTEGER, l INTEGER, m INTEGER, n INTEGER, o INTEGER, p INTEGER, q INTEGER, r INTEGER, s INTEGER, t INTEGER, u INTEGER, v INTEGER, w INTEGER, KEY (a) );
+SELECT 1
+FROM t1 NATURAL JOIN t1 AS t2 NATURAL JOIN t1 AS t3
+WHERE
+t1.a <> ( SELECT SUM(a) FROM t1 );
+DROP TABLE t1;
+CREATE TABLE t1 (
+f1 INTEGER
+);
+INSERT INTO t1 VALUES (1), (2), (3);
+CREATE TABLE t2 (
+pk INTEGER,
+blobfield LONGTEXT
+);
+INSERT INTO t2 VALUES (4, '');
+DROP TABLE t1, t2;
+CREATE TABLE t ( a INTEGER, b INTEGER );
+SELECT *
+FROM
+t AS t1
+JOIN (
+t AS t2
+LEFT JOIN t AS t3 ON t2.a = t3.a AND t2.b = t3.b
+JOIN t AS t4 ON t2.b = t4.a AND t2.b = t4.b
+) ON t1.b = t2.b;
+DROP TABLE t;
+CREATE TABLE t1 ( a INTEGER, b INTEGER );
+INSERT INTO t1 VALUES (3, 2);
+CREATE TABLE t2 ( a INTEGER, b INTEGER, KEY (a) );
+INSERT INTO t2 VALUES (3, 0);
+INSERT INTO t2 VALUES (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0);
+CREATE TABLE t3 ( a INTEGER, b INTEGER, c INTEGER );
+INSERT INTO t3 VALUES (1, 0, 2);
+SELECT
+t2.b, t3.a, t3.b
+FROM t1
+JOIN t2 ON t1.a = t2.a
+JOIN t3 ON t1.b = t3.c AND t2.b = t3.a
+WHERE t2.b = t3.b;
+DROP TABLE t1, t2, t3;
+CREATE TABLE t1 ( a INTEGER );
+SELECT
+1
+FROM
+t1
+JOIN t1 AS t2
+LEFT JOIN (
+t1 AS t3
+JOIN ( SELECT * FROM t1 WHERE FALSE ) AS empty_subq
+) ON empty_subq.a = t3.a
+WHERE NOT EXISTS (SELECT 9) OR empty_subq.a = t2.a;
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER, b INTEGER, KEY (b) );
+INSERT INTO t1 VALUES (1,1), (2,2);
+SELECT 1
+FROM
+t1
+JOIN (t1 AS t2 LEFT JOIN t1 AS t3 ON t2.b = t3.b) ON (t2.b = t3.b OR t1.a = 125)
+WHERE
+t1.a = 143;
+DROP TABLE t1;
+CREATE TABLE t1 (i SMALLINT, INDEX a (i));
+CREATE TABLE t2 (i SMALLINT UNSIGNED);
+INSERT INTO t1 VALUES (-32768), (32767);
+INSERT INTO t2 VALUES (65535);
+SELECT * FROM t1 JOIN t2 ON t2.i > t1.i;
+-32768	65535
+32767	65535
+DROP TABLE t1, t2;
+CREATE TABLE t1 ( a INTEGER );
+CREATE TABLE t2 ( a INTEGER, b INTEGER, c INTEGER );
+CREATE TABLE t3 ( a INTEGER );
+CREATE TABLE t4 ( a INTEGER, b INTEGER, c INTEGER );
+SELECT
+1
+FROM
+t1
+JOIN t2 ON t1.a = t2.a
+JOIN t3 ON t2.a = t3.a
+JOIN t4 ON t3.a = t4.a AND t2.b = t4.b AND t2.c = t4.c;
+DROP TABLE t1,t2,t3,t4;
+CREATE TABLE t1 (
+pk INTEGER NOT NULL,
+a INTEGER,
+INDEX (pk)
+);
+SELECT
+1
+FROM
+t1
+LEFT JOIN t1 AS t2 ON t1.a = t2.a
+JOIN t1 AS t3 ON t2.a = t3.a
+WHERE
+t2.a < t2.a OR t2.pk IS NULL
+GROUP BY t2.a;
+DROP TABLE t1;
+CREATE TABLE t1 ( a INTEGER );
+INSERT INTO t1 VALUES (5);
+CREATE TABLE t2 ( a INTEGER, b INTEGER );
+INSERT INTO t2 VALUES (6, 1);
+CREATE TABLE t3 ( a INTEGER, b INTEGER );
+INSERT INTO t3 VALUES (2, 1);
+SELECT t1.a AS field1, t2.a AS field2
+FROM
+t1
+JOIN t2 ON t1.a = t2.a
+WHERE t2.b IN (
+SELECT inner_a1.b
+FROM t3 AS inner_a1 JOIN t3 AS inner_a2 ON inner_a1.b = inner_a2.b
+WHERE inner_a1.a = t2.a
+);
+DROP TABLE t1, t2, t3;
+CREATE TABLE t1 (a INTEGER);
+INSERT INTO t1 VALUES (1);
+CREATE TABLE t2 (a INTEGER);
+INSERT INTO t2 VALUES (1);
+CREATE TABLE t3 (a INTEGER);
+INSERT INTO t3 VALUES (1);
+CREATE TABLE t4 (a INTEGER);
+INSERT INTO t4 VALUES (2);
+SELECT * FROM t1 LEFT JOIN (t2 LEFT JOIN (t3 JOIN t4 ON t3.a = t4.a)
+ON t4.a = t2.a) ON t1.a = t2.a;
+1	1	NULL	NULL
+DROP TABLE t1, t2, t3, t4;

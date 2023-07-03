@@ -1,0 +1,152 @@
+CREATE TABLE t_innodb(c1 INT NOT NULL PRIMARY KEY,
+c2 INT NOT NULL,
+c3 char(20),
+KEY c3_idx(c3))ENGINE=INNODB;
+INSERT INTO t_innodb VALUES (1, 1, 'a'), (2,2,'a'), (3,3,'a');
+CREATE TABLE t_myisam(c1 INT NOT NULL PRIMARY KEY,
+c2 INT NOT NULL DEFAULT 1,
+c3 char(20),
+KEY c3_idx(c3)) ENGINE=MYISAM;
+INSERT INTO t_myisam(c1) VALUES (1), (2);
+EXPLAIN SELECT COUNT(*) FROM t_innodb;
+1	SIMPLE	t_innodb	NULL	index	NULL	c3_idx	81	NULL	3	100.00	Using index
+EXPLAIN SELECT COUNT(*) FROM t_myisam;
+1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Select tables optimized away
+EXPLAIN SELECT COUNT(*) FROM t_myisam, t_innodb;
+1	SIMPLE	t_myisam	NULL	index	NULL	PRIMARY	4	NULL	2	100.00	Using index
+1	SIMPLE	t_innodb	NULL	index	NULL	c3_idx	81	NULL	3	100.00	Using index
+EXPLAIN SELECT MIN(c2), COUNT(*), MAX(c1) FROM t_innodb;
+1	SIMPLE	t_innodb	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+SELECT MIN(c3), COUNT(*) FROM t_innodb;
+a	3
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb;
+3
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_myisam;
+2
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_myisam, t_innodb;
+6
+FLUSH STATUS;
+SELECT MIN(c2), COUNT(*), MAX(c1) FROM t_innodb;
+1	3	3
+FLUSH STATUS;
+SELECT MIN(c3), COUNT(*) FROM t_innodb;
+a	3
+CREATE TABLE t_nopk(c1 INT NOT NULL , c2 INT NOT NULL)ENGINE=INNODB;
+INSERT INTO t_nopk SELECT c1, c2 FROM t_innodb;
+SHOW CREATE TABLE t_nopk;
+t_nopk	CREATE TABLE `t_nopk` (
+  `c1` int NOT NULL,
+  `c2` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+EXPLAIN SELECT COUNT(*) FROM t_nopk;
+1	SIMPLE	t_nopk	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_nopk;
+3
+CREATE INDEX c2_idx on t_nopk(c2);
+SHOW CREATE TABLE t_nopk;
+t_nopk	CREATE TABLE `t_nopk` (
+  `c1` int NOT NULL,
+  `c2` int NOT NULL,
+  KEY `c2_idx` (`c2`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+EXPLAIN SELECT COUNT(*) FROM t_nopk;
+1	SIMPLE	t_nopk	NULL	index	NULL	c2_idx	4	NULL	3	100.00	Using index
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_nopk;
+3
+DROP TABLE t_nopk;
+CREATE TABLE t_innodb_nopk_sk(c1 INT NOT NULL,
+c2 INT NOT NULL, KEY c2_idx(c2))ENGINE=INNODB;
+CREATE TABLE t_innodb_pk_nosk(c1 INT NOT NULL PRIMARY KEY,
+c2 INT NOT NULL)ENGINE=INNODB;
+CREATE TABLE t_innodb_nopk_nosk(c1 INT NOT NULL,
+c2 INT NOT NULL)ENGINE=INNODB;
+INSERT INTO t_innodb_nopk_sk(c1,c2) VALUES (1, 1), (2,2), (3,3);
+INSERT INTO t_innodb_pk_nosk(c1,c2) SELECT * FROM t_innodb_nopk_sk;
+INSERT INTO t_innodb_nopk_nosk(c1,c2) SELECT * FROM t_innodb_nopk_sk;
+EXPLAIN SELECT COUNT(*) FROM t_innodb_nopk_sk;
+1	SIMPLE	t_innodb_nopk_sk	NULL	index	NULL	c2_idx	4	NULL	3	100.00	Using index
+EXPLAIN SELECT COUNT(*) FROM t_innodb_pk_nosk;
+1	SIMPLE	t_innodb_pk_nosk	NULL	index	NULL	PRIMARY	4	NULL	3	100.00	Using index
+EXPLAIN SELECT COUNT(*) FROM t_innodb_nopk_nosk;
+1	SIMPLE	t_innodb_nopk_nosk	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb_nopk_sk;
+3
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb_pk_nosk;
+3
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb_nopk_nosk;
+3
+DROP TABLE t_innodb_pk_nosk, t_innodb_nopk_sk, t_innodb_nopk_nosk;
+CREATE TABLE t_heap(c1 INT NOT NULL PRIMARY KEY,
+c2 INT NOT NULL,
+c3 char(20)) ENGINE=HEAP;
+CREATE TABLE t_archive(c1 INT NOT NULL, c2 char(20)) ENGINE=ARCHIVE;
+INSERT INTO t_heap SELECT * FROM t_innodb WHERE c1 > 1;
+INSERT INTO t_archive SELECT c1, c3 FROM t_innodb WHERE c1 > 1;
+EXPLAIN SELECT COUNT(*) FROM t_heap;
+1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Select tables optimized away
+EXPLAIN SELECT COUNT(*) FROM t_innodb, t_heap;
+1	SIMPLE	t_heap	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
+1	SIMPLE	t_innodb	NULL	index	NULL	c3_idx	81	NULL	3	100.00	Using index
+EXPLAIN SELECT COUNT(*) FROM t_archive;
+1	SIMPLE	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	Select tables optimized away
+EXPLAIN SELECT COUNT(*) FROM t_innodb, t_archive;
+1	SIMPLE	t_archive	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
+1	SIMPLE	t_innodb	NULL	index	NULL	c3_idx	81	NULL	3	100.00	Using index
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_heap;
+2
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb, t_heap;
+6
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_archive;
+2
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb, t_archive;
+6
+DROP TABLE t_archive, t_heap;
+EXPLAIN SELECT COUNT(*) FROM t_innodb FORCE INDEX(c3_idx);
+1	SIMPLE	t_innodb	NULL	index	NULL	c3_idx	81	NULL	3	100.00	Using index
+EXPLAIN SELECT COUNT(*) FROM t_myisam FORCE INDEX(c3_idx);
+1	SIMPLE	t_myisam	NULL	index	NULL	c3_idx	81	NULL	2	100.00	Using index
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_innodb FORCE INDEX(c3_idx);
+3
+FLUSH STATUS;
+SELECT COUNT(*) FROM t_myisam FORCE INDEX(c3_idx);
+2
+SELECT COUNT(*) FROM (SELECT DISTINCT c1 FROM t_myisam) dt, t_myisam;
+4
+SET @s =1;
+SELECT @s, COUNT(*) FROM t_innodb;
+1	3
+set sql_mode='';
+SELECT 1 AS c1, (SELECT COUNT(*) FROM t_innodb HAVING c1 > 0) FROM DUAL;
+1	3
+SELECT 1 FROM t_innodb HAVING COUNT(*) > 1;
+1
+SELECT COUNT(*) c FROM t_innodb HAVING c > 1;
+3
+SELECT COUNT(*) c FROM t_innodb HAVING c > 7;
+SELECT COUNT(*) c FROM t_innodb LIMIT 10 OFFSET 5;
+SELECT /*+ BNL(t2) */ -(t1.c1 + t2.c1) FROM t_innodb t1, t_innodb t2
+UNION ALL SELECT COUNT(*) FROM t_innodb;
+-4
+-3
+-2
+-5
+-4
+-3
+-6
+-5
+-4
+3
+DROP TABLE t_innodb, t_myisam;

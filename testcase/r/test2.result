@@ -30,6 +30,7 @@ create database test2_user;
 create table test2_db1.music(c1 int, c2 int);
 create view test2_user.view_a as select sql_calc_found_rows * from test2_db1.music limit 100;
 select * from test2_user.view_a;
+drop database test2_user;
 drop database if exists test2_db1;
 create database test2_db1;
 create table test2_db1.user(id int, col int);
@@ -39,3 +40,4 @@ use test2_db1;
 1
 select get_lock('xyz', 10) from test2_db1.user;
 1
+drop database test2_db1;

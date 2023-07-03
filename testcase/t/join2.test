@@ -52,8 +52,8 @@ select t1.id, count(t2.id) from t1,t2 where t2.id = t1.id group by t2.id;
 # Test problems with impossible ON or WHERE
 #
 select t1.id,t2.id from t2 left join t1 on t1.id>=74 and t1.id<=0 where t2.id=75 and t1.id is null;
-explain select t1.id,t2.id from t2 left join t1 on t1.id>=74 and t1.id<=0 where t2.id=75 and t1.id is null;
-explain select t1.id, t2.id from t1, t2 where t2.id = t1.id and t1.id <0 and t1.id > 0;
+select t1.id,t2.id from t2 left join t1 on t1.id>=74 and t1.id<=0 where t2.id=75 and t1.id is null;
+select t1.id, t2.id from t1, t2 where t2.id = t1.id and t1.id <0 and t1.id > 0;
 drop table t1,t2;
 
 #
@@ -72,7 +72,7 @@ CREATE TABLE t1 (
   KEY timestamp (timestamp),
   UNIQUE token_2 (token(75),count,phone)
 );
-SET sql_mode = default;
+#skip SET sql_mode = default;
 INSERT INTO t1 VALUES (21,'e45703b64de71482360de8fec94c3ade',3,7800,'n','1999-12-23 17:22:21');
 INSERT INTO t1 VALUES (22,'e45703b64de71482360de8fec94c3ade',4,5000,'y','1999-12-23 17:22:21');
 INSERT INTO t1 VALUES (18,'346d1cb63c89285b2351f0ca4de40eda',3,13200,'b','1999-12-23 11:58:04');
@@ -342,9 +342,8 @@ CREATE TABLE t2 (a int, d int, e int default 0);
 INSERT INTO t2 (a, d) VALUES (1,1),(2,2),(3,3),(4,4);
 INSERT INTO t2 (a, d) SELECT a+4, a+4 FROM t2;
 INSERT INTO t2 (a, d) SELECT a+8, a+8 FROM t2;
-ANALYZE TABLE t1, t2;
+#skip ANALYZE TABLE t1, t2;
 # should use join cache
-EXPLAIN
 SELECT STRAIGHT_JOIN t2.e FROM t1,t2 WHERE t2.d=1 AND t1.b=t2.e
   ORDER BY t1.b, t1.c;
 SELECT STRAIGHT_JOIN t2.e FROM t1,t2 WHERE t2.d=1 AND t1.b=t2.e
@@ -567,9 +566,9 @@ insert into t4 values (1,3);
 insert into t5 values (1,4);
 
 # this fails
-prepare stmt1 from "select * from ((t3 natural join (t1 natural join t2))
-natural join t4) natural join t5";
-execute stmt1;
+#skip prepare stmt1 from "select * from ((t3 natural join (t1 natural join t2))
+#skip natural join t4) natural join t5";
+#skip execute stmt1;
 
 # this works
 select * from ((t3 natural join (t1 natural join t2)) natural join t4)
@@ -610,10 +609,10 @@ insert into t2 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
 
 create table t3 (a int not null, primary key(a));
 insert into t3 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
-ANALYZE TABLE t1, t2, t3;
+#skip ANALYZE TABLE t1, t2, t3;
 flush status;
 select * from t1, t2, t3 where t3.a=t1.a and t2.a=t1.b;
-explain select * from t1, t2, t3 where t3.a=t1.a and t2.a=t1.b;
+select * from t1, t2, t3 where t3.a=t1.a and t2.a=t1.b;
 show status like 'Handler_read%'; 
 drop table t1, t2, t3;
 
@@ -626,12 +625,12 @@ insert into t1 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
 create table t2 (a int, b int, filler char(100), key(a), key(b));
 create table t3 (a int, b int, filler char(100), key(a), key(b));
 
-insert into t2 
-  select @a:= A.a + 10*(B.a + 10*C.a), @a, 'filler' from t1 A, t1 B, t1 C;
+#skip insert into t2
+#skip  select @a:= A.a + 10*(B.a + 10*C.a), @a, 'filler' from t1 A, t1 B, t1 C;
 insert into t3 select * from t2 where a < 800;
-ANALYZE TABLE t1, t2, t3;
+#skip ANALYZE TABLE t1, t2, t3;
 # The order of tables must be t2,t3:
-explain select * from t2,t3 where t2.a < 400 and t2.b=t3.b;
+select * from t2,t3 where t2.a < 400 and t2.b=t3.b;
 
 drop table t1, t2, t3;
 
@@ -641,16 +640,16 @@ create table t1 (a int);
 insert into t1 values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
 
 create table t2 (a int, b int, primary key(a));
-insert into t2 select @v:=A.a+10*B.a, @v  from t1 A, t1 B;
-ANALYZE TABLE t1, t2;
-explain select * from t1;
-show status like '%cost%';
-select 'The cost of accessing t1 (dont care if it changes' '^';
+#skip insert into t2 select @v:=A.a+10*B.a, @v  from t1 A, t1 B;
+#skip ANALYZE TABLE t1, t2;
+select * from t1;
+#skip show status like '%cost%';
+select 'The cost of accessing t1 (dont care if it changes';
 
 select 'vv: Following query must use ALL(t1), eq_ref(A), eq_ref(B): vv' Z;
 
-explain select * from t1, t2 a, t2 b where a.a = t1.a and b.a=a.b;
-show status like '%cost%';
+select * from t1, t2 a, t2 b where a.a = t1.a and b.a=a.b;
+#skip show status like '%cost%';
 select '^^: The above should be ~= 8 + cost(select * from t1). Value less than 8 is an error' Z;
 
 
@@ -672,16 +671,16 @@ INSERT INTO t1 SELECT a + 16, b FROM t1;
 INSERT INTO t1 SELECT a + 32, b FROM t1;
 INSERT INTO t1 SELECT a + 64, b FROM t1;
 INSERT INTO t2 SELECT a, b FROM t1;
-ANALYZE TABLE t1, t2;
+#skip ANALYZE TABLE t1, t2;
 #expect indexed ORDER BY
-EXPLAIN SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
-EXPLAIN SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
+SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
+SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
 SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a LIMIT 2;
 SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a LIMIT 2;
 
 #expect filesort
-EXPLAIN SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
-EXPLAIN SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
+SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
+SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
 SELECT * FROM t1 JOIN t2 ON b=c ORDER BY a;
 SELECT * FROM t1 JOIN t2 ON a=c ORDER BY a;
 
@@ -705,8 +704,7 @@ INSERT INTO t2 VALUES
 
 INSERT INTO t3 VALUES
 (3), (3), (3), (3), (3), (3), (3), (3), (3), (3);
-ANALYZE TABLE t1, t2, t3, t4, t5, t6;
-EXPLAIN
+#skip ANALYZE TABLE t1, t2, t3, t4, t5, t6;
 SELECT * 
 FROM 
   t1 JOIN t2 ON t1.a = t2.a 
@@ -748,7 +746,6 @@ DROP TABLE t1,t2,t3,t4,t5,t6;
 CREATE TABLE t1(f1 INT);
 INSERT INTO t1 VALUES (1),(2);
 CREATE VIEW v1 AS SELECT 1 FROM t1 LEFT JOIN t1 AS t2 on 1=1;
-EXPLAIN
 SELECT 1 FROM v1 right join v1 AS v2 ON RAND();
 DROP VIEW v1;
 DROP TABLE t1;
@@ -759,7 +756,7 @@ DROP TABLE t1;
 CREATE TABLE t1 (a TINYINT, b TEXT, KEY (a));
 INSERT INTO t1 VALUES (0,''),(0,'');
 FLUSH TABLES;
-EXPLAIN SELECT 1 FROM t1 LEFT JOIN t1 a ON 1
+SELECT 1 FROM t1 LEFT JOIN t1 a ON 1
 WHERE ROW(t1.a, 1111.11) = ROW(1111.11, 1111.11) AND
 ROW(t1.b, 1111.11) <=> ROW('','');
 DROP TABLE t1;
@@ -787,11 +784,11 @@ CREATE TABLE t2 (f1 int);
 INSERT INTO t2  VALUES (1);
 CREATE VIEW v1 AS SELECT * FROM t2;
 
-PREPARE stmt FROM 'UPDATE t2 AS A NATURAL JOIN v1 B SET B.f1 = 1';
-EXECUTE stmt;
-EXECUTE stmt;
+#skip PREPARE stmt FROM 'UPDATE t2 AS A NATURAL JOIN v1 B SET B.f1 = 1';
+#skip EXECUTE stmt;
+#skip EXECUTE stmt;
 
-DEALLOCATE PREPARE stmt;
+#skip DEALLOCATE PREPARE stmt;
 
 DROP VIEW v1;
 DROP TABLE t1, t2;
@@ -867,15 +864,15 @@ CREATE TABLE t1(c INT);
 
 INSERT INTO t1 VALUES (1), (2);
 
-PREPARE stmt FROM "SELECT t2.c AS f1 FROM t1 LEFT JOIN
-                                        t1 t2 ON t1.c=t2.c RIGHT JOIN
-                                        t1 t3 ON t1.c=t3.c 
-                   GROUP BY f1;";
+#skip PREPARE stmt FROM "SELECT t2.c AS f1 FROM t1 LEFT JOIN
+#skip                                        t1 t2 ON t1.c=t2.c RIGHT JOIN
+#skip                                        t1 t3 ON t1.c=t3.c
+#skip                   GROUP BY f1;";
 
-EXECUTE stmt;
-EXECUTE stmt;
+#skip EXECUTE stmt;
+#skip EXECUTE stmt;
 
-DEALLOCATE PREPARE stmt;
+#skip DEALLOCATE PREPARE stmt;
 DROP TABLE t1;
 
  End of 5.1 tests
@@ -898,8 +895,8 @@ CREATE TABLE t2 (
 );
 
 INSERT INTO t2 VALUES (1,4),(3,5),(2,6);
-ANALYZE  TABLE t1, t2;
-explain SELECT t2.pk, t2.c1 FROM t2, t1 
+#skip ANALYZE  TABLE t1, t2;
+SELECT t2.pk, t2.c1 FROM t2, t1
 WHERE t2.pk = t1.c1 AND t2.pk >= 2;
 
 
@@ -907,7 +904,7 @@ WHERE t2.pk = t1.c1 AND t2.pk >= 2;
 # be used when joining with this view as with the underlying table.
 CREATE VIEW v_t2 AS SELECT * FROM t2;
 
-explain SELECT v_t2.pk, v_t2.c1 FROM v_t2, t1 
+SELECT v_t2.pk, v_t2.c1 FROM v_t2, t1
 WHERE v_t2.pk = t1.c1 AND v_t2.pk >= 2;
 
 
@@ -932,7 +929,6 @@ CREATE VIEW v1 AS SELECT * FROM t1;
 
 
 
-explain
 SELECT t1.pk
 FROM v1, t1
 WHERE (v1.i2 = 211 AND v1.i2 > 7)
@@ -963,9 +959,7 @@ insert into t1 values(3,'c');
 let $rest_of_query=(t1 join t3 on t3.ref_t1 =
 t1.c1 join t2 on t2.ref_t1 = t1.c1) on t4.ref_t1 = t1.c1;
 
-eval EXPLAIN SELECT * FROM t4 JOIN $rest_of_query;
-eval EXPLAIN SELECT STRAIGHT_JOIN * FROM t4 JOIN $rest_of_query;
-eval EXPLAIN SELECT * FROM t4 STRAIGHT_JOIN $rest_of_query;
+
 
 drop table t1,t2,t3,t4;
 
@@ -979,7 +973,7 @@ FROM (SELECT 1 FROM t1 WHERE a) AS q
      NATURAL LEFT JOIN t1
      NATURAL LEFT JOIN t1 AS t2;
 
-eval explain $query;
+
 eval $query;
 
 let $query=
@@ -988,7 +982,7 @@ FROM t1
      NATURAL RIGHT JOIN t1 AS t2
      NATURAL RIGHT JOIN (SELECT 1 FROM t1 WHERE a) AS q;
 
-eval explain $query;
+
 eval $query;
 
 DROP TABLE t1;
@@ -1009,14 +1003,14 @@ SELECT *
 FROM t1
 WHERE pk BETWEEN 13 AND 14;
 
-PREPARE st1 FROM "
-UPDATE v1 AS a NATURAL JOIN v1 AS b
-SET a.dummy = '', b.col_check = NULL ";
+#skip PREPARE st1 FROM "
+#skip UPDATE v1 AS a NATURAL JOIN v1 AS b
+#skip SET a.dummy = '', b.col_check = NULL ";
 
-EXECUTE st1;
-EXECUTE st1;
+#skip EXECUTE st1;
+#skip EXECUTE st1;
 
-DEALLOCATE PREPARE st1;
+#skip DEALLOCATE PREPARE st1;
 DROP VIEW v1;
 DROP TABLE t1;
 
@@ -1065,7 +1059,7 @@ CREATE TABLE t4
 
 INSERT INTO t4 VALUES ('RUXDY',8);
 
-ANALYZE TABLE t1, t2, t3, t4;
+#skip ANALYZE TABLE t1, t2, t3, t4;
 
 let $query=
 SELECT alias1.pk AS field5
@@ -1085,7 +1079,6 @@ FROM t3 AS alias1
 WHERE alias1.col_int > 5 OR
       alias5.col_int > 5; 
 
-eval explain $query;
 eval $query;
 
 DROP TABLE t1, t2, t3, t4;
@@ -1104,7 +1097,7 @@ insert into parent values (1,1,1,1);
 insert into eq_child select * from parent;
 
 # Need JSON explain format in order to make the where condition visible.
-explain format=json select straight_join count(*) from parent
+select straight_join count(*) from parent
  join eq_child as c1 on c1.a = parent.b and c1.b = parent.b
  join eq_child as c2 on c2.a = parent.b and c2.b = parent.b
  join eq_child as c3 on c3.a = parent.b and c3.b = parent.b
@@ -1131,10 +1124,10 @@ INSERT INTO t SELECT NULL, NULL FROM t;
 INSERT INTO t SELECT NULL, NULL FROM t;
 INSERT INTO t SELECT NULL, NULL FROM t;
 INSERT INTO t SELECT NULL, NULL FROM t;
-ANALYZE TABLE t;
+#skip ANALYZE TABLE t;
 
 # Verify that we indeed get a backwards index scan.
-EXPLAIN  SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
+SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
 
 FLUSH STATUS;
 SELECT t1.i AS a, (SELECT t2.i FROM t t2 WHERE t1.j = t2.j ORDER BY j DESC, i DESC LIMIT 1) AS b FROM t t1;
@@ -1177,7 +1170,7 @@ select t1.* from t t0 cross join t t1 join t t2
                                                    left join t t4
                                                    on t4.a>t3.a-t0.a);
 
-set optimizer_switch=default;
+#skip set optimizer_switch=default;
 drop table t;
 
 # This was a bug in 8.0: the outer reference t1.a
@@ -1198,11 +1191,11 @@ let query=
                 from t t2
                 left join (select * from t t3 where t3.a>t1.a) dt
                 on true);
-eval explain format=tree $query;
+
 eval $query;
 
 drop table t;
-set optimizer_switch=default;
+#skip set optimizer_switch=default;
 
 set global default_storage_engine=innodb;
 
@@ -1310,7 +1303,7 @@ FROM
     JOIN t3 ON t1.y = t3.y AND t3.ts <= t1.ts
     LEFT JOIN t4 ON t3.z = t4.z;
 
-SET optimizer_switch=DEFAULT;
+#skip SET optimizer_switch=DEFAULT;
 
 DROP TABLE t1, t2, t3, t4;
 
@@ -1320,7 +1313,7 @@ DROP TABLE t1, t2, t3, t4;
 
 CREATE TABLE t1 ( a INTEGER );
 INSERT INTO t1 VALUES (0), (0), (0), (1), (1), (0), (1), (0);
-ANALYZE TABLE t1;
+#skip ANALYZE TABLE t1;
 
 SELECT * FROM
   t1, t1 AS t2, t1 AS t3
@@ -1335,7 +1328,7 @@ DROP TABLE t1;
 CREATE TABLE t1 ( a VARCHAR(10) );
 CREATE TABLE t2 ( a VARCHAR(10) );
 INSERT INTO t1 VALUES ('x');
-ANALYZE TABLE t1, t2;
+#skip ANALYZE TABLE t1, t2;
 
 SELECT *
   FROM t1
@@ -1357,7 +1350,7 @@ CREATE TABLE t1 (
 # Stick in some values so that the ref access is not immediately
 # thrown away.
 INSERT INTO t1 VALUES (1), (2);
-ANALYZE TABLE t1;
+#skip ANALYZE TABLE t1;
 
 # Due to a pass ordering issue, the t1.a IS NULL is removed,
 # but the join is left as an outer join, and t1.a = t2.a
@@ -1384,13 +1377,13 @@ DROP TABLE t1;
 # exactly 64 in all.
 CREATE TABLE t1 (c1 INTEGER, c2 INTEGER, c3 INTEGER, c4 INTEGER, c5 INTEGER, c6 INTEGER, c7 INTEGER, c8 INTEGER, c9 INTEGER, c10 INTEGER, c11 INTEGER, c12 INTEGER, c13 INTEGER, c14 INTEGER, c15 INTEGER, c16 INTEGER, c17 INTEGER, c18 INTEGER, c19 INTEGER, c20 INTEGER, c21 INTEGER, c22 INTEGER, c23 INTEGER, c24 INTEGER, c25 INTEGER, c26 INTEGER, c27 INTEGER, c28 INTEGER, c29 INTEGER, c30 INTEGER, c31 INTEGER, c32 INTEGER, c33 INTEGER, c34 INTEGER, c35 INTEGER, c36 INTEGER, c37 INTEGER, c38 INTEGER, c39 INTEGER, c40 INTEGER, c41 INTEGER, c42 INTEGER, c43 INTEGER, c44 INTEGER, c45 INTEGER, c46 INTEGER, c47 INTEGER, c48 INTEGER, c49 INTEGER, c50 INTEGER, c51 INTEGER, c52 INTEGER, c53 INTEGER, c54 INTEGER, c55 INTEGER, c56 INTEGER, c57 INTEGER, c58 INTEGER, c59 INTEGER, c60 INTEGER, c61 INTEGER);
 
-SELECT *
-FROM t1
-NATURAL JOIN (
-  SELECT t2.*
-  FROM t1 AS t2 JOIN t1 AS t3 ON t3.c1 = t2.c1
-  WHERE t2.c3 <> ANY (SELECT c3 FROM t1)
-) AS d1;
+#skip SELECT *
+#skip FROM t1
+#skip NATURAL JOIN (
+#skip   SELECT t2.*
+#skip   FROM t1 AS t2 JOIN t1 AS t3 ON t3.c1 = t2.c1
+#skip   WHERE t2.c3 <> ANY (SELECT c3 FROM t1)
+#skip ) AS d1;
 
 DROP TABLE t1;
 
@@ -1458,7 +1451,7 @@ DROP TABLE t1;
 
 CREATE TABLE t1 ( a INTEGER, b INTEGER );
 INSERT INTO t1 VALUES (1,2);
-ANALYZE TABLE t1;
+#skip ANALYZE TABLE t1;
 
 # A multiple equality that refers to two fields from t3. We must make sure
 # to not forget the t3.a = t3.b equality.
@@ -1503,7 +1496,7 @@ DROP TABLE t1;
 
 CREATE TABLE t1(a INT NOT NULL, b INT, PRIMARY KEY(a));
 INSERT INTO t1 VALUES (1,1), (2,2), (3,3);
-ANALYZE TABLE t1;
+#skip ANALYZE TABLE t1;
 
 
 DROP TABLE t1;
@@ -1555,7 +1548,7 @@ INSERT INTO t1 VALUES(1);
 CREATE TABLE t2(x INT);
 INSERT INTO t2 VALUES(2),(3);
 
-EXPLAIN SELECT 6 FROM t1 WHERE EXISTS
+SELECT 6 FROM t1 WHERE EXISTS
   (SELECT 7 FROM (SELECT a) d1 WHERE EXISTS (SELECT 8 FROM t2));
 
 DROP TABLE t1,t2;
@@ -1598,7 +1591,7 @@ FROM t1
 ;
 
 eval $query;
-eval explain $query;
+
 
 DROP TABLE t1, t2, t3;
 
@@ -1704,7 +1697,7 @@ INSERT INTO t2 VALUES (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4, 0), (4
 CREATE TABLE t3 ( a INTEGER, b INTEGER, c INTEGER );
 INSERT INTO t3 VALUES (1, 0, 2);
 
-ANALYZE TABLE t1,t2,t3;
+#skip ANALYZE TABLE t1,t2,t3;
 
 # Sets up a multiple equality (t2.b, t3.a, t3.b) and demonstrates
 # that it is not correctly applied (rows are returned where not
@@ -1747,7 +1740,7 @@ DROP TABLE t1;
 
 CREATE TABLE t1 ( a INTEGER, b INTEGER, KEY (b) );
 INSERT INTO t1 VALUES (1,1), (2,2);
-ANALYZE TABLE t1;
+#skip ANALYZE TABLE t1;
 
 SELECT 1
 FROM

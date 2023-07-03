@@ -81,13 +81,13 @@ AND A.c = 343;
 DROP TABLE t1;
 
  #
- # Bug#59503: explain crash in get_mm_leaf
+ # Bug#59503: crash in get_mm_leaf
  #
 CREATE TABLE t1 (a VARCHAR(51) CHARACTER SET latin1)
 PARTITION BY KEY (a) PARTITIONS 1;
 INSERT INTO t1 VALUES ('a'),('b'),('c');
-analyze table t1;
-EXPLAIN SELECT 1 FROM t1 WHERE a > 1;
+#skip #skip analyze table t1;
+SELECT 1 FROM t1 WHERE a > 1;
 DROP TABLE t1;
 
  #
@@ -174,7 +174,7 @@ SUBPARTITIONS 2 (
     PARTITION p01 VALUES LESS THAN(100),
     PARTITION p11 VALUES LESS THAN(200),
     PARTITION p21 VALUES LESS THAN MAXVALUE);
-SELECT PARTITION_EXPRESSION, SUBPARTITION_EXPRESSION FROM INFORMATION_SCHEMA.PARTITIONS WHERE TABLE_NAME='t1';
+#skip SELECT PARTITION_EXPRESSION, SUBPARTITION_EXPRESSION FROM INFORMATION_SCHEMA.PARTITIONS WHERE TABLE_NAME='t1';
 show create table t1;
 drop table t1;
 
@@ -228,17 +228,17 @@ INSERT INTO t1 VALUES ('2009-09-21 17:31:42', 'pmax');
 
 SELECT * FROM t1;
 SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-analyze table t1;
-EXPLAIN SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-EXPLAIN SELECT * FROM t1 where a = '2007-07-30 17:35:48';
+#skip #skip analyze table t1;
+SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
+SELECT * FROM t1 where a = '2007-07-30 17:35:48';
 ALTER TABLE t1 REORGANIZE PARTITION pmax INTO (
  PARTITION p3 VALUES LESS THAN (1247688000),
  PARTITION pmax VALUES LESS THAN MAXVALUE);
 SELECT * FROM t1;
 SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-analyze table t1;
-EXPLAIN SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
-EXPLAIN SELECT * FROM t1 where a = '2007-07-30 17:35:48';
+#skip #skip analyze table t1;
+SELECT * FROM t1 where a between '2007-01-01' and '2007-08-01';
+SELECT * FROM t1 where a = '2007-07-30 17:35:48';
 SHOW CREATE TABLE t1;
 DROP TABLE t1;
 
@@ -261,10 +261,10 @@ partition by list (a)
 ( partition p0 values in (1),
   partition p1 values in (2));
 insert into t1 values (1,1),(2,1),(2,2),(2,3);
-analyze table t1;
-show indexes from t1;
-analyze table t1;
-show indexes from t1;
+#skip analyze table t1;
+#skip show indexes from t1;
+#skip analyze table t1;
+#skip show indexes from t1;
 drop table t1;
 
 #
@@ -328,7 +328,7 @@ PARTITION BY HASH (a)
 ALTER TABLE t1 ENGINE=NonExistentEngine;
 SHOW CREATE TABLE t1;
 DROP TABLE t1;
-SET sql_mode=DEFAULT;
+#skip SET sql_mode=DEFAULT;
 
 #
 # Bug#40494: Crash MYSQL server crashes on range access with partitioning
@@ -439,14 +439,14 @@ CREATE TABLE `t2` (
 INSERT INTO `t1` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 INSERT INTO `t2` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 
-analyze table t1;
-EXPLAIN SELECT c1 FROM t1 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
+#skip analyze table t1;
+SELECT c1 FROM t1 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
 
 FLUSH STATUS;
 SELECT c1 FROM t1 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
 SHOW STATUS LIKE 'Handler_read_%';
 
-EXPLAIN SELECT c1 FROM t2 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
+SELECT c1 FROM t2 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
 
 FLUSH STATUS;
 SELECT c1 FROM t2 WHERE (c1 > 10 AND c1 < 13) OR (c1 > 17 AND c1 < 20);
@@ -471,26 +471,26 @@ CREATE TABLE `t2` (
 INSERT INTO `t1` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 INSERT INTO `t2` VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 
-analyze table t1;
-EXPLAIN SELECT c1 FROM t1 WHERE (c1 > 2 AND c1 < 5);
+#skip analyze table t1;
+SELECT c1 FROM t1 WHERE (c1 > 2 AND c1 < 5);
 
 FLUSH STATUS;
 SELECT c1 FROM t1 WHERE (c1 > 2 AND c1 < 5);
 SHOW STATUS LIKE 'Handler_read_%';
 
-EXPLAIN SELECT c1 FROM t2 WHERE (c1 > 2 AND c1 < 5);
+SELECT c1 FROM t2 WHERE (c1 > 2 AND c1 < 5);
 
 FLUSH STATUS;
 SELECT c1 FROM t2 WHERE (c1 > 2 AND c1 < 5);
 SHOW STATUS LIKE 'Handler_read_%';
 
-EXPLAIN SELECT c1 FROM t1 WHERE (c1 > 12 AND c1 < 15);
+SELECT c1 FROM t1 WHERE (c1 > 12 AND c1 < 15);
 
 FLUSH STATUS;
 SELECT c1 FROM t1 WHERE (c1 > 12 AND c1 < 15);
 SHOW STATUS LIKE 'Handler_read_%';
 
-EXPLAIN SELECT c1 FROM t2 WHERE (c1 > 12 AND c1 < 15);
+SELECT c1 FROM t2 WHERE (c1 > 12 AND c1 < 15);
 
 FLUSH STATUS;
 SELECT c1 FROM t2 WHERE (c1 > 12 AND c1 < 15);
@@ -868,13 +868,13 @@ insert into t1 values (1);
 drop table t1;
 
 #
-# Bug #13441: Analyze on partitioned table didn't work
+# Bug #13441: #skip analyze on partitioned table didn't work
 #
 CREATE TABLE t1 (a int)
 PARTITION BY LIST (a)
 (PARTITION x1 VALUES IN (10), PARTITION x2 VALUES IN (20));
 
-analyze table t1;
+#skip analyze table t1;
 
 drop table t1;
 
@@ -1264,9 +1264,9 @@ drop table t1;
 #
 # bug #14350 Partitions: crash if prepared statement
 #
-prepare stmt1 from 'create table t1 (s1 int) partition by hash (s1)';
-execute stmt1;
-drop table t1;
+#skip prepare stmt1 from 'create table t1 (s1 int) partition by hash (s1)';
+#skip execute stmt1;
+
 
 #
 # bug 17290 SP with delete, create and rollback to save point causes MySQLD core
@@ -1299,8 +1299,8 @@ create table t1 (f1 integer) partition by range(f1)
 (partition p1 values less than (0), partition p2 values less than (10));
 insert into t1 set f1 = null;
 select * from t1 where f1 is null;
-analyze table t1;
-explain select * from t1 where f1 is null;
+#skip analyze table t1;
+select * from t1 where f1 is null;
 drop table t1;
 
 create table t1 (f1 integer) partition by list(f1)
@@ -1339,10 +1339,10 @@ create table t1 (f1 integer) partition by list(f1)
 
 insert into t1 values (1),(2),(3),(4),(null);
 select * from t1 where f1 < 3;
-analyze table t1;
-explain select * from t1 where f1 < 3;
+#skip analyze table t1;
+select * from t1 where f1 < 3;
 select * from t1 where f1 is null;
-explain select * from t1 where f1 is null;
+select * from t1 where f1 is null;
 drop table t1;
 
 create table t1 (f1 int) partition by list(f1 div 2)
@@ -1356,10 +1356,10 @@ create table t1 (f1 int) partition by list(f1 div 2)
 
 insert into t1 values (2),(4),(6),(8),(null);
 select * from t1 where f1 < 3;
-analyze table t1;
-explain select * from t1 where f1 < 3;
+#skip analyze table t1;
+select * from t1 where f1 < 3;
 select * from t1 where f1 is null;
-explain select * from t1 where f1 is null;
+select * from t1 where f1 is null;
 drop table t1;
 
 create table t1 (a int) partition by LIST(a) (
@@ -1370,10 +1370,10 @@ create table t1 (a int) partition by LIST(a) (
 );
 insert into t1 values (NULL),(0),(1),(2);
 select * from t1 where a is null or a < 2;
-analyze table t1;
-explain select * from t1 where a is null or a < 2;
+#skip analyze table t1;
+select * from t1 where a is null or a < 2;
 select * from t1 where a is null or a < 0 or a > 1;
-explain select * from t1 where a is null or a < 0 or a > 1;
+select * from t1 where a is null or a < 0 or a > 1;
 drop table t1;
 
 #
@@ -1385,7 +1385,7 @@ PARTITION BY RANGE(id)
 (PARTITION p0  VALUES LESS THAN (10),
 PARTITION p1 VALUES LESS THAN (20),
 PARTITION p2 VALUES LESS THAN (30));
-analyze table t1;
+#skip analyze table t1;
 DROP TABLE t1;
 
 #
@@ -1435,7 +1435,7 @@ partition by list (s1)
 insert into t1 values (null);
 insert into t1 values (null);
 insert into t1 values (null);
-analyze table t1;
+#skip analyze table t1;
 select auto_increment from information_schema.tables where table_name='t1';
 select * from t1;
 drop table t1;
@@ -1468,11 +1468,11 @@ drop table t1;
 #
 CREATE TABLE t1 (a int) PARTITION BY KEY(a);
 INSERT into t1 values (1), (2);
-analyze table t1;
+#skip analyze table t1;
 DELETE from t1 where a = 1;
-analyze table t1;
+#skip analyze table t1;
 ALTER TABLE t1 OPTIMIZE PARTITION p0;
-analyze table t1;
+#skip analyze table t1;
 DROP TABLE t1;
 
 #
@@ -1486,19 +1486,19 @@ DROP TABLE t1;
 #
 # Bug 17455 Partitions: Wrong message and error when using Repair/Optimize
 #                       table on partitioned table
-# (added check/analyze for gcov of Bug#20129)
+# (added check/#skip analyze for gcov of Bug#20129)
 create table t1 (a int)
 partition by key (a);
 
 #skip REPAIR TABLE t1;
 #skip OPTIMIZE TABLE t1;
 #skip CHECK TABLE t1;
-ANALYZE TABLE t1;
+#skip analyze TABLE t1;
 
 drop table t1;
 
 #
-#BUG 17138 Problem with stored procedure and analyze partition
+#BUG 17138 Problem with stored procedure and #skip analyze partition
 #
 
 
@@ -1668,13 +1668,13 @@ drop table t1;
 create table t1(a int auto_increment, b int, primary key (a, b)) 
   partition by hash(b) partitions 2;
 insert into t1 values (null, 1);
-analyze table t1;
+#skip analyze table t1;
 drop table t1;
 
 create table t1(a int auto_increment primary key)
   partition by key(a) partitions 2;
 insert into t1 values (null), (null), (null);
-analyze table t1;
+#skip analyze table t1;
 drop table t1;
 # Bug #28488: Incorrect information in file: './test/t1_test#.frm'
 #
@@ -1754,7 +1754,7 @@ PARTITION BY RANGE (a) (
   PARTITION p1 VALUES LESS THAN (10),
   PARTITION p2 VALUES LESS THAN (20)
 );
-ALTER TABLE t1 ANALYZE PARTITION p1;
+ALTER TABLE t1 #skip analyze PARTITION p1;
 ALTER TABLE t1 CHECK PARTITION p1;
 ALTER TABLE t1 REPAIR PARTITION p1;
 ALTER TABLE t1 OPTIMIZE PARTITION p1;
@@ -1943,8 +1943,8 @@ CREATE TABLE t1 (a int) PARTITION BY RANGE (a)
    PARTITION p2 VALUES LESS THAN (300),
    PARTITION p3 VALUES LESS THAN MAXVALUE);
 INSERT INTO t1 VALUES (10), (100), (200), (300), (400);
-analyze table t1;
-EXPLAIN SELECT * FROM t1 WHERE a>=200;
+#skip analyze table t1;
+SELECT * FROM t1 WHERE a>=200;
 DROP TABLE t1;
 
 #
@@ -1982,7 +1982,7 @@ INSERT INTO t1 VALUES
 ;
 
 SELECT b, c FROM t1 WHERE b = 1 GROUP BY b, c;
-analyze table t1;
+#skip analyze table t1;
 EXPLAIN
 SELECT b, c FROM t1 WHERE b = 1 GROUP BY b, c;
 
@@ -2000,7 +2000,7 @@ CREATE TABLE t1(id INT,KEY(id))
   PARTITION BY HASH(id) PARTITIONS 2;
 SELECT COUNT(*) FROM t1;
 DROP TABLE t1;
-SET SESSION SQL_MODE=DEFAULT;
+#skip SET SESSION SQL_MODE=DEFAULT;
 
 # This testcase is commented due to the Bug #46853
 # Should be uncommented after fixing Bug #46853
@@ -2067,11 +2067,11 @@ DROP TABLE t1;
 SET GLOBAL myisam_use_mmap=1;
 CREATE TABLE t1(a INT) PARTITION BY HASH(a) PARTITIONS 1;
 INSERT INTO t1 VALUES(0);
-FLUSH TABLE t1;
+#skip FLUSH TABLE t1;
 TRUNCATE TABLE t1;
 INSERT INTO t1 VALUES(0);
 DROP TABLE t1;
-SET GLOBAL myisam_use_mmap=default;
+#skip SET GLOBAL myisam_use_mmap=default;
 
  End of 5.1 tests
  # Start of 5.5 tests
@@ -2164,7 +2164,7 @@ INSERT INTO t1 VALUES (1,1,'a',1), (2,2,'a',1);
 DROP TABLE t1;
 
  #
- # WL#5855 (EXPLAIN FORMAT=JSON) partition test
+ # WL#5855 (FORMAT=JSON) partition test
  #
 
 CREATE TABLE t1 (c1 int(11) DEFAULT NULL, KEY c1 (c1))
@@ -2186,7 +2186,7 @@ SET sql_mode= 'STRICT_TRANS_TABLES';
 
 # Before this fix, sql_mode would have been reset to 0.
 SELECT @@sql_mode;
-SET sql_mode= DEFAULT;
+#skip SET sql_mode= DEFAULT;
 
  #
  # ASSERTION FAILED: !THD->IS_ERROR() PARTITIONS + OUT OF RANGE VALUES

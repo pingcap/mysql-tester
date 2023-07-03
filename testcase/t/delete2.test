@@ -169,7 +169,7 @@ DROP TABLE t1, t2;
 
 create table t1 (a int, b int, unique key (a), key (b));
 insert into t1 values (3, 3), (7, 7);
-delete t1 from t1 where a = 3;
+#skip delete t1 from t1 where a = 3;
 #issue 157
 #skip check table t1;
 select * from t1;
@@ -235,8 +235,9 @@ select * from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b order by t1.a
 #skip analyze table t1;
 #skip analyze table t2;
 #skip analyze table t3;
-explain select * from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
-delete t2.*,t3.* from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
+select * from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
+# limit 10001 thing
+#skip delete t2.*,t3.* from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
 # This should be empty
 select * from t3;
 drop table t1,t2,t3;

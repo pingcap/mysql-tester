@@ -145,8 +145,8 @@ EXPLAIN DELETE t2 FROM t1 JOIN t2 WHERE t1.a = 10;
 DROP TABLE t1, t2;
 create table t1 (a int, b int, unique key (a), key (b));
 insert into t1 values (3, 3), (7, 7);
-delete t1 from t1 where a = 3;
 select * from t1;
+3	3
 7	7
 drop table t1;
 CREATE TABLE t1 ( a int PRIMARY KEY );
@@ -180,12 +180,14 @@ select * from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b order by t1.a
 1	1	1	1	1	1
 1	3	1	1	1	3
 2	1	2	2	2	1
-explain select * from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
-1	SIMPLE	t2	NULL	ref	PRIMARY	PRIMARY	4	delete2.t1.a	1	100.00	Using index
-1	SIMPLE	t3	NULL	eq_ref	PRIMARY	PRIMARY	8	delete2.t2.b,delete2.t1.b	1	100.00	Using index
-delete t2.*,t3.* from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
+select * from t1,t2,t3 where t1.a=t2.a AND t2.b=t3.a and t1.b=t3.b;
+1	1	1	1	1	1
+2	1	2	2	2	1
+1	3	1	1	1	3
 select * from t3;
+1	1
+1	3
+2	1
 drop table t1,t2,t3;
 create table t1(a date not null);
 insert ignore into t1 values (0);

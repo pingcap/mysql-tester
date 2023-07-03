@@ -11,13 +11,13 @@
 make build
 
 # record the test output to the result file
-./bin/mysql-tester -port 15306 -user root -path testcase -record -reserve-schema
+./bin/mysql-tester -port 15306 -user root -path testcase/wesql-scale -record -reserve-schema
 
 # run all the testcases, and record the result to result.xml
-./bin/mysql-tester -port 15306 -user root -path testcase -xunitfile result.xml
+./bin/mysql-tester -port 15306 -user root -path testcase/wesql-scale -xunitfile result.xml
 
 # run the testcases test1 and test2, and record the result to result.xml
-./bin/mysql-tester -port 15306 -user root -path testcase -xunitfile result.xml test1 test2
+./bin/mysql-tester -port 15306 -user root -path testcase/wesql-scale -xunitfile result.xml test1 test2
 
 ```
 

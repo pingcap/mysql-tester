@@ -1,0 +1,3 @@
+# https://github.com/apecloud/wesql-scale/issues/178
+set sql_mode='';
+show tables;

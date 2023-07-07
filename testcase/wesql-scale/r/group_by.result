@@ -4414,8 +4414,6 @@ key (col_int_key ),
 key (col_varchar_1024_utf8_key ),
 primary key (pk),
 key (col_varchar_10_latin1_key )) ENGINE=INNODB;
-INSERT INTO B VALUES  ('at', repeat('a',1000), 'the',
--1622540288, 'as', repeat('a',1000), 'want', 1810890752, NULL, 'v', 'just');
 SELECT
 DISTINCT table1 . pk AS field1
 FROM  view_AA AS table1  LEFT  JOIN B AS table2

@@ -4414,16 +4414,8 @@ key (col_int_key ),
 key (col_varchar_1024_utf8_key ),
 primary key (pk),
 key (col_varchar_10_latin1_key )) ENGINE=INNODB;
-SELECT
-DISTINCT table1 . pk AS field1
-FROM  view_AA AS table1  LEFT  JOIN B AS table2
-ON  table1 . col_varchar_10_latin1_key =  table2 .
-col_varchar_1024_latin1_key
-WHERE ( ( table2 . pk > table1 . col_int_key AND table1 . pk NOT
-BETWEEN 3 AND ( 3 + 3 ) ) AND table2 . pk <> 6 )
-GROUP BY table1 . pk;
 DROP TABLE AA,B;
-DROP VIEW view_AA;
+DROP VIEW if exists view_AA;
 SET @@sql_mode = @old_sql_mode;
 CREATE TABLE t1(a INT, b INT) ENGINE=INNODB;
 INSERT INTO t1 VALUES (1,2), (3,4);

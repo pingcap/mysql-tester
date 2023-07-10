@@ -57,3 +57,6 @@ vdiff_table
 views
 vreplication
 vreplication_log
+
+create database `a-b-c`;
+use `a-b-c`;

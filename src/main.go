@@ -406,7 +406,6 @@ func (t *tester) Run() error {
 			}
 			for _, q := range queries {
 				t.skipParserError = true
-
 				// ignore all syntax error
 				t.expectedErrs = append(t.expectedErrs, "ER_PARSE_ERROR")
 

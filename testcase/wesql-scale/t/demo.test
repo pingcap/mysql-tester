@@ -1,4 +1,1 @@
---echo test
-SELECT 2;
---source include/test.inc
 SELECT 2;

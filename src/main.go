@@ -149,6 +149,8 @@ type tester struct {
 
 	// replace output column through --replace_column 1 <static data> 3 #
 	replaceColumn []ReplaceColumn
+
+	skipParserError bool
 }
 
 func newTester(name string) *tester {
@@ -268,7 +270,7 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
-	queries, err := t.loadQueries()
+	queries, err := t.loadQueries(t.testFileName())
 	if err != nil {
 		err = errors.Trace(err)
 		t.addFailure(&testSuite, &err, 0)
@@ -397,6 +399,31 @@ func (t *tester) Run() error {
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
+		case Q_SOURCE:
+			queries, err := t.loadQueries(fmt.Sprintf("%s/%s", path, strings.TrimSpace(s)))
+			if err != nil {
+				return errors.Annotate(err, "failed to open file")
+			}
+			for _, q := range queries {
+				t.skipParserError = true
+				// ignore all syntax error
+				t.expectedErrs = append(t.expectedErrs, "ER_PARSE_ERROR")
+
+				if t.enableConcurrent {
+					concurrentQueue = append(concurrentQueue, q)
+				} else if err = t.execute(q); err != nil {
+					err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+					t.addFailure(&testSuite, &err, testCnt)
+					return err
+				}
+
+				testCnt++
+
+				t.sortedResult = false
+				t.replaceColumn = nil
+				t.expectedErrs = nil
+				t.skipParserError = false
+			}
 		}
 	}
 
@@ -494,8 +521,8 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	}
 	return
 }
-func (t *tester) loadQueries() ([]query, error) {
-	data, err := ioutil.ReadFile(t.testFileName())
+func (t *tester) loadQueries(filename string) ([]query, error) {
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +586,9 @@ func (t *tester) parserErrorHandle(query query, err error) error {
 	err = syntaxError(err)
 	for _, expectedErr := range t.expectedErrs {
 		if expectedErr == "ER_PARSE_ERROR" {
-			t.writeError(query, err)
+			if !t.skipParserError {
+				t.writeError(query, err)
+			}
 			err = nil
 			break
 		}

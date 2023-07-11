@@ -1558,7 +1558,7 @@ INSERT INTO t2 SELECT a+4, b FROM t2;
 
 SELECT * FROM t1 FORCE INDEX FOR ORDER BY (a), t2 WHERE t1.a < 2 ORDER BY t1.a;
 
-
+--sorted_result
 SELECT * FROM t1 USE INDEX FOR ORDER BY (a), t2 WHERE t1.a < 2 ORDER BY t1.a, t1.b;
 
 

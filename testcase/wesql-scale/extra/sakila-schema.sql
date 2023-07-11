@@ -29,11 +29,9 @@ CREATE TABLE address (
                          phone VARCHAR(20) NOT NULL,
 
 
-    /*!50705 location GEOMETRY */ /*!80003 SRID 0 */ /*!50705 NOT NULL,*/
                          last_update TIMESTAMP NOT NULL ,
                          PRIMARY KEY  (address_id),
                          KEY idx_fk_city_id (city_id),
-    /*!50705 SPATIAL KEY `idx_location` (location),*/
                          CONSTRAINT `fk_address_city` FOREIGN KEY (city_id) REFERENCES city (city_id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -159,7 +157,6 @@ CREATE TABLE film_category (
 
 SET @old_default_storage_engine = @@default_storage_engine;
 SET @@default_storage_engine = 'MyISAM';
-/*!50610 SET @@default_storage_engine = 'InnoDB'*/;
 
 CREATE TABLE film_text (
                            film_id SMALLINT NOT NULL,

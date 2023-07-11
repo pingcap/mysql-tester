@@ -47,7 +47,7 @@ INSERT INTO t2 VALUES (4,'Modifier des clients','en_construction.html',40010,'li
 INSERT INTO t2 VALUES (5,'Effacer des clients','en_construction.html',40020,'link.gif');
 INSERT INTO t2 VALUES (6,'Ajouter un service','t2_ajoute_form.phtml',51050,'link.gif');
 
-
+--sorted_result
 select t1.id,t1.idservice,t2.ordre,t2.description  from t1, t2 where t1.id = 2   and t1.idservice = t2.id  order by t2.ordre;
  
 drop table t1,t2;
@@ -1561,7 +1561,7 @@ SELECT * FROM t1 FORCE INDEX FOR ORDER BY (a), t2 WHERE t1.a < 2 ORDER BY t1.a;
 --sorted_result
 SELECT * FROM t1 USE INDEX FOR ORDER BY (a), t2 WHERE t1.a < 2 ORDER BY t1.a, t1.b;
 
-
+--sorted_result
 SELECT * FROM t1 FORCE INDEX FOR JOIN (a), t2 WHERE t1.a < 2 ORDER BY t1.a, t1.b;
 
 DROP TABLE t1, t2;
@@ -1596,7 +1596,7 @@ SELECT DISTINCT a,1 FROM t1 WHERE a <> 1 ORDER BY a DESC;
 
 DROP TABLE t1;
 
-
+--sorted_result
 select count(*) order by max(1) + min(1);
 
 
@@ -1610,10 +1610,11 @@ INSERT INTO t1 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (
 INSERT INTO t2 SELECT * FROM t1;
 #skip ANALYZE TABLE t1, t2, t3;
 
+--sorted_result
 SELECT t1.*, t2.* FROM t1 JOIN t2 ON t1.i1 = t2.i2 
                      LEFT JOIN t3 ON t2.i2 = t3.i3
   ORDER BY t1.i1 LIMIT 5;
-
+--sorted_result
 SELECT t1.*, t2.* FROM t1 JOIN t2 ON t1.i1 = t2.i2 
                      LEFT JOIN t3 ON t2.i2 = t3.i3
   ORDER BY t1.i1 LIMIT 5;
@@ -1625,6 +1626,7 @@ CREATE TABLE t1(a INT PRIMARY KEY);
 CREATE TABLE t2(b INT,c INT);
 INSERT INTO t1 VALUES (1), (2);
 INSERT INTO t2 VALUES (1,2), (2,3);
+--sorted_result
 SELECT (SELECT 1 FROM t1 WHERE a=b AND c=1 ORDER BY a DESC) FROM t2;
 DROP TABLE t1, t2;
 
@@ -1638,14 +1640,16 @@ CREATE TABLE t1 (
 INSERT INTO t1 VALUES (1,10), (2,NULL), (2,10);
 #skip ANALYZE TABLE t1;
 
-
+--sorted_result
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL);
-
+--sorted_result
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c;
+--sorted_result
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c;
 
-
+--sorted_result
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c DESC;
+--sorted_result
 SELECT c FROM t1 WHERE a=2 AND (c=10 OR c IS NULL) ORDER BY c DESC;
 
 DROP TABLE t1;
@@ -1659,13 +1663,13 @@ INSERT INTO t2 VALUES
   (103, 7), (109, 3), (102, 3), (108, 1), (106, 3),
   (107, 7), (105, 1), (101, 3), (100, 7), (110, 1);
 
-
+--sorted_result
 SELECT t1.a FROM t1 LEFT JOIN t2 ON t1.a=t2.a ORDER BY t1.a;
 
-
+--sorted_result
 SELECT t1.a FROM t1 LEFT JOIN t2 ON t1.a=t2.a ORDER BY t1.a LIMIT 8;
 
-
+--sorted_result
 SELECT t1.a FROM t1 LEFT JOIN t2 ON t1.a=t2.a ORDER BY t1.a LIMIT 1000;
 
 DROP TABLE t1, t2;
@@ -1742,6 +1746,7 @@ CREATE TABLE t(
 INSERT INTO t VALUES ('s',1);
 
 # Used to hit assert in debug mode
+--sorted_result
 SELECT MIN(alias2.m) AS field2,
        alias2.pk AS field3
 FROM t AS alias1
@@ -1759,11 +1764,14 @@ INSERT INTO t1 VALUES (2,'y');
 INSERT INTO t1 VALUES (3,'x');
 
 # Used to give correct result
+--sorted_result
 SELECT MIN(b) AS min_b FROM t1 GROUP BY a ORDER BY COALESCE(MIN(b), 'a');
 # Used to give wrong result
+--sorted_result
 SELECT MIN(b) AS min_b FROM t1 GROUP BY a ORDER BY COALESCE(min_b, 'a');
-
+--sorted_result
 SELECT MIN(b) AS min_b FROM t1 GROUP BY a ORDER BY COALESCE(MIN(b), 'a') DESC;
+--sorted_result
 SELECT MIN(b) AS min_b FROM t1 GROUP BY a ORDER BY COALESCE(min_b, 'a') DESC;
 
 DROP TABLE t1;

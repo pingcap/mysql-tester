@@ -18,7 +18,6 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -37,17 +36,18 @@ import (
 )
 
 var (
-	host           string
-	port           string
-	user           string
-	passwd         string
-	logLevel       string
-	record         bool
-	params         string
-	all            bool
-	reserveSchema  bool
-	xmlPath        string
-	retryConnCount int
+	host             string
+	port             string
+	user             string
+	passwd           string
+	logLevel         string
+	record           bool
+	params           string
+	all              bool
+	reserveSchema    bool
+	xmlPath          string
+	retryConnCount   int
+	collationDisable bool
 )
 
 func init() {
@@ -62,6 +62,7 @@ func init() {
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
 	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
+	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 
 	c := &charset.Charset{
 		Name:             "gbk",
@@ -538,10 +539,10 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 
 		}
 	}
-	return
 }
+
 func (t *tester) loadQueries() ([]query, error) {
-	data, err := ioutil.ReadFile(t.testFileName())
+	data, err := os.ReadFile(t.testFileName())
 	if err != nil {
 		return nil, err
 	}
@@ -912,7 +913,7 @@ func (t *tester) flushResult() error {
 	if !record {
 		return nil
 	}
-	return ioutil.WriteFile(t.resultFileName(), t.buf.Bytes(), 0644)
+	return os.WriteFile(t.resultFileName(), t.buf.Bytes(), 0644)
 }
 
 func (t *tester) testFileName() string {
@@ -922,12 +923,20 @@ func (t *tester) testFileName() string {
 
 func (t *tester) resultFileName() string {
 	// test and result must be in current ./r, the same as MySQL
-	return fmt.Sprintf("./r/%s.result", t.name)
+	name := t.name
+	if strings.HasPrefix(name, "collation") {
+		if collationDisable {
+			name = name + "_disabled"
+		} else {
+			name = name + "_enabled"
+		}
+	}
+	return fmt.Sprintf("./r/%s.result", name)
 }
 
 func loadAllTests() ([]string, error) {
 	// tests must be in t folder
-	files, err := ioutil.ReadDir("./t")
+	files, err := os.ReadDir("./t")
 	if err != nil {
 		return nil, err
 	}
@@ -941,6 +950,10 @@ func loadAllTests() ([]string, error) {
 		// the test file must have a suffix .test
 		name := f.Name()
 		if strings.HasSuffix(name, ".test") {
+			if collationDisable && !strings.HasPrefix(name, "collation") {
+				continue
+			}
+
 			name = strings.TrimSuffix(name, ".test")
 
 			tests = append(tests, name)
@@ -948,17 +961,6 @@ func loadAllTests() ([]string, error) {
 	}
 
 	return tests, nil
-}
-
-func resultExists(name string) bool {
-	resultFile := fmt.Sprintf("./r/%s.result", name)
-
-	if _, err := os.Stat(resultFile); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
 
 // convertTestsToTestTasks convert all test cases into several testBatches.
@@ -1081,19 +1083,19 @@ func main() {
 		if err == nil {
 			err = os.Remove(xmlPath)
 			if err != nil {
-				log.Errorf("drop previous xunit file fail: ", err)
+				log.Error("drop previous xunit file fail: ", err)
 				os.Exit(1)
 			}
 		}
 
 		xmlFile, err = os.Create(xmlPath)
 		if err != nil {
-			log.Errorf("create xunit file fail:", err)
+			log.Error("create xunit file fail:", err)
 			os.Exit(1)
 		}
 		xmlFile, err = os.OpenFile(xmlPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
-			log.Errorf("open xunit file fail:", err)
+			log.Error("open xunit file fail:", err)
 			os.Exit(1)
 		}
 
@@ -1115,7 +1117,7 @@ func main() {
 				})
 				err := Write(xmlFile, testSuite)
 				if err != nil {
-					log.Errorf("Write xunit file fail:", err)
+					log.Error("Write xunit file fail:", err)
 				}
 			}
 		}()

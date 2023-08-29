@@ -252,11 +252,13 @@ func (t *tester) preProcess() {
 
 	log.Warn("Create new db", mdb)
 
-	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", t.name)); err != nil {
-		log.Fatalf("Executing create db %s err[%v]", t.name, err)
+	dbName = t.name
+	dbName = strings.ReplaceAll(dbName, "/", "_")
+	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
+		log.Fatalf("Executing create db %s err[%v]", dbName, err)
 	}
 
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
+	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
 	if isTiDB(mdb) {
@@ -275,7 +277,9 @@ func (t *tester) preProcess() {
 
 func (t *tester) postProcess() {
 	if !reserveSchema {
-		t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+		dbName := t.name
+		dbName = strings.ReplaceAll(dbName, "/", "_")
+		t.mdb.Exec(fmt.Sprintf("drop database `%s`", dbName))
 	}
 	for _, v := range t.conn {
 		v.mdb.Close()

@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -913,7 +914,13 @@ func (t *tester) flushResult() error {
 	if !record {
 		return nil
 	}
-	return os.WriteFile(t.resultFileName(), t.buf.Bytes(), 0644)
+	path := t.resultFileName()
+	// Create all directories in the file path
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directories: %v", err)
+	}
+	return os.WriteFile(path, t.buf.Bytes(), 0644)
 }
 
 func (t *tester) testFileName() string {
@@ -935,31 +942,25 @@ func (t *tester) resultFileName() string {
 }
 
 func loadAllTests() ([]string, error) {
-	// tests must be in t folder
-	files, err := os.ReadDir("./t")
+	tests := make([]string, 0)
+	// tests must be in t folder or subdir in t folder
+	err := filepath.Walk("./t/", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && strings.HasSuffix(path, ".test") {
+			name := strings.TrimPrefix(strings.TrimSuffix(path, ".test"), "t/")
+			if !collationDisable || strings.HasPrefix(name, "collation") {
+				tests = append(tests, name)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-
-	tests := make([]string, 0, len(files))
-	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-
-		// the test file must have a suffix .test
-		name := f.Name()
-		if strings.HasSuffix(name, ".test") {
-			if collationDisable && !strings.HasPrefix(name, "collation") {
-				continue
-			}
-
-			name = strings.TrimSuffix(name, ".test")
-
-			tests = append(tests, name)
-		}
-	}
-
 	return tests, nil
 }
 

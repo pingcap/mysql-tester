@@ -722,7 +722,7 @@ func (t *tester) execute(query query) error {
 					fmt.Fprintf(&t.buf, "%s\n", query.Query)
 					fmt.Fprintf(&t.buf,
 						"ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use %s\n",
-						strings.ReplaceAll(err.Error(), "\r", ""))
+						strings.TrimSpace(strings.ReplaceAll(err.Error(), "\r", "")))
 					err = nil
 					break
 				}

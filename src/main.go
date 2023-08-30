@@ -610,7 +610,7 @@ func (t *tester) parserErrorHandle(query query, err error) error {
 	}
 	err = syntaxError(err)
 	for _, expectedErr := range t.expectedErrs {
-		if expectedErr == "ER_PARSE_ERROR" {
+		if expectedErr == "ER_PARSE_ERROR" || expectedErr == "1064" {
 			t.writeError(query, err)
 			err = nil
 			break
@@ -715,23 +715,6 @@ func (t *tester) execute(query query) error {
 	}
 	list, _, err := t.ctx.Parse(query.Query, "", "")
 	if err != nil {
-		if len(t.expectedErrs) > 0 {
-			for _, tStr := range t.expectedErrs {
-				// parser error code is 1064
-				if strings.Contains(tStr, "1064") {
-					fmt.Fprintf(&t.buf, "%s\n", query.Query)
-					fmt.Fprintf(&t.buf,
-						"ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use %s\n",
-						strings.TrimSpace(strings.ReplaceAll(err.Error(), "\r", "")))
-					err = nil
-					break
-				}
-			}
-			t.expectedErrs = nil
-		}
-		if err == nil {
-			return nil
-		}
 		return t.parserErrorHandle(query, err)
 	}
 

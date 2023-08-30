@@ -932,10 +932,16 @@ func (t *tester) testFileName() string {
 	return fmt.Sprintf("./t/%s.test", t.name)
 }
 
+func hasCollationPrefix(name string) bool {
+	names := strings.Split(name, "/")
+	caseName := names[len(names)-1]
+	return strings.HasPrefix(caseName, "collation")
+}
+
 func (t *tester) resultFileName() string {
 	// test and result must be in current ./r, the same as MySQL
 	name := t.name
-	if strings.HasPrefix(name, "collation") {
+	if hasCollationPrefix(name) {
 		if collationDisable {
 			name = name + "_disabled"
 		} else {
@@ -955,7 +961,7 @@ func loadAllTests() ([]string, error) {
 
 		if !info.IsDir() && strings.HasSuffix(path, ".test") {
 			name := strings.TrimPrefix(strings.TrimSuffix(path, ".test"), "t/")
-			if !collationDisable || strings.HasPrefix(name, "collation") {
+			if !collationDisable || hasCollationPrefix(name) {
 				tests = append(tests, name)
 			}
 		}

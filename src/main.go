@@ -893,12 +893,34 @@ func (t *tester) executeStmt(query string) error {
 			sort.Sort(rows)
 		}
 
-		return t.writeQueryResult(rows)
+		if err = t.writeQueryResult(rows); err != nil {
+			return errors.Trace(err)
+		}
 	} else {
 		// TODO: rows affected and last insert id
 		_, err := t.tx.Exec(query)
 		if err != nil {
 			return errors.Trace(err)
+		}
+	}
+	if t.enableWarning {
+		t.enableWarning = false
+		defer func() {
+			t.enableWarning = true
+		}()
+		raw, err := t.tx.Query("show warnings;")
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		rows, err := dumpToByteRows(raw)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if len(rows.data) > 0 {
+			sort.Sort(rows)
+			return t.writeQueryResult(rows)
 		}
 	}
 	return nil

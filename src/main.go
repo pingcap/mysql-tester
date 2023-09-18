@@ -904,10 +904,6 @@ func (t *tester) executeStmt(query string) error {
 		}
 	}
 	if t.enableWarning {
-		t.enableWarning = false
-		defer func() {
-			t.enableWarning = true
-		}()
 		raw, err := t.tx.Query("show warnings;")
 		if err != nil {
 			return errors.Trace(err)

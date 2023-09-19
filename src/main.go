@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -251,11 +252,12 @@ func (t *tester) preProcess() {
 
 	log.Warn("Create new db", mdb)
 
-	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", t.name)); err != nil {
-		log.Fatalf("Executing create db %s err[%v]", t.name, err)
+	dbName = strings.ReplaceAll(t.name, "/", "__")
+	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
+		log.Fatalf("Executing create db %s err[%v]", dbName, err)
 	}
 
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
+	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
 	if isTiDB(mdb) {
@@ -274,7 +276,7 @@ func (t *tester) preProcess() {
 
 func (t *tester) postProcess() {
 	if !reserveSchema {
-		t.mdb.Exec(fmt.Sprintf("drop database `%s`", t.name))
+		t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
 	}
 	for _, v := range t.conn {
 		v.mdb.Close()
@@ -605,7 +607,8 @@ func (t *tester) parserErrorHandle(query query, err error) error {
 	}
 	err = syntaxError(err)
 	for _, expectedErr := range t.expectedErrs {
-		if expectedErr == "ER_PARSE_ERROR" {
+		// The error code of `ER_PARSE_ERROR` is `1064`
+		if expectedErr == "ER_PARSE_ERROR" || expectedErr == "1064" {
 			t.writeError(query, err)
 			err = nil
 			break
@@ -888,12 +891,30 @@ func (t *tester) executeStmt(query string) error {
 			sort.Sort(rows)
 		}
 
-		return t.writeQueryResult(rows)
+		if err = t.writeQueryResult(rows); err != nil {
+			return errors.Trace(err)
+		}
 	} else {
 		// TODO: rows affected and last insert id
 		_, err := t.tx.Exec(query)
 		if err != nil {
 			return errors.Trace(err)
+		}
+	}
+	if t.enableWarning {
+		raw, err := t.tx.Query("show warnings;")
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		rows, err := dumpToByteRows(raw)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if len(rows.data) > 0 {
+			sort.Sort(rows)
+			return t.writeQueryResult(rows)
 		}
 	}
 	return nil
@@ -913,7 +934,13 @@ func (t *tester) flushResult() error {
 	if !record {
 		return nil
 	}
-	return os.WriteFile(t.resultFileName(), t.buf.Bytes(), 0644)
+	path := t.resultFileName()
+	// Create all directories in the file path
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directories: %v", err)
+	}
+	return os.WriteFile(path, t.buf.Bytes(), 0644)
 }
 
 func (t *tester) testFileName() string {
@@ -921,10 +948,16 @@ func (t *tester) testFileName() string {
 	return fmt.Sprintf("./t/%s.test", t.name)
 }
 
+func hasCollationPrefix(name string) bool {
+	names := strings.Split(name, "/")
+	caseName := names[len(names)-1]
+	return strings.HasPrefix(caseName, "collation")
+}
+
 func (t *tester) resultFileName() string {
 	// test and result must be in current ./r, the same as MySQL
 	name := t.name
-	if strings.HasPrefix(name, "collation") {
+	if hasCollationPrefix(name) {
 		if collationDisable {
 			name = name + "_disabled"
 		} else {
@@ -935,31 +968,25 @@ func (t *tester) resultFileName() string {
 }
 
 func loadAllTests() ([]string, error) {
-	// tests must be in t folder
-	files, err := os.ReadDir("./t")
+	tests := make([]string, 0)
+	// tests must be in t folder or subdir in t folder
+	err := filepath.Walk("./t/", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && strings.HasSuffix(path, ".test") {
+			name := strings.TrimPrefix(strings.TrimSuffix(path, ".test"), "t/")
+			if !collationDisable || hasCollationPrefix(name) {
+				tests = append(tests, name)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-
-	tests := make([]string, 0, len(files))
-	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-
-		// the test file must have a suffix .test
-		name := f.Name()
-		if strings.HasSuffix(name, ".test") {
-			if collationDisable && !strings.HasPrefix(name, "collation") {
-				continue
-			}
-
-			name = strings.TrimSuffix(name, ".test")
-
-			tests = append(tests, name)
-		}
-	}
-
 	return tests, nil
 }
 

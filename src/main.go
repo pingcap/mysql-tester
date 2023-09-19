@@ -607,6 +607,7 @@ func (t *tester) parserErrorHandle(query query, err error) error {
 	}
 	err = syntaxError(err)
 	for _, expectedErr := range t.expectedErrs {
+		// The error code of `ER_PARSE_ERROR` is `1064`
 		if expectedErr == "ER_PARSE_ERROR" || expectedErr == "1064" {
 			t.writeError(query, err)
 			err = nil

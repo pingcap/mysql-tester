@@ -71,10 +71,8 @@ func init() {
 		Collations:       map[string]*charset.Collation{},
 	}
 	charset.AddCharset(c)
-	for _, coll := range charset.GetCollations() {
-		if strings.EqualFold(coll.CharsetName, c.Name) {
-			charset.AddCollation(coll)
-		}
+	if coll, err := charset.GetCollationByName(c.Name); err == nil {
+		charset.AddCollation(coll)
 	}
 }
 

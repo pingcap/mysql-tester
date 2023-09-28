@@ -15,6 +15,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -88,8 +89,17 @@ type query struct {
 }
 
 type Conn struct {
+	// DB might be a shared one by multiple Conn, if the connection information are the same.
 	mdb *sql.DB
-	tx  *sql.Tx
+	// connection information.
+	hostName string
+	userName string
+	password string
+	db       string
+
+	conn *sql.Conn
+	// If tx is not nil, this connection is in txn.
+	tx *sql.Tx
 }
 
 type ReplaceColumn struct {
@@ -101,7 +111,7 @@ type tester struct {
 	mdb  *sql.DB
 	name string
 
-	tx *sql.Tx
+	curr *Conn
 
 	buf bytes.Buffer
 
@@ -160,20 +170,21 @@ func newTester(name string) *tester {
 	return t
 }
 
-func setSessionVariable(db *sql.DB) {
-	if _, err := db.Exec("SET @@tidb_hash_join_concurrency=1"); err != nil {
+func setSessionVariable(db *Conn) {
+	ctx := context.Background()
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
-	if _, err := db.Exec("SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
 	}
 	// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
-	if _, err := db.Exec("SET @@tidb_enable_analyze_snapshot=1"); err != nil {
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_analyze_snapshot=1"); err != nil {
 		log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)
 	} else {
 		log.Info("enable tidb_enable_analyze_snapshot")
 	}
-	if _, err := db.Exec("SET @@tidb_enable_clustered_index='int_only'"); err != nil {
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_clustered_index='int_only'"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
 	}
 }
@@ -192,8 +203,18 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		mdb *sql.DB
 		err error
 	)
+
 	if t.expectedErrs == nil {
-		mdb, err = OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
+		if t.curr != nil &&
+			t.curr.hostName == hostName &&
+			t.curr.userName == userName &&
+			t.curr.password == password &&
+			t.expectedErrs == nil {
+			// Reuse mdb
+			mdb = t.curr.mdb
+		} else {
+			mdb, err = OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
+		}
 	} else {
 		mdb, err = OpenDBWithRetry("mysql", userName+":"+password+"@tcp("+hostName+":"+port+")/"+db+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, 1)
 	}
@@ -204,16 +225,15 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		t.expectedErrs = nil
 		return
 	}
-	if isTiDB(mdb) {
-		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	conn, err := initConn(mdb, userName, passwd, hostName, db)
+	if err != nil {
+		if t.expectedErrs == nil {
+			log.Fatalf("Open db err %v", err)
 		}
-		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-		}
-		setSessionVariable(mdb)
+		t.expectedErrs = nil
+		return
 	}
-	t.conn[connName] = &Conn{mdb: mdb, tx: nil}
+	t.conn[connName] = conn
 	t.switchConnection(connName)
 }
 
@@ -222,11 +242,9 @@ func (t *tester) switchConnection(connName string) {
 	if !ok {
 		log.Fatalf("Connection %v doesn't exist.", connName)
 	}
-	// save current connection.
-	t.conn[t.currConnName].tx = t.tx
 	// switch connection.
 	t.mdb = conn.mdb
-	t.tx = conn.tx
+	t.curr = conn
 	t.currConnName = connName
 }
 
@@ -235,13 +253,14 @@ func (t *tester) disconnect(connName string) {
 	if !ok {
 		log.Fatalf("Connection %v doesn't exist.", connName)
 	}
-	err := conn.mdb.Close()
+	err := conn.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 	delete(t.conn, connName)
-	t.mdb = t.conn[default_connection].mdb
-	t.tx = t.conn[default_connection].tx
+	conn = t.conn[default_connection]
+	t.curr = conn
+	t.mdb = conn.mdb
 	t.currConnName = default_connection
 }
 
@@ -253,27 +272,18 @@ func (t *tester) preProcess() {
 		log.Fatalf("Open db err %v", err)
 	}
 
-	log.Warn("Create new db", mdb)
-
 	dbName = strings.ReplaceAll(t.name, "/", "__")
+	log.Warn("Create new db ", dbName)
 	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", dbName, err)
 	}
-
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
-		log.Fatalf("Executing Use test err[%v]", err)
-	}
-	if isTiDB(mdb) {
-		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-		}
-		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-		}
-		setSessionVariable(mdb)
-	}
 	t.mdb = mdb
-	t.conn[default_connection] = &Conn{mdb: mdb, tx: nil}
+	conn, err := initConn(mdb, user, passwd, host, dbName)
+	if err != nil {
+		log.Fatalf("Open db err %v", err)
+	}
+	t.conn[default_connection] = conn
+	t.curr = conn
 	t.currConnName = default_connection
 }
 
@@ -282,8 +292,9 @@ func (t *tester) postProcess() {
 		t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
 	}
 	for _, v := range t.conn {
-		v.mdb.Close()
+		v.Close()
 	}
+	t.mdb.Close()
 }
 
 func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
@@ -324,9 +335,9 @@ func (t *tester) Run() error {
 
 	var s string
 	defer func() {
-		if t.tx != nil {
+		if t.curr.tx != nil {
 			log.Errorf("transaction is not committed correctly, rollback")
-			t.rollback()
+			t.curr.Rollback()
 		}
 
 		if t.resultFD != nil {
@@ -489,16 +500,20 @@ func (t *tester) concurrentRun(concurrentQueue []query, concurrentSize int) erro
 	return nil
 }
 
-func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccured chan struct{}) {
-	defer wg.Done()
-	tt := newTester(t.name)
-	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
+func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
+	mdb.SetMaxIdleConns(-1) // Disable the underlying connection pool.
+	sqlConn, err := mdb.Conn(context.Background())
 	if err != nil {
-		log.Fatalf("Open db err %v", err)
+		return nil, err
 	}
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
-		log.Fatalf("Executing Use test err[%v]", err)
+	conn := &Conn{
+		mdb:      mdb,
+		hostName: host,
+		userName: user,
+		password: passwd,
+		db:       dbName,
+		conn:     sqlConn,
+		tx:       nil,
 	}
 	if isTiDB(mdb) {
 		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
@@ -507,8 +522,29 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
 		}
-		setSessionVariable(mdb)
+		setSessionVariable(conn)
 	}
+	if dbName != "" {
+		if _, err = conn.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
+			log.Fatalf("Executing Use test err[%v]", err)
+		}
+	}
+	return conn, nil
+}
+
+func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccured chan struct{}) {
+	defer wg.Done()
+	tt := newTester(t.name)
+	dbName := "test"
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
+	if err != nil {
+		log.Fatalf("Open db err %v", err)
+	}
+	conn, err := initConn(mdb, user, passwd, host, t.name)
+	if err != nil {
+		log.Fatalf("Open db err %v", err)
+	}
+	tt.curr = conn
 	tt.mdb = mdb
 	defer tt.mdb.Close()
 
@@ -667,51 +703,23 @@ func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
 	}
 	switch x := st.(type) {
 	case *ast.BeginStmt:
-		t.tx, err = t.mdb.Begin()
+		err = t.curr.Begin()
 		if err != nil {
-			t.rollback()
+			t.curr.Rollback()
 		}
 		return err
 	case *ast.CommitStmt:
-		err = t.commit()
+		err = t.curr.Commit()
 		if err != nil {
-			t.rollback()
+			t.curr.Rollback()
 		}
 		return err
 	case *ast.RollbackStmt:
 		if x.SavepointName == "" {
-			return t.rollback()
+			return t.curr.Rollback()
 		}
 	}
-	if t.tx != nil {
-		err = t.executeStmt(qText)
-		if err != nil {
-			return err
-		}
-	} else {
-		// if begin or the succeeding commit fails, we don't think
-		// this error is the expected one.
-		if t.tx, err = t.mdb.Begin(); err != nil {
-			t.rollback()
-			return err
-		}
-
-		err = t.executeStmt(qText)
-		if err != nil {
-			t.rollback()
-			return err
-		} else {
-			commitErr := t.commit()
-			if err == nil && commitErr != nil {
-				err = commitErr
-			}
-			if commitErr != nil {
-				t.rollback()
-				return err
-			}
-		}
-	}
-	return err
+	return t.executeStmt(qText)
 }
 
 func (t *tester) execute(query query) error {
@@ -761,25 +769,52 @@ func (t *tester) execute(query query) error {
 	return errors.Trace(err)
 }
 
-func (t *tester) commit() error {
-	if t.tx == nil {
-		return nil
-	}
-	err := t.tx.Commit()
+func (c *Conn) Begin() error {
+	tx, err := c.conn.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
 	}
-	t.tx = nil
+	c.tx = tx
 	return nil
 }
 
-func (t *tester) rollback() error {
-	if t.tx == nil {
+func (c *Conn) Commit() error {
+	if c.tx == nil {
 		return nil
 	}
-	err := t.tx.Rollback()
-	t.tx = nil
+	err := c.tx.Commit()
+	if err != nil {
+		return err
+	}
+	c.tx = nil
+	return nil
+}
+
+func (c *Conn) Query(query string) (*sql.Rows, error) {
+	if c.tx != nil {
+		return c.tx.Query(query)
+	}
+	return c.conn.QueryContext(context.Background(), query)
+}
+
+func (c *Conn) Exec(query string) (sql.Result, error) {
+	if c.tx != nil {
+		return c.tx.Exec(query)
+	}
+	return c.conn.ExecContext(context.Background(), query)
+}
+
+func (c *Conn) Rollback() error {
+	if c.tx == nil {
+		return nil
+	}
+	err := c.tx.Rollback()
+	c.tx = nil
 	return err
+}
+
+func (c *Conn) Close() error {
+	return c.conn.Close()
 }
 
 func (t *tester) writeQueryResult(rows *byteRows) error {
@@ -873,7 +908,7 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 
 func (t *tester) executeStmt(query string) error {
 	if IsQuery(query) {
-		raw, err := t.tx.Query(query)
+		raw, err := t.curr.Query(query)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -907,13 +942,13 @@ func (t *tester) executeStmt(query string) error {
 		}
 	} else {
 		// TODO: rows affected and last insert id
-		_, err := t.tx.Exec(query)
+		_, err := t.curr.Exec(query)
 		if err != nil {
 			return errors.Trace(err)
 		}
 	}
 	if t.enableWarning {
-		raw, err := t.tx.Query("show warnings;")
+		raw, err := t.curr.Query("show warnings;")
 		if err != nil {
 			return errors.Trace(err)
 		}

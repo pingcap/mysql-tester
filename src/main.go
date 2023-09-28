@@ -897,9 +897,11 @@ func (t *tester) executeStmt(query string) error {
 				}
 			}
 		}
+
 		if t.sortedResult {
 			sort.Sort(rows)
 		}
+
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}

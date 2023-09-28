@@ -204,7 +204,7 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 			t.curr.hostName == hostName &&
 			t.curr.userName == userName &&
 			t.curr.password == password &&
-			t.curr.db == db && t.expectedErrs == nil {
+			t.expectedErrs == nil {
 			// Reuse mdb
 			mdb = t.curr.mdb
 		} else {
@@ -267,15 +267,10 @@ func (t *tester) preProcess() {
 		log.Fatalf("Open db err %v", err)
 	}
 
-	log.Warn("Create new db", mdb)
-
 	dbName = strings.ReplaceAll(t.name, "/", "__")
+	log.Warn("Create new db ", dbName)
 	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", dbName, err)
-	}
-
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
-		log.Fatalf("Executing Use test err[%v]", err)
 	}
 	t.mdb = mdb
 	conn, err := initConn(mdb, user, passwd, host, dbName)
@@ -520,6 +515,11 @@ func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
 		}
 		setSessionVariable(conn)
 	}
+	if dbName != "" {
+		if _, err = conn.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
+			log.Fatalf("Executing Use test err[%v]", err)
+		}
+	}
 	return conn, nil
 }
 
@@ -531,12 +531,9 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
 	}
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
-		log.Fatalf("Executing Use test err[%v]", err)
-	}
-	conn, err := initConn(mdb, host, user, passwd, dbName)
+	conn, err := initConn(mdb, user, passwd, host, t.name)
 	if err != nil {
-		log.Fatalf("initConn err[%v]", err)
+		log.Fatalf("Open db err %v", err)
 	}
 	tt.curr = conn
 	tt.mdb = mdb

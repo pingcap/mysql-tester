@@ -783,10 +783,6 @@ func (t *tester) rollback() error {
 }
 
 func (t *tester) writeQueryResult(rows *byteRows) error {
-	if !t.enableResultLog {
-		return nil
-	}
-
 	cols := rows.cols
 	for i, c := range cols {
 		t.buf.WriteString(c)
@@ -882,6 +878,10 @@ func (t *tester) executeStmt(query string) error {
 			return errors.Trace(err)
 		}
 
+		if !t.enableResultLog {
+			return nil
+		}
+
 		rows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
@@ -897,11 +897,9 @@ func (t *tester) executeStmt(query string) error {
 				}
 			}
 		}
-
 		if t.sortedResult {
 			sort.Sort(rows)
 		}
-
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}
@@ -916,6 +914,10 @@ func (t *tester) executeStmt(query string) error {
 		raw, err := t.tx.Query("show warnings;")
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if !t.enableResultLog {
+			return nil
 		}
 
 		rows, err := dumpToByteRows(raw)

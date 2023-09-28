@@ -220,33 +220,13 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 		t.expectedErrs = nil
 		return
 	}
-	mdb.SetMaxIdleConns(-1) // Disable the underlying connection pool.
-	sqlConn, err := mdb.Conn(context.Background())
+	conn, err := initConn(mdb, userName, passwd, hostName, db)
 	if err != nil {
 		if t.expectedErrs == nil {
 			log.Fatalf("Open db err %v", err)
 		}
 		t.expectedErrs = nil
 		return
-	}
-
-	conn := &Conn{
-		mdb:      mdb,
-		hostName: hostName,
-		userName: userName,
-		password: password,
-		db:       db,
-		conn:     sqlConn,
-		tx:       nil,
-	}
-	if isTiDB(mdb) {
-		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-		}
-		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-		}
-		setSessionVariable(conn)
 	}
 	t.conn[connName] = conn
 	t.switchConnection(connName)
@@ -298,31 +278,9 @@ func (t *tester) preProcess() {
 		log.Fatalf("Executing Use test err[%v]", err)
 	}
 	t.mdb = mdb
-	sqlConn, err := mdb.Conn(context.Background())
+	conn, err := initConn(mdb, user, passwd, host, dbName)
 	if err != nil {
-		if t.expectedErrs == nil {
-			log.Fatalf("Open db err %v", err)
-		}
-		t.expectedErrs = nil
-		return
-	}
-	conn := &Conn{
-		mdb:      mdb,
-		hostName: host,
-		userName: user,
-		password: passwd,
-		db:       dbName,
-		conn:     sqlConn,
-		tx:       nil,
-	}
-	if isTiDB(mdb) {
-		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-		}
-		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-		}
-		setSessionVariable(conn)
+		log.Fatalf("Open db err %v", err)
 	}
 	t.conn[default_connection] = conn
 	t.curr = conn
@@ -538,24 +496,11 @@ func (t *tester) concurrentRun(concurrentQueue []query, concurrentSize int) erro
 	return nil
 }
 
-func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccured chan struct{}) {
-	defer wg.Done()
-	tt := newTester(t.name)
-	dbName := "test"
-	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
-	if err != nil {
-		log.Fatalf("Open db err %v", err)
-	}
-	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
-		log.Fatalf("Executing Use test err[%v]", err)
-	}
+func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
+	mdb.SetMaxIdleConns(-1) // Disable the underlying connection pool.
 	sqlConn, err := mdb.Conn(context.Background())
 	if err != nil {
-		if t.expectedErrs == nil {
-			log.Fatalf("Open db err %v", err)
-		}
-		t.expectedErrs = nil
-		return
+		return nil, err
 	}
 	conn := &Conn{
 		mdb:      mdb,
@@ -575,6 +520,25 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		}
 		setSessionVariable(conn)
 	}
+	return conn, nil
+}
+
+func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccured chan struct{}) {
+	defer wg.Done()
+	tt := newTester(t.name)
+	dbName := "test"
+	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
+	if err != nil {
+		log.Fatalf("Open db err %v", err)
+	}
+	if _, err = mdb.Exec(fmt.Sprintf("use `%s`", t.name)); err != nil {
+		log.Fatalf("Executing Use test err[%v]", err)
+	}
+	conn, err := initConn(mdb, host, user, passwd, dbName)
+	if err != nil {
+		log.Fatalf("initConn err[%v]", err)
+	}
+	tt.curr = conn
 	tt.mdb = mdb
 	defer tt.mdb.Close()
 

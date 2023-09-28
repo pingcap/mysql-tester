@@ -878,13 +878,13 @@ func (t *tester) executeStmt(query string) error {
 			return errors.Trace(err)
 		}
 
-		if !t.enableResultLog {
-			return nil
-		}
-
 		rows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if !t.enableResultLog {
+			return nil
 		}
 
 		if len(t.replaceColumn) > 0 {

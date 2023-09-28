@@ -119,6 +119,10 @@ type tester struct {
 	// use --disable_query_log or --enable_query_log to control it
 	enableQueryLog bool
 
+	// enable result log will output to result file or not.
+	// use --enable_result_log or --disable_result_log to control it
+	enableResultLog bool
+
 	singleQuery bool
 
 	// sortedResult make the output or the current query sorted.
@@ -155,6 +159,7 @@ func newTester(name string) *tester {
 
 	t.name = name
 	t.enableQueryLog = true
+	t.enableResultLog = true
 	// disable warning by default since our a lot of test cases
 	// are ported wihtout explictly "disablewarning"
 	t.enableWarning = false
@@ -351,6 +356,10 @@ func (t *tester) Run() error {
 			t.enableQueryLog = true
 		case Q_DISABLE_QUERY_LOG:
 			t.enableQueryLog = false
+		case Q_ENABLE_RESULT_LOG:
+			t.enableResultLog = true
+		case Q_DISABLE_RESULT_LOG:
+			t.enableResultLog = false
 		case Q_DISABLE_WARNINGS:
 			t.enableWarning = false
 		case Q_ENABLE_WARNINGS:
@@ -907,6 +916,10 @@ func (t *tester) executeStmt(query string) error {
 		rows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if !t.enableResultLog {
+			return nil
 		}
 
 		if len(t.replaceColumn) > 0 {

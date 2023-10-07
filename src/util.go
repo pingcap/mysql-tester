@@ -51,7 +51,7 @@ func OpenDBWithRetry(driverName, dataSourceName string, retryCount int) (mdb *sq
 	return
 }
 
-var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin", "with", "trace"}
+var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin", "with", "trace", "batch"}
 
 func trimSQL(sql string) string {
 	// Trim space.

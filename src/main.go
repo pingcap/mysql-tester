@@ -869,6 +869,16 @@ func (rows *byteRows) Less(i, j int) bool {
 			return true
 		case 1:
 			return false
+		case 0:
+			// bytes.Compare(nil, []byte{}) returns 0
+			// But in sql row representation, they are NULL and empty string "" respectively, and thus not equal.
+			// So we need special logic to handle here: make NULL < ""
+			if r1.data[i] == nil && r2.data[i] != nil {
+				return true
+			}
+			if r1.data[i] != nil && r2.data[i] == nil {
+				return false
+			}
 		}
 	}
 	return false

@@ -735,7 +735,10 @@ func (t *tester) execute(query query) error {
 		offset := t.buf.Len()
 		err = t.stmtExecute(query, st)
 
-		if err != nil && len(t.expectedErrs) > 0 {
+		if len(t.expectedErrs) > 0 {
+			if err == nil {
+				return errors.Trace(errors.Errorf("run \"%v\" at line %d succeed, should have failed", st.Text(), query.Line))
+			}
 			// TODO: check whether this err is expected.
 			// but now we think it is.
 

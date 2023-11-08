@@ -762,11 +762,10 @@ func (t *tester) executeStmt(query string) error {
 		}
 	}
 
-	if len(rows.data) > 0 {
+	if len(rows.cols) > 0 || len(rows.data) > 0 {
 		if t.sortedResult {
 			sort.Sort(rows)
 		}
-
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}

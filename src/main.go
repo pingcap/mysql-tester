@@ -233,7 +233,7 @@ func (t *tester) disconnect(connName string) {
 	if !ok {
 		log.Fatalf("Connection %v doesn't exist.", connName)
 	}
-	err := conn.Close()
+	err := conn.conn.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func (t *tester) postProcess() {
 		t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
 	}
 	for _, v := range t.conn {
-		v.Close()
+		v.conn.Close()
 	}
 	t.mdb.Close()
 }
@@ -497,7 +497,7 @@ func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
 		setSessionVariable(conn)
 	}
 	if dbName != "" {
-		if _, err = conn.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
+		if _, err = sqlConn.ExecContext(context.Background(), fmt.Sprintf("use `%s`", dbName)); err != nil {
 			log.Fatalf("Executing Use test err[%v]", err)
 		}
 	}
@@ -632,18 +632,6 @@ func (t *tester) execute(query query) error {
 	return errors.Trace(err)
 }
 
-func (c *Conn) Query(query string) (*sql.Rows, error) {
-	return c.conn.QueryContext(context.Background(), query)
-}
-
-func (c *Conn) Exec(query string) (sql.Result, error) {
-	return c.conn.ExecContext(context.Background(), query)
-}
-
-func (c *Conn) Close() error {
-	return c.conn.Close()
-}
-
 func (t *tester) writeQueryResult(rows *byteRows) error {
 	cols := rows.cols
 	for i, c := range cols {
@@ -749,7 +737,7 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 }
 
 func (t *tester) executeStmt(query string) error {
-	raw, err := t.curr.Query(query)
+	raw, err := t.curr.conn.QueryContext(context.Background(), query)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -785,7 +773,7 @@ func (t *tester) executeStmt(query string) error {
 	}
 
 	if t.enableWarning {
-		raw, err := t.curr.Query("show warnings;")
+		raw, err := t.curr.conn.QueryContext(context.Background(), "show warnings;")
 		if err != nil {
 			return errors.Trace(err)
 		}

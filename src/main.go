@@ -723,17 +723,22 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 
 	data := make([]byteRow, 0, 8)
 	args := make([]interface{}, len(cols))
-	for rows.Next() {
-		tmp := make([][]byte, len(cols))
-		for i := 0; i < len(args); i++ {
-			args[i] = &tmp[i]
-		}
-		err := rows.Scan(args...)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
+	for {
+		for rows.Next() {
+			tmp := make([][]byte, len(cols))
+			for i := 0; i < len(args); i++ {
+				args[i] = &tmp[i]
+			}
+			err := rows.Scan(args...)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
 
-		data = append(data, byteRow{tmp})
+			data = append(data, byteRow{tmp})
+		}
+		if !rows.NextResultSet() {
+			break
+		}
 	}
 	err = rows.Err()
 	if err != nil {
@@ -744,32 +749,32 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 }
 
 func (t *tester) executeStmt(query string) error {
-	if IsQuery(query) {
-		raw, err := t.curr.Query(query)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	raw, err := t.curr.Query(query)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		rows, err := dumpToByteRows(raw)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	rows, err := dumpToByteRows(raw)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		if !t.enableResultLog {
-			return nil
-		}
+	if !t.enableResultLog {
+		return nil
+	}
 
-		if len(t.replaceColumn) > 0 {
-			for _, row := range rows.data {
-				for _, r := range t.replaceColumn {
-					if len(row.data) < r.col {
-						continue
-					}
-					row.data[r.col-1] = r.replace
+	if len(t.replaceColumn) > 0 {
+		for _, row := range rows.data {
+			for _, r := range t.replaceColumn {
+				if len(row.data) < r.col {
+					continue
 				}
+				row.data[r.col-1] = r.replace
 			}
 		}
+	}
 
+	if len(rows.data) > 0 {
 		if t.sortedResult {
 			sort.Sort(rows)
 		}
@@ -777,13 +782,8 @@ func (t *tester) executeStmt(query string) error {
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}
-	} else {
-		// TODO: rows affected and last insert id
-		_, err := t.curr.Exec(query)
-		if err != nil {
-			return errors.Trace(err)
-		}
 	}
+
 	if t.enableWarning {
 		raw, err := t.curr.Query("show warnings;")
 		if err != nil {

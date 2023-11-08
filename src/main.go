@@ -154,6 +154,9 @@ func newTester(name string) *tester {
 
 func setSessionVariable(db *Conn) {
 	ctx := context.Background()
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_multi_statement_mode=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_multi_statement_mode=1\" err[%v]", err)
+	}
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
@@ -531,28 +534,22 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 			return
 		}
 
-		var err error
-		queries := strings.Split(query.Query, ";")
-
-		for _, subQuery := range queries {
-			err = tt.stmtExecute(subQuery)
-			if err != nil && len(t.expectedErrs) > 0 {
-				for _, tStr := range t.expectedErrs {
-					if strings.Contains(err.Error(), tStr) {
-						err = nil
-						break
-					}
+		err := tt.stmtExecute(query.Query)
+		if err != nil && len(t.expectedErrs) > 0 {
+			for _, tStr := range t.expectedErrs {
+				if strings.Contains(err.Error(), tStr) {
+					err = nil
+					break
 				}
 			}
-			if err != nil {
-				msgs <- testTask{
-					test: t.name,
-					err:  errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", subQuery, query.Line, err)),
-				}
-				errOccured <- struct{}{}
-				return
+		}
+		if err != nil {
+			msgs <- testTask{
+				test: t.name,
+				err:  errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err)),
 			}
-
+			errOccured <- struct{}{}
+			return
 		}
 	}
 }
@@ -609,43 +606,35 @@ func (t *tester) execute(query query) error {
 		return nil
 	}
 
-	var err error
-	queries := strings.SplitAfter(query.Query, ";")
+	offset := t.buf.Len()
+	err := t.stmtExecute(query.Query)
 
-	for _, subQuery := range queries {
-		if len(subQuery) == 0 {
-			continue
+	if err != nil && len(t.expectedErrs) > 0 {
+		// TODO: check whether this err is expected.
+		// but now we think it is.
+
+		// output expected err
+		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+		err = nil
+	}
+	// clear expected errors after we execute the first query
+	t.expectedErrs = nil
+
+	if err != nil {
+		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
+	}
+
+	if !record {
+		// check test result now
+		gotBuf := t.buf.Bytes()[offset:]
+
+		buf := make([]byte, t.buf.Len()-offset)
+		if _, err = t.resultFD.ReadAt(buf, int64(offset)); err != nil {
+			return errors.Trace(errors.Errorf("run \"%v\" at line %d err, we got \n%s\nbut read result err %s", query.Query, query.Line, gotBuf, err))
 		}
-		offset := t.buf.Len()
-		err = t.stmtExecute(subQuery)
 
-		if err != nil && len(t.expectedErrs) > 0 {
-			// TODO: check whether this err is expected.
-			// but now we think it is.
-
-			// output expected err
-			fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
-			err = nil
-		}
-		// clear expected errors after we execute the first query
-		t.expectedErrs = nil
-
-		if err != nil {
-			return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", subQuery, query.Line, err))
-		}
-
-		if !record {
-			// check test result now
-			gotBuf := t.buf.Bytes()[offset:]
-
-			buf := make([]byte, t.buf.Len()-offset)
-			if _, err = t.resultFD.ReadAt(buf, int64(offset)); err != nil {
-				return errors.Trace(errors.Errorf("run \"%v\" at line %d err, we got \n%s\nbut read result err %s", subQuery, query.Line, gotBuf, err))
-			}
-
-			if !bytes.Equal(gotBuf, buf) {
-				return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", subQuery, query.Line, len(buf), buf, len(gotBuf), gotBuf))
-			}
+		if !bytes.Equal(gotBuf, buf) {
+			return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
 		}
 	}
 

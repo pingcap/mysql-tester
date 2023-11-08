@@ -106,10 +106,6 @@ type tester struct {
 	// use --enable_result_log or --disable_result_log to control it
 	enableResultLog bool
 
-	// enable info will output affects rows.
-	// use --enable_info or --disable_info to control it
-	enableInfo bool
-
 	// sortedResult make the output or the current query sorted.
 	sortedResult bool
 
@@ -147,7 +143,6 @@ func newTester(name string) *tester {
 	// are ported wihtout explictly "disablewarning"
 	t.enableWarning = false
 	t.enableConcurrent = false
-	t.enableInfo = false
 
 	return t
 }
@@ -336,10 +331,6 @@ func (t *tester) Run() error {
 			t.enableQueryLog = true
 		case Q_DISABLE_QUERY_LOG:
 			t.enableQueryLog = false
-		case Q_ENABLE_INFO:
-			t.enableInfo = true
-		case Q_DISABLE_INFO:
-			t.enableInfo = false
 		case Q_ENABLE_RESULT_LOG:
 			t.enableResultLog = true
 		case Q_DISABLE_RESULT_LOG:
@@ -788,16 +779,9 @@ func (t *tester) executeStmt(query string) error {
 		}
 	} else {
 		// TODO: rows affected and last insert id
-		rs, err := t.curr.Exec(query)
+		_, err := t.curr.Exec(query)
 		if err != nil {
 			return errors.Trace(err)
-		}
-		if t.enableInfo {
-			rowsNum, err := rs.RowsAffected()
-			if err != nil {
-				return errors.Trace(err)
-			}
-			t.buf.WriteString(fmt.Sprintf("affected rows: %d\n", rowsNum))
 		}
 	}
 	if t.enableWarning {

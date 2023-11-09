@@ -29,11 +29,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
-	"github.com/pingcap/tidb/parser"
-	"github.com/pingcap/tidb/parser/ast"
-	"github.com/pingcap/tidb/parser/charset"
-	"github.com/pingcap/tidb/parser/terror"
-	_ "github.com/pingcap/tidb/parser/test_driver"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,16 +60,6 @@ func init() {
 	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
-
-	c := &charset.Charset{
-		Name:             "gbk",
-		DefaultCollation: "gbk_bin",
-		Collations:       map[string]*charset.Collation{},
-	}
-	charset.AddCharset(c)
-	if coll, err := charset.GetCollationByName(c.Name); err == nil {
-		charset.AddCollation(coll)
-	}
 }
 
 const (
@@ -98,8 +83,6 @@ type Conn struct {
 	db       string
 
 	conn *sql.Conn
-	// If tx is not nil, this connection is in txn.
-	tx *sql.Tx
 }
 
 type ReplaceColumn struct {
@@ -123,8 +106,6 @@ type tester struct {
 	// use --enable_result_log or --disable_result_log to control it
 	enableResultLog bool
 
-	singleQuery bool
-
 	// sortedResult make the output or the current query sorted.
 	sortedResult bool
 
@@ -141,8 +122,6 @@ type tester struct {
 	// only for test, not record, every time we execute a statement, we should read the result
 	// data to check correction.
 	resultFD *os.File
-	// ctx is used for Compile sql statement
-	ctx *parser.Parser
 
 	// conns record connection created by test.
 	conn map[string]*Conn
@@ -164,14 +143,15 @@ func newTester(name string) *tester {
 	// are ported wihtout explictly "disablewarning"
 	t.enableWarning = false
 	t.enableConcurrent = false
-	t.ctx = parser.New()
-	t.ctx.EnableWindowFunc(true)
 
 	return t
 }
 
 func setSessionVariable(db *Conn) {
 	ctx := context.Background()
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_multi_statement_mode=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_multi_statement_mode=1\" err[%v]", err)
+	}
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
@@ -253,7 +233,7 @@ func (t *tester) disconnect(connName string) {
 	if !ok {
 		log.Fatalf("Connection %v doesn't exist.", connName)
 	}
-	err := conn.Close()
+	err := conn.conn.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -292,7 +272,7 @@ func (t *tester) postProcess() {
 		t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
 	}
 	for _, v := range t.conn {
-		v.Close()
+		v.conn.Close()
 	}
 	t.mdb.Close()
 }
@@ -335,11 +315,6 @@ func (t *tester) Run() error {
 
 	var s string
 	defer func() {
-		if t.curr.tx != nil {
-			log.Errorf("transaction is not committed correctly, rollback")
-			t.curr.Rollback()
-		}
-
 		if t.resultFD != nil {
 			t.resultFD.Close()
 		}
@@ -364,8 +339,6 @@ func (t *tester) Run() error {
 			t.enableWarning = false
 		case Q_ENABLE_WARNINGS:
 			t.enableWarning = true
-		case Q_SINGLE_QUERY:
-			t.singleQuery = true
 		case Q_BEGIN_CONCURRENT:
 			concurrentQueue = make([]query, 0)
 			t.enableConcurrent = true
@@ -513,7 +486,6 @@ func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
 		password: passwd,
 		db:       dbName,
 		conn:     sqlConn,
-		tx:       nil,
 	}
 	if isTiDB(mdb) {
 		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
@@ -525,7 +497,7 @@ func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
 		setSessionVariable(conn)
 	}
 	if dbName != "" {
-		if _, err = conn.Exec(fmt.Sprintf("use `%s`", dbName)); err != nil {
+		if _, err = sqlConn.ExecContext(context.Background(), fmt.Sprintf("use `%s`", dbName)); err != nil {
 			log.Fatalf("Executing Use test err[%v]", err)
 		}
 	}
@@ -552,36 +524,23 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 		if len(query.Query) == 0 {
 			return
 		}
-		list, _, err := tt.ctx.Parse(query.Query, "", "")
+
+		err := tt.stmtExecute(query.Query)
+		if err != nil && len(t.expectedErrs) > 0 {
+			for _, tStr := range t.expectedErrs {
+				if strings.Contains(err.Error(), tStr) {
+					err = nil
+					break
+				}
+			}
+		}
 		if err != nil {
 			msgs <- testTask{
 				test: t.name,
-				err:  t.parserErrorHandle(query, err),
+				err:  errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err)),
 			}
 			errOccured <- struct{}{}
 			return
-		}
-
-		for _, st := range list {
-			err = tt.stmtExecute(query, st)
-			if err != nil && len(t.expectedErrs) > 0 {
-				for _, tStr := range t.expectedErrs {
-					if strings.Contains(err.Error(), tStr) {
-						err = nil
-						break
-					}
-				}
-			}
-			t.singleQuery = false
-			if err != nil {
-				msgs <- testTask{
-					test: t.name,
-					err:  errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", st.Text(), query.Line, err)),
-				}
-				errOccured <- struct{}{}
-				return
-			}
-
 		}
 	}
 }
@@ -625,196 +584,52 @@ func (t *tester) loadQueries() ([]query, error) {
 	return ParseQueries(queries...)
 }
 
-func (t *tester) writeError(query query, err error) {
+func (t *tester) stmtExecute(query string) (err error) {
 	if t.enableQueryLog {
-		t.buf.WriteString(query.Query)
+		t.buf.WriteString(query)
 		t.buf.WriteString("\n")
 	}
-
-	t.buf.WriteString(fmt.Sprintf("%s\n", err))
-}
-
-// parserErrorHandle handle error from parser.Parse() function
-// 1. If it's a syntax error, and `--error ER_PARSE_ERROR` enabled, record to result file
-// 2. If it's a non-syntax error, and `--error xxxxx` enabled, record to result file
-// 3. Otherwise, throw this error, stop running mysql-test
-func (t *tester) parserErrorHandle(query query, err error) error {
-	offset := t.buf.Len()
-	// TODO: check whether this err is expected.
-	if len(t.expectedErrs) > 0 {
-		switch innerErr := errors.Cause(err).(type) {
-		case *terror.Error:
-			t.writeError(query, innerErr)
-			err = nil
-		}
-	}
-	err = syntaxError(err)
-	for _, expectedErr := range t.expectedErrs {
-		// The error code of `ER_PARSE_ERROR` is `1064`
-		if expectedErr == "ER_PARSE_ERROR" || expectedErr == "1064" {
-			t.writeError(query, err)
-			err = nil
-			break
-		}
-	}
-
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	// clear expected errors after we execute the first query
-	t.expectedErrs = nil
-	t.singleQuery = false
-
-	if !record {
-		// check test result now
-		gotBuf := t.buf.Bytes()[offset:]
-		buf := make([]byte, t.buf.Len()-offset)
-		if _, err = t.resultFD.ReadAt(buf, int64(offset)); err != nil {
-			return errors.Trace(errors.Errorf("run \"%v\" at line %d err, we got \n%s\nbut read result err %s", query.Query, query.Line, gotBuf, err))
-		}
-
-		if !bytes.Equal(gotBuf, buf) {
-			return errors.Trace(errors.Errorf("run \"%v\" around line %d err, we need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
-		}
-	}
-
-	return errors.Trace(err)
-}
-
-func syntaxError(err error) error {
-	if err == nil {
-		return nil
-	}
-	return parser.ErrParse.GenWithStackByArgs("You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use", err.Error())
-}
-
-func (t *tester) stmtExecute(query query, st ast.StmtNode) (err error) {
-
-	var qText string
-	if t.singleQuery {
-		qText = query.Query
-	} else {
-		qText = st.Text()
-	}
-	if t.enableQueryLog {
-		t.buf.WriteString(qText)
-		t.buf.WriteString("\n")
-	}
-	switch x := st.(type) {
-	case *ast.BeginStmt:
-		err = t.curr.Begin()
-		if err != nil {
-			t.curr.Rollback()
-		}
-		return err
-	case *ast.CommitStmt:
-		err = t.curr.Commit()
-		if err != nil {
-			t.curr.Rollback()
-		}
-		return err
-	case *ast.RollbackStmt:
-		if x.SavepointName == "" {
-			return t.curr.Rollback()
-		}
-	}
-	return t.executeStmt(qText)
+	return t.executeStmt(query)
 }
 
 func (t *tester) execute(query query) error {
 	if len(query.Query) == 0 {
 		return nil
 	}
-	list, _, err := t.ctx.Parse(query.Query, "", "")
+
+	offset := t.buf.Len()
+	err := t.stmtExecute(query.Query)
+
+	if err != nil && len(t.expectedErrs) > 0 {
+		// TODO: check whether this err is expected.
+		// but now we think it is.
+
+		// output expected err
+		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+		err = nil
+	}
+	// clear expected errors after we execute the first query
+	t.expectedErrs = nil
+
 	if err != nil {
-		return t.parserErrorHandle(query, err)
+		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
 	}
 
-	for _, st := range list {
-		offset := t.buf.Len()
-		err = t.stmtExecute(query, st)
+	if !record {
+		// check test result now
+		gotBuf := t.buf.Bytes()[offset:]
 
-		if err != nil && len(t.expectedErrs) > 0 {
-			// TODO: check whether this err is expected.
-			// but now we think it is.
-
-			// output expected err
-			fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
-			err = nil
-		}
-		// clear expected errors after we execute the first query
-		t.expectedErrs = nil
-		t.singleQuery = false
-
-		if err != nil {
-			return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", st.Text(), query.Line, err))
+		buf := make([]byte, t.buf.Len()-offset)
+		if _, err = t.resultFD.ReadAt(buf, int64(offset)); err != nil {
+			return errors.Trace(errors.Errorf("run \"%v\" at line %d err, we got \n%s\nbut read result err %s", query.Query, query.Line, gotBuf, err))
 		}
 
-		if !record {
-			// check test result now
-			gotBuf := t.buf.Bytes()[offset:]
-
-			buf := make([]byte, t.buf.Len()-offset)
-			if _, err = t.resultFD.ReadAt(buf, int64(offset)); err != nil {
-				return errors.Trace(errors.Errorf("run \"%v\" at line %d err, we got \n%s\nbut read result err %s", st.Text(), query.Line, gotBuf, err))
-			}
-
-			if !bytes.Equal(gotBuf, buf) {
-				return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
-			}
+		if !bytes.Equal(gotBuf, buf) {
+			return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
 		}
 	}
 
 	return errors.Trace(err)
-}
-
-func (c *Conn) Begin() error {
-	tx, err := c.conn.BeginTx(context.Background(), nil)
-	if err != nil {
-		return err
-	}
-	c.tx = tx
-	return nil
-}
-
-func (c *Conn) Commit() error {
-	if c.tx == nil {
-		return nil
-	}
-	err := c.tx.Commit()
-	if err != nil {
-		return err
-	}
-	c.tx = nil
-	return nil
-}
-
-func (c *Conn) Query(query string) (*sql.Rows, error) {
-	if c.tx != nil {
-		return c.tx.Query(query)
-	}
-	return c.conn.QueryContext(context.Background(), query)
-}
-
-func (c *Conn) Exec(query string) (sql.Result, error) {
-	if c.tx != nil {
-		return c.tx.Exec(query)
-	}
-	return c.conn.ExecContext(context.Background(), query)
-}
-
-func (c *Conn) Rollback() error {
-	if c.tx == nil {
-		return nil
-	}
-	err := c.tx.Rollback()
-	c.tx = nil
-	return err
-}
-
-func (c *Conn) Close() error {
-	return c.conn.Close()
 }
 
 func (t *tester) writeQueryResult(rows *byteRows) error {
@@ -896,17 +711,22 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 
 	data := make([]byteRow, 0, 8)
 	args := make([]interface{}, len(cols))
-	for rows.Next() {
-		tmp := make([][]byte, len(cols))
-		for i := 0; i < len(args); i++ {
-			args[i] = &tmp[i]
-		}
-		err := rows.Scan(args...)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
+	for {
+		for rows.Next() {
+			tmp := make([][]byte, len(cols))
+			for i := 0; i < len(args); i++ {
+				args[i] = &tmp[i]
+			}
+			err := rows.Scan(args...)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
 
-		data = append(data, byteRow{tmp})
+			data = append(data, byteRow{tmp})
+		}
+		if !rows.NextResultSet() {
+			break
+		}
 	}
 	err = rows.Err()
 	if err != nil {
@@ -917,48 +737,42 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 }
 
 func (t *tester) executeStmt(query string) error {
-	if IsQuery(query) {
-		raw, err := t.curr.Query(query)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	raw, err := t.curr.conn.QueryContext(context.Background(), query)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		rows, err := dumpToByteRows(raw)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	rows, err := dumpToByteRows(raw)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		if !t.enableResultLog {
-			return nil
-		}
+	if !t.enableResultLog {
+		return nil
+	}
 
-		if len(t.replaceColumn) > 0 {
-			for _, row := range rows.data {
-				for _, r := range t.replaceColumn {
-					if len(row.data) < r.col {
-						continue
-					}
-					row.data[r.col-1] = r.replace
+	if len(t.replaceColumn) > 0 {
+		for _, row := range rows.data {
+			for _, r := range t.replaceColumn {
+				if len(row.data) < r.col {
+					continue
 				}
+				row.data[r.col-1] = r.replace
 			}
 		}
+	}
 
+	if len(rows.cols) > 0 || len(rows.data) > 0 {
 		if t.sortedResult {
 			sort.Sort(rows)
 		}
-
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}
-	} else {
-		// TODO: rows affected and last insert id
-		_, err := t.curr.Exec(query)
-		if err != nil {
-			return errors.Trace(err)
-		}
 	}
+
 	if t.enableWarning {
-		raw, err := t.curr.Query("show warnings;")
+		raw, err := t.curr.conn.QueryContext(context.Background(), "show warnings;")
 		if err != nil {
 			return errors.Trace(err)
 		}

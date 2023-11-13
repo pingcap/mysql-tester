@@ -15,6 +15,8 @@ package main
 
 import (
 	"database/sql"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/pingcap/errors"
@@ -48,4 +50,34 @@ func OpenDBWithRetry(driverName, dataSourceName string, retryCount int) (mdb *sq
 	}
 
 	return
+}
+
+func ParseReplaceRegex(originalString string) (*ReplaceRegex, error) {
+	if len(originalString) == 0 || originalString[0] != '/' || originalString[len(originalString)-1] != '/' {
+		return nil, errors.Errorf("Can not parse regex %s", originalString)
+	}
+	idx := 1
+	var regexpStr, replaceStr string
+	for {
+		tmp := strings.Index(originalString[idx:], "/")
+		if tmp == -1 {
+			return nil, errors.Errorf("Can not parse regex %s", originalString)
+		}
+		idx += tmp
+		if originalString[idx-1] != '\\' {
+			regexpStr = originalString[1:idx]
+			replaceStr = originalString[idx+1 : len(originalString)-1]
+			break
+		} else {
+			idx += 1
+		}
+	}
+	reg, err := regexp.Compile(regexpStr)
+	if err != nil {
+		return nil, err
+	}
+	return &ReplaceRegex{
+		regex:   reg,
+		replace: replaceStr,
+	}, nil
 }

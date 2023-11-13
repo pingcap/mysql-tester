@@ -364,7 +364,7 @@ func (t *tester) Run() error {
 		case Q_ERROR:
 			t.expectedErrs = strings.Split(strings.TrimSpace(s), ",")
 		case Q_ECHO:
-			varSearch := regexp.MustCompile("\\$([A-Za-z]+)( |$)")
+			varSearch := regexp.MustCompile("\\$([A-Za-z0-9_]+)( |$)")
 			s := varSearch.ReplaceAllStringFunc(s, func(s string) string {
 				return os.Getenv(varSearch.FindStringSubmatch(s)[1])
 			})

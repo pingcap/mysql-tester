@@ -51,4 +51,8 @@ func TestParseQueryies(t *testing.T) {
 	_, err := ParseQueries(query{Query: sql, Line: 1})
 	assertEqual(t, err, ErrInvalidCommand, fmt.Sprintf("Expected: %v, got %v", ErrInvalidCommand, err))
 
+	sql = "--let $foo=`SELECT 1`"
+	if q, err := ParseQueries(query{Query: sql, Line: 1}); err == nil {
+		assertEqual(t, q[0].tp, Q_LET, fmt.Sprintf("Expected: %d, got: %d", Q_LET, q[0].tp))
+	}
 }

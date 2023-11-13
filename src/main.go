@@ -438,14 +438,11 @@ func (t *tester) Run() error {
 			}
 		case Q_REPLACE_REGEX:
 			t.replaceRegex = nil
-			originalStrings := strings.Fields(q.Query)
-			for _, originalString := range originalStrings {
-				regex, err := ParseReplaceRegex(strings.TrimSpace(originalString))
-				if err != nil {
-					return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: sql:%v", q.Query))
-				}
-				t.replaceRegex = append(t.replaceRegex, regex)
+			regex, err := ParseReplaceRegex(q.Query)
+			if err != nil {
+				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: sql:%v", q.Query))
 			}
+			t.replaceRegex = regex
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}

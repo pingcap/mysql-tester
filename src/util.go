@@ -16,7 +16,6 @@ package main
 import (
 	"database/sql"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/pingcap/errors"
@@ -52,32 +51,36 @@ func OpenDBWithRetry(driverName, dataSourceName string, retryCount int) (mdb *sq
 	return
 }
 
-func ParseReplaceRegex(originalString string) (*ReplaceRegex, error) {
-	if len(originalString) == 0 || originalString[0] != '/' || originalString[len(originalString)-1] != '/' {
-		return nil, errors.Errorf("Can not parse regex %s", originalString)
-	}
-	idx := 1
-	var regexpStr, replaceStr string
-	for {
-		tmp := strings.Index(originalString[idx:], "/")
-		if tmp == -1 {
-			return nil, errors.Errorf("Can not parse regex %s", originalString)
+func ParseReplaceRegex(originalString string) ([]*ReplaceRegex, error) {
+	var begin, middle, end, cnt int
+	ret := make([]*ReplaceRegex, 0)
+	for i, c := range originalString {
+		if c != '/' {
+			continue
 		}
-		idx += tmp
-		if originalString[idx-1] != '\\' {
-			regexpStr = originalString[1:idx]
-			replaceStr = originalString[idx+1 : len(originalString)-1]
-			break
-		} else {
-			idx += 1
+		if i != 0 && originalString[i-1] == '\\' {
+			continue
+		}
+		cnt++
+		switch cnt % 3 {
+		case 1:
+			begin = i
+		case 2:
+			middle = i
+		case 0:
+			end = i
+			reg, err := regexp.Compile(originalString[begin+1 : middle])
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, &ReplaceRegex{
+				regex:   reg,
+				replace: originalString[middle+1 : end],
+			})
 		}
 	}
-	reg, err := regexp.Compile(regexpStr)
-	if err != nil {
-		return nil, err
+	if cnt%3 != 0 {
+		return nil, errors.Errorf("Could not parse regex in --replace_regex: sql:%v", originalString)
 	}
-	return &ReplaceRegex{
-		regex:   reg,
-		replace: replaceStr,
-	}, nil
+	return ret, nil
 }

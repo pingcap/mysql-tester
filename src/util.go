@@ -57,8 +57,8 @@ func processEscapes(str string) string {
 		`\n`: "\n",
 		`\t`: "\t",
 		`\r`: "\r",
-		`\\`: "\\",
 		`\/`: "/",
+		`\\`: "\\", // better be the last one
 	}
 
 	for escape, replacement := range escapeMap {

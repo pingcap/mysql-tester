@@ -56,14 +56,12 @@ func TestParseReplaceRegex(t *testing.T) {
 			input:     "Some infos [conn=xxx]",
 			output:    "Some infos [conn=xxx]",
 		},
-		/* TODO: support replaced with '\t', '\n', '\/' etc
 		{
 			succ:      true,
-			regexpStr: `/a/\/b/`,
+			regexpStr: `/a/\/b\r\t/`,
 			input:     "a",
-			output:    "/b",
+			output:    "/b\r\t",
 		},
-		*/
 		{
 			succ:      false,
 			regexpStr: `/conn=[0-9]+/conn=<num>`,

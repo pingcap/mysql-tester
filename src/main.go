@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -90,6 +91,11 @@ type ReplaceColumn struct {
 	replace []byte
 }
 
+type ReplaceRegex struct {
+	regex   *regexp.Regexp
+	replace string
+}
+
 type tester struct {
 	mdb  *sql.DB
 	name string
@@ -131,6 +137,9 @@ type tester struct {
 
 	// replace output column through --replace_column 1 <static data> 3 #
 	replaceColumn []ReplaceColumn
+
+	// replace output result through --replace_regex /\.dll/.so/
+	replaceRegex []*ReplaceRegex
 }
 
 func newTester(name string) *tester {
@@ -378,6 +387,7 @@ func (t *tester) Run() error {
 
 			t.sortedResult = false
 			t.replaceColumn = nil
+			t.replaceRegex = nil
 		case Q_SORTED_RESULT:
 			t.sortedResult = true
 		case Q_REPLACE_COLUMN:
@@ -426,6 +436,13 @@ func (t *tester) Run() error {
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
+		case Q_REPLACE_REGEX:
+			t.replaceRegex = nil
+			regex, err := ParseReplaceRegex(q.Query)
+			if err != nil {
+				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: sql:%v", q.Query))
+			}
+			t.replaceRegex = regex
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
@@ -604,8 +621,13 @@ func (t *tester) execute(query query) error {
 		// TODO: check whether this err is expected.
 		// but now we think it is.
 
+		errStr := err.Error()
+		for _, reg := range t.replaceRegex {
+			errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
+		}
+
 		// output expected err
-		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
 		err = nil
 	}
 	// clear expected errors after we execute the first query
@@ -633,6 +655,21 @@ func (t *tester) execute(query query) error {
 }
 
 func (t *tester) writeQueryResult(rows *byteRows) error {
+	if t.sortedResult {
+		sort.Sort(rows)
+	}
+
+	if len(t.replaceColumn) > 0 {
+		for _, row := range rows.data {
+			for _, r := range t.replaceColumn {
+				if len(row.data) < r.col {
+					continue
+				}
+				row.data[r.col-1] = r.replace
+			}
+		}
+	}
+
 	cols := rows.cols
 	for i, c := range cols {
 		t.buf.WriteString(c)
@@ -645,6 +682,11 @@ func (t *tester) writeQueryResult(rows *byteRows) error {
 	for _, row := range rows.data {
 		var value string
 		for i, col := range row.data {
+			// replace result by regex
+			for _, reg := range t.replaceRegex {
+				col = reg.regex.ReplaceAll(col, []byte(reg.replace))
+			}
+
 			// Here we can check if the value is nil (NULL value)
 			if col == nil {
 				value = "NULL"
@@ -751,21 +793,7 @@ func (t *tester) executeStmt(query string) error {
 		return nil
 	}
 
-	if len(t.replaceColumn) > 0 {
-		for _, row := range rows.data {
-			for _, r := range t.replaceColumn {
-				if len(row.data) < r.col {
-					continue
-				}
-				row.data[r.col-1] = r.replace
-			}
-		}
-	}
-
 	if len(rows.cols) > 0 || len(rows.data) > 0 {
-		if t.sortedResult {
-			sort.Sort(rows)
-		}
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}

@@ -372,6 +372,11 @@ func (t *tester) Run() error {
 		case Q_ERROR:
 			t.expectedErrs = strings.Split(strings.TrimSpace(s), ",")
 		case Q_ECHO:
+			varSearch := regexp.MustCompile("\\$([A-Za-z0-9_]+)( |$)")
+			s := varSearch.ReplaceAllStringFunc(s, func(s string) string {
+				return os.Getenv(varSearch.FindStringSubmatch(s)[1])
+			})
+
 			t.buf.WriteString(s)
 			t.buf.WriteString("\n")
 		case Q_QUERY:
@@ -431,6 +436,30 @@ func (t *tester) Run() error {
 				q.Query = q.Query[:len(q.Query)-1]
 			}
 			t.disconnect(q.Query)
+		case Q_LET:
+			q.Query = strings.TrimSpace(q.Query)
+			eqIdx := strings.Index(q.Query, "=")
+			if eqIdx > 1 {
+				start := 0
+				if q.Query[0] == '$' {
+					start = 1
+				}
+				varName := strings.TrimSpace(q.Query[start:eqIdx])
+				varValue := strings.TrimSpace(q.Query[eqIdx+1:])
+				varSearch := regexp.MustCompile("`(.*)`")
+				varValue = varSearch.ReplaceAllStringFunc(varValue, func(s string) string {
+					s = strings.Trim(s, "`")
+					r, err := t.executeStmtString(s)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"query": s, "line": q.Line},
+						).Error("failed to perform let query")
+						return ""
+					}
+					return r
+				})
+				os.Setenv(varName, varValue)
+			}
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {
@@ -816,6 +845,15 @@ func (t *tester) executeStmt(query string) error {
 		}
 	}
 	return nil
+}
+
+func (t *tester) executeStmtString(query string) (string, error) {
+	var result string
+	err := t.mdb.QueryRow(query).Scan(&result)
+	if err != nil {
+		return "", err
+	}
+	return result, nil
 }
 
 func (t *tester) openResult() error {

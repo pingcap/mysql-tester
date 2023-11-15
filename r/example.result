@@ -3,3 +3,11 @@ insert into t values(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 select * from t where a = 1;
 a	b
 1	1
+explain analyze format='brief' select * from t;
+id	estRows	actRows	task	access object	execution info	operator info	memory	disk
+TableReader	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan	<num> Bytes	N/A
+└─TableFullScan	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A
+explain analyze select * from t;
+id	estRows	actRows	task	access object	execution info	operator info	memory	disk
+TableReader_5	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan_4	<num> Bytes	N/A
+└─TableFullScan_4	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A

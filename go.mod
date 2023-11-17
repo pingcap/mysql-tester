@@ -16,3 +16,5 @@ require (
 	golang.org/x/sys v0.5.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/go-sql-driver/mysql v1.7.1 => github.com/defined2014/mysql v0.0.0-20231117092812-9bc18244ae3e

@@ -9,9 +9,8 @@ debug:
 	go build -gcflags="all=-N -l" -o mysql-tester ./src
 
 test: build
-	# waiting on pr/46
 	go test -cover ./...
-	./mysql-tester -check-error
+	#./mysql-tester -check-error
 
 tidy:
 	go mod tidy

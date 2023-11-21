@@ -139,7 +139,7 @@ func main() {
 					log.Fatal(err)
 				}
 				if c != i {
-					log.Fatal("perror gave error with wrong number? (Want: %d Got: %d)", i, c)
+					log.Fatalf("perror gave error with wrong number? (Want: %d Got: %d)", i, c)
 				}
 				checkNewErr(m[2], i, NameToNum)
 			}

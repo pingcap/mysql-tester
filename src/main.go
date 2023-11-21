@@ -677,10 +677,6 @@ func (t *tester) checkExpectedError(q query, err error) error {
 	// Parse the error to get the mysql error code
 	errNo := 0
 	switch innerErr := errors.Cause(err).(type) {
-		/*
-	case *terror.Error:
-		errNo = int(innerErr.Code())
-		*/
 	case *mysql.MySQLError:
 		errNo = int(innerErr.Number)
 	}

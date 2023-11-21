@@ -1209,7 +1209,7 @@ func main() {
 	}
 
 	if !checkErr {
-		log.Warn("--error will simply accept zero or more errors! (i.e. not even check for errors!)")
+		log.Warn("--check-error is not set! --error in .test file will simply accept zero or more errors! (i.e. not even check for errors!)")
 	}
 	go func() {
 		executeTests(convertTestsToTestTasks(tests))

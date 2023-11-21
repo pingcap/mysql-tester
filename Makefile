@@ -10,7 +10,7 @@ debug:
 
 test: build
 	# waiting on pr/46
-	#go test -cover ./...
+	go test -cover ./...
 	./mysql-tester -check-error
 
 tidy:

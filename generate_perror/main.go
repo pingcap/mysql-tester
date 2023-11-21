@@ -17,13 +17,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -55,9 +54,10 @@ func init() {
 func checkNewErr(errCode string, i int, nameToNum map[string]int) {
 	if v, ok := nameToNum[errCode]; ok {
 		if i != v {
-			log.Debugf("Dup: %s (%d != %d)", errCode, i, v)
-		} else {
-			log.Debugf("Dup: %s (%d)", errCode, i)
+			if errCode != "handler" {
+				// Ignore the HA_ERR codes, which are all 'handler'
+				log.Printf("Duplicate error errCode %s (%d != %d)", errCode, i, v)
+			}
 		}
 	} else {
 		nameToNum[errCode] = i
@@ -105,15 +105,15 @@ func main() {
 
 	scanErrCodeFile(tidbCodePath+"/pkg/errno/errcode.go", NameToNum)
 	errnoCodes := len(NameToNum)
-	log.Infof("Got %d error codes from errno/errcode.go!", errnoCodes)
+	log.Printf("Got %d error codes from errno/errcode.go!", errnoCodes)
 	scanErrCodeFile(tidbCodePath+"/pkg/parser/mysql/errcode.go", NameToNum)
 	parserCodes := len(NameToNum) - errnoCodes
-	log.Infof("Got %d New error codes from parser/mysql/errcode.go!", parserCodes)
+	log.Printf("Got %d New error codes from parser/mysql/errcode.go!", parserCodes)
 
 	// similar to:
 	//seq 1 100000 | xargs perror 2> /dev/null | grep '^MySQL error code MY-[0-9]* ([A-Z_]*).*' | sed 's/^MySQL error code MY-0*\([[:digit:]]*\) (\([^)]*\)).*/"\2": \1,/'
 	maxError := 20000
-	log.Infof("Running perror for error codes 1..%d, may take some time...", maxError)
+	log.Printf("Running perror for error codes 1..%d, may take some time...", maxError)
 	for i := 1; i <= maxError; i++ {
 		if i%1000 == 0 {
 			fmt.Printf("\r%d", i)
@@ -136,7 +136,7 @@ func main() {
 					log.Fatal(err)
 				}
 				if c != i {
-					log.Errorf("perror gave error with wrong number? (Want: %d Got: %d)", i, c)
+					log.Fatal("perror gave error with wrong number? (Want: %d Got: %d)", i, c)
 				}
 				checkNewErr(m[2], i, NameToNum)
 			}
@@ -146,7 +146,7 @@ func main() {
 	if maxError >= 1000 {
 		fmt.Printf("\r")
 	}
-	log.Infof("Got %d New error codes from perror!", len(NameToNum)-parserCodes-errnoCodes)
+	log.Printf("Got %d New error codes from perror!", len(NameToNum)-parserCodes-errnoCodes)
 	f, err := os.Create("perror.go")
 	if err != nil {
 		log.Fatal(err)

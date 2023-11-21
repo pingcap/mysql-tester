@@ -184,7 +184,7 @@ func setSessionVariable(db *Conn) {
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_analyze_snapshot=1"); err != nil {
 		log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)
 	} else {
-		log.Info("enable tidb_enable_analyze_snapshot")
+		log.Debugf("enable tidb_enable_analyze_snapshot")
 	}
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_clustered_index='int_only'"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
@@ -275,7 +275,7 @@ func (t *tester) preProcess() {
 	}
 
 	dbName = strings.ReplaceAll(t.name, "/", "__")
-	log.Warn("Create new db ", dbName)
+	log.Debugf("Create new db `%s`", dbName)
 	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", dbName, err)
 	}

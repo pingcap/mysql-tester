@@ -140,6 +140,7 @@ func main() {
 				checkNewErr(m[2], i, NameToNum)
 			}
 		}
+		cmd.Wait()
 	}
 	if maxError >= 1000 {
 		fmt.Printf("\r")

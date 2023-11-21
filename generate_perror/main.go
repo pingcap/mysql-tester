@@ -99,7 +99,7 @@ func main() {
 
 	// Second extract the known error names => numbers from TiDB parser/mysql module
 
-	// Last use the perror program to extract error names from 1..10000 from MySQL
+	// Last use the perror program to extract error names from 1..20000 from MySQL
 
 	flag.Parse()
 
@@ -110,6 +110,7 @@ func main() {
 	parserCodes := len(NameToNum) - errnoCodes
 	log.Infof("Got %d New error codes from parser/mysql/errcode.go!", parserCodes)
 
+	// similar to:
 	//seq 1 100000 | xargs perror 2> /dev/null | grep '^MySQL error code MY-[0-9]* ([A-Z_]*).*' | sed 's/^MySQL error code MY-0*\([[:digit:]]*\) (\([^)]*\)).*/"\2": \1,/'
 	maxError := 20000
 	log.Infof("Running perror for error codes 1..%d, may take some time...", maxError)

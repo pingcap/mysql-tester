@@ -739,23 +739,9 @@ func (t *tester) execute(query query) error {
 	offset := t.buf.Len()
 	err := t.stmtExecute(query.Query)
 
-	if err != nil && len(t.expectedErrs) > 0 {
-		/*
-		errStr := err.Error()
-		for _, reg := range t.replaceRegex {
-			errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
-		}
-		*/
-
-		err = t.checkExpectedError(query, err)
-		if err != nil {
-			return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
-		}
-		/*
-		// output expected err
-		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
-		err = nil
-		*/
+	err = t.checkExpectedError(query, err)
+	if err != nil {
+		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
 	}
 	// clear expected errors after we execute the first query
 	t.expectedErrs = nil

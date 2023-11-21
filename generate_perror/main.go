@@ -71,7 +71,7 @@ func scanErrCodeFile(fileName string, nameToNum map[string]int) {
 	}
 	defer f.Close()
 	s := bufio.NewScanner(f)
-	r := regexp.MustCompile("^\\s+(\\w+)*\\s+=\\s+(\\d+)$")
+	r := regexp.MustCompile(`^\s+(\w+)*\s+=\s+(\d+)$`)
 	for s.Scan() {
 		m := r.FindStringSubmatch(s.Text())
 		if m != nil && len(m) == 3 && m[1] != "" && m[2] != "" {

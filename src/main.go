@@ -487,7 +487,7 @@ func (t *tester) Run() error {
 			t.replaceRegex = nil
 			regex, err := ParseReplaceRegex(q.Query)
 			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: sql:%v", q.Query))
+				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
 		default:
@@ -910,6 +910,7 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 }
 
 func (t *tester) executeStmt(query string) error {
+	log.Debugf("executeStmt: %s", query)
 	raw, err := t.curr.conn.QueryContext(context.Background(), query)
 	if err != nil {
 		return errors.Trace(err)
@@ -1148,6 +1149,16 @@ func main() {
 	flag.Parse()
 	tests := flag.Args()
 	startTime := time.Now()
+	if ll := os.Getenv("LOG_LEVEL"); ll != "" {
+		logLevel = ll
+	}
+	if logLevel != "" {
+		ll, err := log.ParseLevel(logLevel)
+		if err != nil {
+			log.Errorf("error parsing log level %s: %v", logLevel, err)
+		}
+		log.SetLevel(ll)
+	}
 
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)

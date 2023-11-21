@@ -189,5 +189,8 @@ var MysqlErrNameToNum = map[string]int{
 		}
 	}
 	_, err = w.WriteString("}\n")
+	if err != nil {
+		log.Fatal(err)
+	}
 	w.Flush()
 }

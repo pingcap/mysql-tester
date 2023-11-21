@@ -11,3 +11,18 @@ explain analyze select * from t;
 id	estRows	actRows	task	access object	execution info	operator info	memory	disk
 TableReader_5	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan_4	<num> Bytes	N/A
 └─TableFullScan_4	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A
+insert into t values (6, 6);
+affected rows: 1
+info: 
+DROP TABLE IF EXISTS t1;
+affected rows: 0
+info: 
+CREATE TABLE t1 (f1 INT PRIMARY KEY, f2 INT NOT NULL UNIQUE);
+affected rows: 0
+info: 
+INSERT t1 VALUES (1, 1);
+affected rows: 1
+info: 
+INSERT t1 VALUES (1, 1), (1, 1) ON DUPLICATE KEY UPDATE f1 = 2, f2 = 2;
+affected rows: 3
+info: Records: 2  Duplicates: 1  Warnings: 0

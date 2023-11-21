@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -116,10 +116,14 @@ type tester struct {
 	sortedResult bool
 
 	enableConcurrent bool
+
 	// Disable or enable warnings. This setting is enabled by default.
 	// With this setting enabled, mysqltest uses SHOW WARNINGS to display
 	// any warnings produced by SQL statements.
 	enableWarning bool
+
+	// enable query info, like rowsAffected, lastMessage etc.
+	enableInfo bool
 
 	// check expected error, use --error before the statement
 	// see http://dev.mysql.com/doc/mysqltest/2.0/en/writing-tests-expecting-errors.html
@@ -152,12 +156,19 @@ func newTester(name string) *tester {
 	// are ported wihtout explictly "disablewarning"
 	t.enableWarning = false
 	t.enableConcurrent = false
+	t.enableInfo = false
 
 	return t
 }
 
 func setSessionVariable(db *Conn) {
 	ctx := context.Background()
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_init_chunk_size=1"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
+	}
+	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_max_chunk_size=32"); err != nil {
+		log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
+	}
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_multi_statement_mode=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_multi_statement_mode=1\" err[%v]", err)
 	}
@@ -348,6 +359,10 @@ func (t *tester) Run() error {
 			t.enableWarning = false
 		case Q_ENABLE_WARNINGS:
 			t.enableWarning = true
+		case Q_ENABLE_INFO:
+			t.enableInfo = true
+		case Q_DISABLE_INFO:
+			t.enableInfo = false
 		case Q_BEGIN_CONCURRENT:
 			concurrentQueue = make([]query, 0)
 			t.enableConcurrent = true
@@ -372,7 +387,7 @@ func (t *tester) Run() error {
 		case Q_ERROR:
 			t.expectedErrs = strings.Split(strings.TrimSpace(s), ",")
 		case Q_ECHO:
-			varSearch := regexp.MustCompile("\\$([A-Za-z0-9_]+)( |$)")
+			varSearch := regexp.MustCompile(`\\$([A-Za-z0-9_]+)( |$)`)
 			s := varSearch.ReplaceAllStringFunc(s, func(s string) string {
 				return os.Getenv(varSearch.FindStringSubmatch(s)[1])
 			})
@@ -534,12 +549,6 @@ func initConn(mdb *sql.DB, host, user, passwd, dbName string) (*Conn, error) {
 		conn:     sqlConn,
 	}
 	if isTiDB(mdb) {
-		if _, err = mdb.Exec("SET @@tidb_init_chunk_size=1"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_init_chunk_size=1\" err[%v]", err)
-		}
-		if _, err = mdb.Exec("SET @@tidb_max_chunk_size=32"); err != nil {
-			log.Fatalf("Executing \"SET @@tidb_max_chunk_size=32\" err[%v]", err)
-		}
 		setSessionVariable(conn)
 	}
 	if dbName != "" {
@@ -818,14 +827,20 @@ func (t *tester) executeStmt(query string) error {
 		return errors.Trace(err)
 	}
 
-	if !t.enableResultLog {
-		return nil
-	}
-
-	if len(rows.cols) > 0 || len(rows.data) > 0 {
+	if t.enableResultLog && (len(rows.cols) > 0 || len(rows.data) > 0) {
 		if err = t.writeQueryResult(rows); err != nil {
 			return errors.Trace(err)
 		}
+	}
+
+	if t.enableInfo {
+		t.curr.conn.Raw(func(driverConn any) error {
+			rowsAffected := driverConn.(*mysql.MysqlConn).RowsAffected()
+			lastMessage := driverConn.(*mysql.MysqlConn).LastMessage()
+			t.buf.WriteString(fmt.Sprintf("affected rows: %d\n", rowsAffected))
+			t.buf.WriteString(fmt.Sprintf("info: %s\n", lastMessage))
+			return nil
+		})
 	}
 
 	if t.enableWarning {

@@ -1,7 +1,6 @@
 create table t(a bigint, b bigint);
 insert into t values(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 select * from t where a = 1;
-drop table t;
 
 --error ER_NO_SUCH_TABLE
 SELECT 1 FROM NON_EXISTING_TABLE;
@@ -29,3 +28,20 @@ SELECT 6;
 
 -- error ER_PARSE_ERROR , 0
 3 SELECT;
+
+--replace_regex /:[ ]?[.0-9]+.*?,/:<num>,/ /:[ ]?[.0-9]+.*?}/:<num>}/ /[0-9]+ Bytes/<num> Bytes/
+explain analyze format='brief' select * from t;
+
+--replace_regex /:[ ]?[.0-9]+.*?,/:<num>,/ /:[ ]?[.0-9]+.*?}/:<num>}/ /[0-9]+ Bytes/<num> Bytes/
+explain analyze select * from t;
+
+--enable_info
+insert into t values (6, 6);
+
+DROP TABLE IF EXISTS t1;
+CREATE TABLE t1 (f1 INT PRIMARY KEY, f2 INT NOT NULL UNIQUE);
+INSERT t1 VALUES (1, 1);
+INSERT t1 VALUES (1, 1), (1, 1) ON DUPLICATE KEY UPDATE f1 = 2, f2 = 2;
+--disable_info
+
+use `test`;;

@@ -15,6 +15,7 @@ package main
 
 import (
 	"database/sql"
+	"regexp"
 	"strings"
 	"time"
 
@@ -51,34 +52,55 @@ func OpenDBWithRetry(driverName, dataSourceName string, retryCount int) (mdb *sq
 	return
 }
 
-var queryStmtTable = []string{"explain", "select", "show", "execute", "describe", "desc", "admin", "with", "trace"}
-
-func trimSQL(sql string) string {
-	// Trim space.
-	sql = strings.TrimSpace(sql)
-	// Trim leading /*comment*/
-	// There may be multiple comments
-	for strings.HasPrefix(sql, "/*") {
-		i := strings.Index(sql, "*/")
-		if i != -1 && i < len(sql)+1 {
-			sql = sql[i+2:]
-			sql = strings.TrimSpace(sql)
-			continue
-		}
-		break
+func processEscapes(str string) string {
+	escapeMap := map[string]string{
+		`\n`: "\n",
+		`\t`: "\t",
+		`\r`: "\r",
+		`\/`: "/",
+		`\\`: "\\", // better be the last one
 	}
-	// Trim leading '('. For `(select 1);` is also a query.
-	return strings.TrimLeft(sql, "( ")
+
+	for escape, replacement := range escapeMap {
+		str = strings.ReplaceAll(str, escape, replacement)
+	}
+
+	return str
 }
 
-// isQuery checks if a sql statement is a query statement.
-func IsQuery(sql string) bool {
-	sqlText := strings.ToLower(trimSQL(sql))
-	for _, key := range queryStmtTable {
-		if strings.HasPrefix(sqlText, key) {
-			return true
+func ParseReplaceRegex(originalString string) ([]*ReplaceRegex, error) {
+	var begin, middle, end, cnt int
+	ret := make([]*ReplaceRegex, 0)
+	for i, c := range originalString {
+		if c != '/' {
+			continue
+		}
+		if i != 0 && originalString[i-1] == '\\' {
+			continue
+		}
+		cnt++
+		switch cnt % 3 {
+		// The first '/'
+		case 1:
+			begin = i
+		// The second '/'
+		case 2:
+			middle = i
+		// The last '/', we could compile regex and process replace string
+		case 0:
+			end = i
+			reg, err := regexp.Compile(originalString[begin+1 : middle])
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, &ReplaceRegex{
+				regex:   reg,
+				replace: processEscapes(originalString[middle+1 : end]),
+			})
 		}
 	}
-
-	return false
+	if cnt%3 != 0 {
+		return nil, errors.Errorf("Could not parse regex in --replace_regex: sql:%v", originalString)
+	}
+	return ret, nil
 }

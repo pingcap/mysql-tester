@@ -729,7 +729,11 @@ func (t *tester) checkExpectedError(q query, err error) error {
 			log.Warnf("%s:%d query failed with non expected error(s)! (%s != %s) (err: %s) (query: %s)",
 				t.name, q.Line, gotErrCode, t.expectedErrs[0], err.Error(), q.Query)
 		}
-		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+		errStr := err.Error()
+		for _, reg := range t.replaceRegex {
+			errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
+		}
+		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
 		return nil
 	}
 	return err

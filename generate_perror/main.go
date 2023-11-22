@@ -106,7 +106,7 @@ func main() {
 
 	flag.Parse()
 
-	scanErrCodeFile(tidbCodePath+"/pkg/errno/errcode.go", NameToNum)
+	scanErrCodeFile(filepath.Join(tidbCodePath, "/pkg/errno/errcode.go"), NameToNum)
 	errnoCodes := len(NameToNum)
 	log.Printf("Got %d error codes from errno/errcode.go!", errnoCodes)
 	scanErrCodeFile(tidbCodePath+"/pkg/parser/mysql/errcode.go", NameToNum)

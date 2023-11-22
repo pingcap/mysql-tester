@@ -703,7 +703,11 @@ func (t *tester) checkExpectedError(q query, err error) error {
 		if errNo == checkErrNo {
 			if len(t.expectedErrs) == 1 || !checkErr {
 				// !checkErr - Also keep old behavior, i.e. not use "Got one of the listed errors"
-				fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(err.Error(), "\r", ""))
+				errStr := err.Error()
+				for _, reg := range t.replaceRegex {
+					errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
+				}
+				fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
 			} else if strings.TrimSpace(t.expectedErrs[0]) != "0" {
 				fmt.Fprintf(&t.buf, "Got one of the listed errors\n")
 			}

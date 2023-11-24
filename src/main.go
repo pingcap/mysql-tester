@@ -46,6 +46,7 @@ var (
 	xmlPath          string
 	retryConnCount   int
 	collationDisable bool
+	checkErr         bool
 )
 
 func init() {
@@ -60,6 +61,7 @@ func init() {
 	flag.BoolVar(&reserveSchema, "reserve-schema", false, "Reserve schema after each test")
 	flag.StringVar(&xmlPath, "xunitfile", "", "The xml file path to record testing results.")
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
+	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 }
 
@@ -182,7 +184,7 @@ func setSessionVariable(db *Conn) {
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_analyze_snapshot=1"); err != nil {
 		log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)
 	} else {
-		log.Info("enable tidb_enable_analyze_snapshot")
+		log.Debugf("enable tidb_enable_analyze_snapshot")
 	}
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_clustered_index='int_only'"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
@@ -273,7 +275,7 @@ func (t *tester) preProcess() {
 	}
 
 	dbName = strings.ReplaceAll(t.name, "/", "__")
-	log.Warn("Create new db ", dbName)
+	log.Debugf("Create new db `%s`", dbName)
 	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
 		log.Fatalf("Executing create db %s err[%v]", dbName, err)
 	}
@@ -364,6 +366,7 @@ func (t *tester) Run() error {
 		case Q_DISABLE_INFO:
 			t.enableInfo = false
 		case Q_BEGIN_CONCURRENT:
+			// mysql-tester enhancement
 			concurrentQueue = make([]query, 0)
 			t.enableConcurrent = true
 			if s == "" {
@@ -484,7 +487,7 @@ func (t *tester) Run() error {
 			t.replaceRegex = nil
 			regex, err := ParseReplaceRegex(q.Query)
 			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: sql:%v", q.Query))
+				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
 		default:
@@ -647,6 +650,95 @@ func (t *tester) stmtExecute(query string) (err error) {
 	return t.executeStmt(query)
 }
 
+// checkExpectedError check if error was expected
+// If so, it will handle Buf and return nil
+func (t *tester) checkExpectedError(q query, err error) error {
+	if err == nil {
+		if len(t.expectedErrs) == 0 {
+			return nil
+		}
+		for _, s := range t.expectedErrs {
+			s = strings.TrimSpace(s)
+			if s == "0" {
+				// 0 means accept any error!
+				return nil
+			}
+		}
+		if !checkErr {
+			log.Warnf("%s:%d query succeeded, but expected error(s)! (expected errors: %s) (query: %s)",
+				t.name, q.Line, strings.Join(t.expectedErrs, ","), q.Query)
+			return nil
+		}
+		return errors.Errorf("Statement succeeded, expected error(s) '%s'", strings.Join(t.expectedErrs, ","))
+	}
+	if err != nil && len(t.expectedErrs) == 0 {
+		return err
+	}
+	// Parse the error to get the mysql error code
+	errNo := 0
+	switch innerErr := errors.Cause(err).(type) {
+	case *mysql.MySQLError:
+		errNo = int(innerErr.Number)
+	}
+	if errNo == 0 {
+		log.Warnf("%s:%d Could not parse mysql error: %s", t.name, q.Line, err.Error())
+		return err
+	}
+	for _, s := range t.expectedErrs {
+		s = strings.TrimSpace(s)
+		checkErrNo, err1 := strconv.Atoi(s)
+		if err1 != nil {
+			i, ok := MysqlErrNameToNum[s]
+			if ok {
+				checkErrNo = i
+			} else {
+				if len(t.expectedErrs) > 1 {
+					log.Warnf("%s:%d Unknown named error %s in --error %s", t.name, q.Line, s, strings.Join(t.expectedErrs, ","))
+				} else {
+					log.Warnf("%s:%d Unknown named --error %s", t.name, q.Line, s)
+				}
+				continue
+			}
+		}
+		if errNo == checkErrNo {
+			if len(t.expectedErrs) == 1 || !checkErr {
+				// !checkErr - Also keep old behavior, i.e. not use "Got one of the listed errors"
+				errStr := err.Error()
+				for _, reg := range t.replaceRegex {
+					errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
+				}
+				fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
+			} else if strings.TrimSpace(t.expectedErrs[0]) != "0" {
+				fmt.Fprintf(&t.buf, "Got one of the listed errors\n")
+			}
+			return nil
+		}
+	}
+	if !checkErr {
+		gotErrCode := strconv.Itoa(errNo)
+		for k, v := range MysqlErrNameToNum {
+			if v == errNo {
+				gotErrCode = k
+				break
+			}
+		}
+		if len(t.expectedErrs) > 1 {
+			log.Warnf("%s:%d query failed with non expected error(s)! (%s not in %s) (err: %s) (query: %s)",
+				t.name, q.Line, gotErrCode, strings.Join(t.expectedErrs, ","), err.Error(), q.Query)
+		} else {
+			log.Warnf("%s:%d query failed with non expected error(s)! (%s != %s) (err: %s) (query: %s)",
+				t.name, q.Line, gotErrCode, t.expectedErrs[0], err.Error(), q.Query)
+		}
+		errStr := err.Error()
+		for _, reg := range t.replaceRegex {
+			errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
+		}
+		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
+		return nil
+	}
+	return err
+}
+
 func (t *tester) execute(query query) error {
 	if len(query.Query) == 0 {
 		return nil
@@ -655,18 +747,9 @@ func (t *tester) execute(query query) error {
 	offset := t.buf.Len()
 	err := t.stmtExecute(query.Query)
 
-	if err != nil && len(t.expectedErrs) > 0 {
-		// TODO: check whether this err is expected.
-		// but now we think it is.
-
-		errStr := err.Error()
-		for _, reg := range t.replaceRegex {
-			errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
-		}
-
-		// output expected err
-		fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
-		err = nil
+	err = t.checkExpectedError(query, err)
+	if err != nil {
+		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
 	}
 	// clear expected errors after we execute the first query
 	t.expectedErrs = nil
@@ -817,6 +900,7 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 }
 
 func (t *tester) executeStmt(query string) error {
+	log.Debugf("executeStmt: %s", query)
 	raw, err := t.curr.conn.QueryContext(context.Background(), query)
 	if err != nil {
 		return errors.Trace(err)
@@ -1055,6 +1139,16 @@ func main() {
 	flag.Parse()
 	tests := flag.Args()
 	startTime := time.Now()
+	if ll := os.Getenv("LOG_LEVEL"); ll != "" {
+		logLevel = ll
+	}
+	if logLevel != "" {
+		ll, err := log.ParseLevel(logLevel)
+		if err != nil {
+			log.Errorf("error parsing log level %s: %v", logLevel, err)
+		}
+		log.SetLevel(ll)
+	}
 
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)
@@ -1115,6 +1209,9 @@ func main() {
 		log.Infof("recording tests: %v", tests)
 	}
 
+	if !checkErr {
+		log.Warn("--check-error is not set! --error in .test file will simply accept zero or more errors! (i.e. not even check for errors!)")
+	}
 	go func() {
 		executeTests(convertTestsToTestTasks(tests))
 		close(msgs)

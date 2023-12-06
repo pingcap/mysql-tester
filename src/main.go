@@ -98,6 +98,11 @@ type ReplaceRegex struct {
 	replace string
 }
 
+type ReplaceResult struct {
+	match   string
+	replace string
+}
+
 type tester struct {
 	mdb  *sql.DB
 	name string
@@ -146,6 +151,9 @@ type tester struct {
 
 	// replace output result through --replace_regex /\.dll/.so/
 	replaceRegex []*ReplaceRegex
+
+	// replace output result through --replace_result from to [from to [...]]
+	replaceResult []ReplaceResult
 }
 
 func newTester(name string) *tester {
@@ -411,6 +419,7 @@ func (t *tester) Run() error {
 			t.sortedResult = false
 			t.replaceColumn = nil
 			t.replaceRegex = nil
+			t.replaceResult = nil
 		case Q_SORTED_RESULT:
 			t.sortedResult = true
 		case Q_REPLACE_COLUMN:
@@ -490,6 +499,18 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_REPLACE:
+			t.replaceResult = nil // Only use the latest one!
+			// First iteration
+			// TODO: handle quoted strings, as well as variables
+			cols := strings.Fields(q.Query)
+			// Require that col + replacement comes in pairs otherwise skip the last column number
+			if len(cols)%2 != 0 {
+				log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("uneven number of replacement, will skip the last one")
+			}
+			for i := 0; i < len(cols)-1; i = i + 2 {
+				t.replaceResult = append(t.replaceResult, ReplaceResult{cols[i], cols[i+1]})
+			}
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
@@ -813,6 +834,10 @@ func (t *tester) writeQueryResult(rows *byteRows) error {
 				value = "NULL"
 			} else {
 				value = string(col)
+			}
+			// replace result
+			for _, replace := range t.replaceResult {
+				value = strings.ReplaceAll(value, replace.match, replace.replace)
 			}
 			t.buf.WriteString(value)
 			if i < len(row.data)-1 {

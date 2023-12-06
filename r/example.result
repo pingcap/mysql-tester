@@ -24,12 +24,15 @@ Error 1064 (42000): You have an error in your SQL syntax; check the manual that 
 Got one of the listed errors
 explain analyze format='brief' select * from t;
 id	estRows	actRows	task	access object	execution info	operator info	memory	disk
-TableReader	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan	<num> Bytes	N/A
-└─TableFullScan	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A
+TableReader	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, tot_proc:<num>, tot_wait:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan	<num> Bytes	N/A
+└─TableFullScan	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>, scan_detail: {total_process_keys:<num>, total_process_keys_size:<num>, total_keys:<num>, get_snapshot_time:<num>, rocksdb: {key_skipped_count:<num>, block: {}}}	keep order:false, stats:pseudo	N/A	N/A
 explain analyze select * from t;
 id	estRows	actRows	task	access object	execution info	operator info	memory	disk
-TableReader_5	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan_4	<num> Bytes	N/A
-└─TableFullScan_4	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A
+TableReader_5	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, tot_proc:<num>, tot_wait:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan_4	<num> Bytes	N/A
+└─TableFullScan_4	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>, scan_detail: {total_process_keys:<num>, total_process_keys_size:<num>, total_keys:<num>, get_snapshot_time:<num>, rocksdb: {key_skipped_count:<num>, block: {}}}	keep order:false, stats:pseudo	N/A	N/A
+select "My Matched matched changed Changed"
+My Matched matched changed Changed
+My Changed matched changed Changed
 insert into t values (6, 6);
 affected rows: 1
 info: 

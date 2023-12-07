@@ -2,6 +2,33 @@ create table t(a bigint, b bigint);
 insert into t values(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 select * from t where a = 1;
 
+--error ER_NO_SUCH_TABLE
+SELECT 1 FROM NON_EXISTING_TABLE;
+
+--error 0,ER_NO_SUCH_TABLE
+SELECT 2 FROM NON_EXISTING_TABLE;
+
+--error ER_NO_SUCH_TABLE,0
+SELECT 3 FROM NON_EXISTING_TABLE;
+
+--error 0,ER_NO_SUCH_TABLE
+SELECT 4;
+
+--error ER_NO_SUCH_TABLE,0
+SELECT 5;
+
+--error 0
+SELECT 6;
+
+--error ER_PARSE_ERROR
+1 SELECT;
+
+--error 0,ER_PARSE_ERROR
+2 SELECT;
+
+-- error ER_PARSE_ERROR , 0
+3 SELECT;
+
 --replace_regex /:[ ]?[.0-9]+.*?,/:<num>,/ /:[ ]?[.0-9]+.*?}/:<num>}/ /[0-9]+ Bytes/<num> Bytes/
 explain analyze format='brief' select * from t;
 
@@ -16,3 +43,8 @@ CREATE TABLE t1 (f1 INT PRIMARY KEY, f2 INT NOT NULL UNIQUE);
 INSERT t1 VALUES (1, 1);
 INSERT t1 VALUES (1, 1), (1, 1) ON DUPLICATE KEY UPDATE f1 = 2, f2 = 2;
 --disable_info
+
+--let $a=`select 1`
+--echo $a
+
+use `test`;;

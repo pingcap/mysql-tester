@@ -1,0 +1,2 @@
+SELECT 1 FROM NON_EXISTING_TABLE;
+Got one of the listed errors

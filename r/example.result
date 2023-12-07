@@ -3,6 +3,25 @@ insert into t values(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 select * from t where a = 1;
 a	b
 1	1
+SELECT 1 FROM NON_EXISTING_TABLE;
+Error 1146 (42S02): Table 'example.NON_EXISTING_TABLE' doesn't exist
+SELECT 2 FROM NON_EXISTING_TABLE;
+SELECT 3 FROM NON_EXISTING_TABLE;
+Got one of the listed errors
+SELECT 4;
+4
+4
+SELECT 5;
+5
+5
+SELECT 6;
+6
+6
+1 SELECT;
+Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 1 near "1 SELECT;" 
+2 SELECT;
+3 SELECT;
+Got one of the listed errors
 explain analyze format='brief' select * from t;
 id	estRows	actRows	task	access object	execution info	operator info	memory	disk
 TableReader	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan	<num> Bytes	N/A
@@ -26,3 +45,5 @@ info:
 INSERT t1 VALUES (1, 1), (1, 1) ON DUPLICATE KEY UPDATE f1 = 2, f2 = 2;
 affected rows: 3
 info: Records: 2  Duplicates: 1  Warnings: 0
+1
+use `test`;;

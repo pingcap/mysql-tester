@@ -78,7 +78,7 @@ func scanErrCodeFile(fileName string, nameToNum map[string]int) {
 	r := regexp.MustCompile(`^\s+(\w+)*\s+=\s+(\d+)$`)
 	for s.Scan() {
 		m := r.FindStringSubmatch(s.Text())
-		if m != nil && len(m) == 3 && m[1] != "" && m[2] != "" {
+		if len(m) == 3 && m[1] != "" && m[2] != "" {
 			i, err := strconv.Atoi(m[2])
 			if err != nil {
 				log.Fatal(err)
@@ -134,7 +134,7 @@ func main() {
 		r := regexp.MustCompile(`^MySQL error code MY-0*(\d+) \((\w+)\)`)
 		for s.Scan() {
 			m := r.FindStringSubmatch(s.Text())
-			if m != nil && len(m) == 3 && m[1] != "" && m[2] != "" {
+			if len(m) == 3 && m[1] != "" && m[2] != "" {
 				c, err := strconv.Atoi(m[1])
 				if err != nil {
 					log.Fatal(err)
@@ -145,7 +145,10 @@ func main() {
 				checkNewErr(m[2], i, NameToNum)
 			}
 		}
-		cmd.Wait()
+		err = cmd.Wait()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if maxError >= 1000 {
 		fmt.Printf("\r")
@@ -170,7 +173,7 @@ func main() {
 	sort.Slice(codes, func(i, j int) bool {
 		return codes[i].Code < codes[j].Code || codes[i].Code == codes[j].Code && codes[i].Name < codes[j].Name
 	})
-	for i, _ := range codes {
+	for i := range codes {
 		_, err = w.WriteString("\t\"" + codes[i].Name + `": ` + strconv.Itoa(codes[i].Code) + ",\n")
 		if err != nil {
 			log.Fatal(err)

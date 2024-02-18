@@ -291,7 +291,10 @@ func (t *tester) preProcess() {
 
 func (t *tester) postProcess() {
 	if !reserveSchema {
-		t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
+		_, err := t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
+		if err != nil {
+			log.Errorf("failed to drop database: %s", err.Error())
+		}
 	}
 	for _, v := range t.conn {
 		v.conn.Close()
@@ -918,13 +921,16 @@ func (t *tester) executeStmt(query string) error {
 	}
 
 	if t.enableInfo {
-		t.curr.conn.Raw(func(driverConn any) error {
+		err = t.curr.conn.Raw(func(driverConn any) error {
 			rowsAffected := driverConn.(*mysql.MysqlConn).RowsAffected()
 			lastMessage := driverConn.(*mysql.MysqlConn).LastMessage()
 			t.buf.WriteString(fmt.Sprintf("affected rows: %d\n", rowsAffected))
 			t.buf.WriteString(fmt.Sprintf("info: %s\n", lastMessage))
 			return nil
 		})
+		if err != nil {
+			log.Errorf("failed to get info: %s", err.Error())
+		}
 	}
 
 	if t.enableWarning {

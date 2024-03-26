@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -493,6 +494,43 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_LIST_FILES:
+			q.Query = strings.TrimSpace(q.Query)
+			parts := strings.Split(q.Query, " ")
+			if len(parts) > 2 {
+				return errors.New("list_files contains at most 2 arguments")
+			}
+			dirPath := parts[0]
+			fileInfo, err := os.Stat(dirPath)
+			if os.IsNotExist(err) {
+				return errors.Annotate(err, fmt.Sprintf("Directory %s not exists", dirPath))
+			}
+			if err != nil {
+				return errors.Annotate(err, fmt.Sprintf("Fail to get infomation for directory %s", dirPath))
+			}
+			if !fileInfo.IsDir() {
+				return errors.Annotate(err, fmt.Sprintf("%s is not a directory", dirPath))
+			}
+			files, err := os.ReadDir(dirPath)
+			if err != nil {
+				return errors.Annotate(err, fmt.Sprintf("Fail to list files insides %s", dirPath))
+			}
+			if len(parts) == 2 {
+				targetFiles := []fs.DirEntry{}
+				for _, file := range files {
+					name := file.Name()
+					match, err := filepath.Match(parts[1], name)
+					if err != nil || !match {
+						continue
+					}
+					targetFiles = append(targetFiles, file)
+				}
+				files = targetFiles
+			}
+			for _, file := range files {
+				t.buf.WriteString(file.Name())
+				t.buf.WriteString("\n")
+			}
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}

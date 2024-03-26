@@ -494,42 +494,52 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_MKDIR:
+			q.Query = strings.TrimSpace(q.Query)
+			if err := os.MkdirAll(q.Query, os.ModePerm); err != nil {
+				t.buf.WriteString("1\n")
+				return errors.Annotate(err, fmt.Sprintf("failed to create directories: %s", q.Query))
+			}
+			t.buf.WriteString("0\n")
 		case Q_LIST_FILES:
 			q.Query = strings.TrimSpace(q.Query)
 			parts := strings.Split(q.Query, " ")
+			if len(parts) < 1 {
+				return errors.New("list_files contains at least 1 argument")
+			}
 			if len(parts) > 2 {
 				return errors.New("list_files contains at most 2 arguments")
 			}
-			dirPath := parts[0]
-			fileInfo, err := os.Stat(dirPath)
-			if os.IsNotExist(err) {
-				return errors.Annotate(err, fmt.Sprintf("Directory %s not exists", dirPath))
-			}
+
+			files, err := getFilesInDir(parts[0])
 			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Fail to get infomation for directory %s", dirPath))
+				return err
 			}
-			if !fileInfo.IsDir() {
-				return errors.Annotate(err, fmt.Sprintf("%s is not a directory", dirPath))
-			}
-			files, err := os.ReadDir(dirPath)
-			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Fail to list files insides %s", dirPath))
-			}
+
 			if len(parts) == 2 {
-				targetFiles := []fs.DirEntry{}
-				for _, file := range files {
-					name := file.Name()
-					match, err := filepath.Match(parts[1], name)
-					if err != nil || !match {
-						continue
-					}
-					targetFiles = append(targetFiles, file)
-				}
-				files = targetFiles
+				files = filterByPattern(files, parts[1])
 			}
 			for _, file := range files {
 				t.buf.WriteString(file.Name())
 				t.buf.WriteString("\n")
+			}
+		case Q_REMOVE_FILES_WILDCARD:
+			q.Query = strings.TrimSpace(q.Query)
+			parts := strings.Split(q.Query, " ")
+			if len(parts) != 2 {
+				return errors.New("remove_files_wildcard requires 2 arguments")
+			}
+
+			files, err := getFilesInDir(parts[0])
+			if err != nil {
+				return err
+			}
+			files = filterByPattern(files, parts[1])
+			for _, file := range files {
+				err = os.Remove(filepath.Join(parts[0], file.Name()))
+				if err != nil {
+					continue
+				}
 			}
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
@@ -543,6 +553,37 @@ func (t *tester) Run() error {
 	}
 
 	return t.flushResult()
+}
+
+func getFilesInDir(dirPath string) ([]fs.DirEntry, error) {
+	fileInfo, err := os.Stat(dirPath)
+	if os.IsNotExist(err) {
+		return nil, errors.Annotate(err, fmt.Sprintf("Directory %s not exists", dirPath))
+	}
+	if err != nil {
+		return nil, errors.Annotate(err, fmt.Sprintf("Fail to get infomation for directory %s", dirPath))
+	}
+	if !fileInfo.IsDir() {
+		return nil, errors.Annotate(err, fmt.Sprintf("%s is not a directory", dirPath))
+	}
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, errors.Annotate(err, fmt.Sprintf("Fail to list files insides %s", dirPath))
+	}
+	return files, nil
+}
+
+func filterByPattern(files []fs.DirEntry, pattern string) []fs.DirEntry {
+	targetFiles := []fs.DirEntry{}
+	for _, file := range files {
+		name := file.Name()
+		match, err := filepath.Match(pattern, name)
+		if err != nil || !match {
+			continue
+		}
+		targetFiles = append(targetFiles, file)
+	}
+	return targetFiles
 }
 
 func (t *tester) concurrentRun(concurrentQueue []query, concurrentSize int) error {

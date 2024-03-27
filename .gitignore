@@ -22,3 +22,5 @@ go.work
 *.iml
 .idea
 .DS_Store
+
+mysql-tester

@@ -15,9 +15,10 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/pingcap/errors"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,11 +26,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/defined2014/mysql"
-	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
 	vtMySQL "vitess.io/vitess/go/mysql"
 	"vitess.io/vitess/go/test/endtoend/utils"
+	"vitess.io/vitess/go/vt/sqlparser"
 )
 
 var (
@@ -50,7 +49,7 @@ func init() {
 	flag.StringVar(&mysqlUser, "mysql-user", "root", "The user for connecting to the MySQL database.")
 	flag.StringVar(&mysqlPasswd, "mysql-passwd", "", "The password for the MySQL user.")
 	flag.StringVar(&vtHost, "vt-host", "127.0.0.1", "The host of the vtgate server.")
-	flag.StringVar(&vtPort, "vt-port", "4000", "The listen port of vtgate server.")
+	flag.StringVar(&vtPort, "vt-port", "", "The listen port of vtgate server.")
 	flag.StringVar(&vtUser, "vt-user", "root", "The user for connecting to the vtgate")
 	flag.StringVar(&vtPasswd, "vt-passwd", "", "The password for the vtgate")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
@@ -58,26 +57,58 @@ func init() {
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 }
 
-type query struct {
-	firstWord string
-	Query     string
-	Line      int
-	tp        CmdType
-}
+type (
+	query struct {
+		firstWord string
+		Query     string
+		Line      int
+		tp        CmdType
+	}
+	ReplaceColumn struct {
+		col     int
+		replace []byte
+	}
+	ReplaceRegex struct {
+		regex   *regexp.Regexp
+		replace string
+	}
+	tester struct {
+		name string
 
-type Conn struct {
-	// DB might be a shared one by multiple Conn, if the connection information are the same.
-	mdb *sql.DB
-	// connection information.
-	hostName string
-	userName string
-	password string
-	db       string
+		curr utils.MySQLCompare
 
-	conn *sql.Conn
-}
+		// enable query log will output origin statement into result file too
+		// use --disable_query_log or --enable_query_log to control it
+		enableQueryLog bool
 
-type testingCtx struct{}
+		// enable result log will output to result file or not.
+		// use --enable_result_log or --disable_result_log to control it
+		enableResultLog bool
+
+		// sortedResult make the output or the current query sorted.
+		sortedResult bool
+
+		// Disable or enable warnings. This setting is enabled by default.
+		// With this setting enabled, mysqltest uses SHOW WARNINGS to display
+		// any warnings produced by SQL statements.
+		enableWarning bool
+
+		// enable query info, like rowsAffected, lastMessage etc.
+		enableInfo bool
+
+		// check expected error, use --error before the statement
+		// we only care if an error is returned, not the exact error message.
+		expectedErrs bool
+
+		// replace output column through --replace_column 1 <static data> 3 #
+		replaceColumn []ReplaceColumn
+
+		// replace output result through --replace_regex /\.dll/.so/
+		replaceRegex []*ReplaceRegex
+	}
+
+	testingCtx struct{}
+)
 
 func (t testingCtx) Errorf(format string, args ...interface{}) {
 	panic(fmt.Sprintf(format, args...))
@@ -88,53 +119,6 @@ func (t testingCtx) FailNow() {
 }
 
 func (t testingCtx) Helper() {}
-
-type ReplaceColumn struct {
-	col     int
-	replace []byte
-}
-
-type ReplaceRegex struct {
-	regex   *regexp.Regexp
-	replace string
-}
-
-type tester struct {
-	name string
-
-	curr utils.MySQLCompare
-
-	buf bytes.Buffer
-
-	// enable query log will output origin statement into result file too
-	// use --disable_query_log or --enable_query_log to control it
-	enableQueryLog bool
-
-	// enable result log will output to result file or not.
-	// use --enable_result_log or --disable_result_log to control it
-	enableResultLog bool
-
-	// sortedResult make the output or the current query sorted.
-	sortedResult bool
-
-	// Disable or enable warnings. This setting is enabled by default.
-	// With this setting enabled, mysqltest uses SHOW WARNINGS to display
-	// any warnings produced by SQL statements.
-	enableWarning bool
-
-	// enable query info, like rowsAffected, lastMessage etc.
-	enableInfo bool
-
-	// check expected error, use --error before the statement
-	// see http://dev.mysql.com/doc/mysqltest/2.0/en/writing-tests-expecting-errors.html
-	expectedErrs []string
-
-	// replace output column through --replace_column 1 <static data> 3 #
-	replaceColumn []ReplaceColumn
-
-	// replace output result through --replace_regex /\.dll/.so/
-	replaceRegex []*ReplaceRegex
-}
 
 func newTester(name string) *tester {
 	t := new(tester)
@@ -234,15 +218,9 @@ func (t *tester) Run() error {
 		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET:
 			return fmt.Errorf("%s not supported", String(q.tp))
 		case Q_ERROR:
-			t.expectedErrs = strings.Split(strings.TrimSpace(q.Query), ",")
+			t.expectedErrs = true
 		case Q_ECHO:
-			varSearch := regexp.MustCompile(`\$([A-Za-z0-9_]+)( |$)`)
-			s := varSearch.ReplaceAllStringFunc(q.Query, func(s string) string {
-				return os.Getenv(varSearch.FindStringSubmatch(s)[1])
-			})
-
-			t.buf.WriteString(s)
-			t.buf.WriteString("\n")
+			log.Info(q.Query)
 		case Q_QUERY:
 			if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
@@ -333,94 +311,8 @@ func (t *tester) loadQueries() ([]query, error) {
 	return ParseQueries(queries...)
 }
 
-func (t *tester) stmtExecute(query string) (err error) {
-	if t.enableQueryLog {
-		t.buf.WriteString(query)
-		t.buf.WriteString("\n")
-	}
+func (t *tester) stmtExecute(query string) error {
 	return t.executeStmt(query)
-}
-
-// checkExpectedError check if error was expected
-// If so, it will handle Buf and return nil
-func (t *tester) checkExpectedError(q query, err error) error {
-	if err == nil {
-		if len(t.expectedErrs) == 0 {
-			return nil
-		}
-		for _, s := range t.expectedErrs {
-			s = strings.TrimSpace(s)
-			if s == "0" {
-				// 0 means accept any error!
-				return nil
-			}
-		}
-		return errors.Errorf("Statement succeeded, expected error(s) '%s'", strings.Join(t.expectedErrs, ","))
-	}
-	if err != nil && len(t.expectedErrs) == 0 {
-		return err
-	}
-	// Parse the error to get the mysql error code
-	errNo := 0
-	switch innerErr := errors.Cause(err).(type) {
-	case *mysql.MySQLError:
-		errNo = int(innerErr.Number)
-	}
-	if errNo == 0 {
-		log.Warnf("%s:%d Could not parse mysql error: %s", t.name, q.Line, err.Error())
-		return err
-	}
-	for _, s := range t.expectedErrs {
-		s = strings.TrimSpace(s)
-		checkErrNo, err1 := strconv.Atoi(s)
-		if err1 != nil {
-			i, ok := MysqlErrNameToNum[s]
-			if ok {
-				checkErrNo = i
-			} else {
-				if len(t.expectedErrs) > 1 {
-					log.Warnf("%s:%d Unknown named error %s in --error %s", t.name, q.Line, s, strings.Join(t.expectedErrs, ","))
-				} else {
-					log.Warnf("%s:%d Unknown named --error %s", t.name, q.Line, s)
-				}
-				continue
-			}
-		}
-		if errNo == checkErrNo {
-			if len(t.expectedErrs) == 1 {
-				// !checkErr - Also keep old behavior, i.e. not use "Got one of the listed errors"
-				errStr := err.Error()
-				for _, reg := range t.replaceRegex {
-					errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
-				}
-				fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
-			} else if strings.TrimSpace(t.expectedErrs[0]) != "0" {
-				fmt.Fprintf(&t.buf, "Got one of the listed errors\n")
-			}
-			return nil
-		}
-	}
-
-	gotErrCode := strconv.Itoa(errNo)
-	for k, v := range MysqlErrNameToNum {
-		if v == errNo {
-			gotErrCode = k
-			break
-		}
-	}
-	if len(t.expectedErrs) > 1 {
-		log.Warnf("%s:%d query failed with non expected error(s)! (%s not in %s) (err: %s) (query: %s)",
-			t.name, q.Line, gotErrCode, strings.Join(t.expectedErrs, ","), err.Error(), q.Query)
-	} else {
-		log.Warnf("%s:%d query failed with non expected error(s)! (%s != %s) (err: %s) (query: %s)",
-			t.name, q.Line, gotErrCode, t.expectedErrs[0], err.Error(), q.Query)
-	}
-	errStr := err.Error()
-	for _, reg := range t.replaceRegex {
-		errStr = reg.regex.ReplaceAllString(errStr, reg.replace)
-	}
-	fmt.Fprintf(&t.buf, "%s\n", strings.ReplaceAll(errStr, "\r", ""))
-	return err
 }
 
 func (t *tester) execute(query query) error {
@@ -430,12 +322,11 @@ func (t *tester) execute(query query) error {
 
 	err := t.stmtExecute(query.Query)
 
-	err = t.checkExpectedError(query, err)
 	if err != nil {
 		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
 	}
 	// clear expected errors after we execute the first query
-	t.expectedErrs = nil
+	t.expectedErrs = false
 
 	if err != nil {
 		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
@@ -444,83 +335,36 @@ func (t *tester) execute(query query) error {
 	return errors.Trace(err)
 }
 
-type byteRow struct {
-	data [][]byte
-}
-
-type byteRows struct {
-	cols []string
-	data []byteRow
-}
-
-func (rows *byteRows) Len() int {
-	return len(rows.data)
-}
-
-func (rows *byteRows) Less(i, j int) bool {
-	r1 := rows.data[i]
-	r2 := rows.data[j]
-	for i := 0; i < len(r1.data); i++ {
-		res := bytes.Compare(r1.data[i], r2.data[i])
-		switch res {
-		case -1:
-			return true
-		case 1:
-			return false
-		case 0:
-			// bytes.Compare(nil, []byte{}) returns 0
-			// But in sql row representation, they are NULL and empty string "" respectively, and thus not equal.
-			// So we need special logic to handle here: make NULL < ""
-			if r1.data[i] == nil && r2.data[i] != nil {
-				return true
-			}
-			if r1.data[i] != nil && r2.data[i] == nil {
-				return false
-			}
-		}
-	}
-	return false
-}
-
-func (rows *byteRows) Swap(i, j int) {
-	rows.data[i], rows.data[j] = rows.data[j], rows.data[i]
-}
-
-func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	data := make([]byteRow, 0, 8)
-	args := make([]interface{}, len(cols))
-	for {
-		for rows.Next() {
-			tmp := make([][]byte, len(cols))
-			for i := 0; i < len(args); i++ {
-				args[i] = &tmp[i]
-			}
-			err := rows.Scan(args...)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-
-			data = append(data, byteRow{tmp})
-		}
-		if !rows.NextResultSet() {
-			break
-		}
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	return &byteRows{cols: cols, data: data}, nil
-}
-
 func (t *tester) executeStmt(query string) error {
 	log.Debugf("executeStmt: %s", query)
+	parser := sqlparser.NewTestParser()
+	ast, err := parser.Parse(query)
+	if err != nil {
+		return err
+	}
+
+	var ordered, result bool
+
+	slct, ok := ast.(sqlparser.SelectStatement)
+	if ok {
+		result = true
+		ordered = len(slct.GetOrderBy()) > 0
+	}
+
+	switch {
+	case t.expectedErrs:
+		_, err := t.curr.ExecAllowAndCompareError(query)
+		if err == nil {
+			// If we expected an error, but didn't get one, return an error
+			return fmt.Errorf("expected error, but got none")
+		}
+	case ordered:
+		_ = t.curr.Exec(query)
+	case !ordered:
+		panic("not implemented")
+	case result:
+
+	}
 	_ = t.curr.Exec(query)
 
 	return nil
@@ -618,7 +462,6 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 }
 
 var msgs = make(chan testTask)
-var xmlFile *os.File
 var testSuite XUnitTestSuite
 
 type testTask struct {
@@ -639,7 +482,7 @@ func (t testBatch) Run() {
 }
 
 func (t testBatch) String() string {
-	return strings.Join([]string(t), ", ")
+	return strings.Join(t, ", ")
 }
 
 func executeTests(tasks []testBatch, have_show, have_is bool) {

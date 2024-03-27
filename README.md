@@ -19,8 +19,22 @@ Basic usage:
 Usage of ./mysql-tester:
   -all
         run all tests
-  -host string
-        The host of the TiDB/MySQL server. (default "127.0.0.1")
+  -mysql-socket string
+        The socket file of MySQL server.
+  -mysql-user string
+        The user for connecting to the database. (default "root")
+  -mysql-password string
+        The password for the mysql user.
+  -vt-host string
+        The host of the vtgate service.
+  -vt-port string
+        The port of the vtgate service.     
+  -vt-user string
+        The user for connecting to the database. (default "root")
+  -vt-password string
+        The password for the vtgate user.
+
+  
   -log-level string
         The log level of mysql-tester: info, warn, error, debug. (default "error")
   -params string
@@ -35,10 +49,7 @@ Usage of ./mysql-tester:
         Reserve schema after each test
   -retry-connection-count int
         The max number to retry to connect to the database. (default 120)
-  -user string
-        The user for connecting to the database. (default "root")
-  -xunitfile string
-        The xml file path to record testing results.
+
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:

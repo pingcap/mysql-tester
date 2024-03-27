@@ -18,15 +18,16 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/defined2014/mysql"
-	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/defined2014/mysql"
+	"github.com/pingcap/errors"
+	log "github.com/sirupsen/logrus"
 	vtMySQL "vitess.io/vitess/go/mysql"
 	"vitess.io/vitess/go/test/endtoend/utils"
 )
@@ -76,6 +77,18 @@ type Conn struct {
 	conn *sql.Conn
 }
 
+type testingCtx struct{}
+
+func (t testingCtx) Errorf(format string, args ...interface{}) {
+	panic(fmt.Sprintf(format, args...))
+}
+
+func (t testingCtx) FailNow() {
+	panic("test failed")
+}
+
+func (t testingCtx) Helper() {}
+
 type ReplaceColumn struct {
 	col     int
 	replace []byte
@@ -103,8 +116,6 @@ type tester struct {
 
 	// sortedResult make the output or the current query sorted.
 	sortedResult bool
-
-	enableConcurrent bool
 
 	// Disable or enable warnings. This setting is enabled by default.
 	// With this setting enabled, mysqltest uses SHOW WARNINGS to display
@@ -134,7 +145,6 @@ func newTester(name string) *tester {
 	// disable warning by default since our a lot of test cases
 	// are ported wihtout explictly "disablewarning"
 	t.enableWarning = false
-	t.enableConcurrent = false
 	t.enableInfo = false
 
 	return t
@@ -159,7 +169,7 @@ func (t *tester) preProcess() {
 		Port:   p,
 	}
 
-	mcmp, err := utils.NewMySQLCompare(nil, vtConn, mysqlConn)
+	mcmp, err := utils.NewMySQLCompare(testingCtx{}, vtConn, mysqlConn)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -203,7 +213,6 @@ func (t *tester) Run() error {
 
 	testCnt := 0
 	startTime := time.Now()
-	var concurrentQueue []query
 	for _, q := range queries {
 		switch q.tp {
 		case Q_ENABLE_QUERY_LOG:
@@ -235,9 +244,7 @@ func (t *tester) Run() error {
 			t.buf.WriteString(s)
 			t.buf.WriteString("\n")
 		case Q_QUERY:
-			if t.enableConcurrent {
-				concurrentQueue = append(concurrentQueue, q)
-			} else if err = t.execute(q); err != nil {
+			if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
 				t.addFailure(&testSuite, &err, testCnt)
 				return err

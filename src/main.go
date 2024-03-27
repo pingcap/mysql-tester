@@ -137,25 +137,7 @@ func newTester(name string) *tester {
 }
 
 func (t *tester) preProcess() {
-	mysqlConn := mysql.ConnParams{
-		Uname:      mysqlUser,
-		Pass:       mysqlPasswd,
-		DbName:     "ks",
-		UnixSocket: mysqlSocket,
-	}
-	p, err := strconv.Atoi(vtPort)
-	if err != nil {
-		panic(err.Error())
-	}
-	vtConn := mysql.ConnParams{
-		Uname:  vtUser,
-		Pass:   vtPasswd,
-		DbName: "ks",
-		Host:   vtHost,
-		Port:   p,
-	}
-
-	mcmp, err := utils.NewMySQLCompare(testingCtx{}, vtConn, mysqlConn)
+	mcmp, err := utils.NewMySQLCompare(testingCtx{}, vtParams, mysqlParams)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -360,15 +342,13 @@ func (t *tester) executeStmt(query string) error {
 			// If we expected an error, but didn't get one, return an error
 			return fmt.Errorf("expected error, but got none")
 		}
-	case ordered:
+	case ordered || !result:
 		_ = t.curr.Exec(query)
-	case !ordered:
-		panic("not implemented")
-	case result:
-
+	// case !ordered:
+	// 	panic("not implemented")
+	case !ordered && result:
+		_ = t.curr.Exec(query)
 	}
-	_ = t.curr.Exec(query)
-
 	return nil
 }
 

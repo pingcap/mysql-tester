@@ -17,8 +17,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,7 +24,11 @@ import (
 	"strings"
 	"time"
 
-	vtMySQL "vitess.io/vitess/go/mysql"
+	"github.com/pingcap/errors"
+	log "github.com/sirupsen/logrus"
+	"vitess.io/vitess/go/test/endtoend/cluster"
+
+	"vitess.io/vitess/go/mysql"
 	"vitess.io/vitess/go/test/endtoend/utils"
 	"vitess.io/vitess/go/vt/sqlparser"
 )
@@ -135,7 +137,7 @@ func newTester(name string) *tester {
 }
 
 func (t *tester) preProcess() {
-	mysqlConn := vtMySQL.ConnParams{
+	mysqlConn := mysql.ConnParams{
 		Uname:      mysqlUser,
 		Pass:       mysqlPasswd,
 		DbName:     "ks",
@@ -145,7 +147,7 @@ func (t *tester) preProcess() {
 	if err != nil {
 		panic(err.Error())
 	}
-	vtConn := vtMySQL.ConnParams{
+	vtConn := mysql.ConnParams{
 		Uname:  vtUser,
 		Pass:   vtPasswd,
 		DbName: "ks",
@@ -526,6 +528,58 @@ func consumeError() []error {
 	}
 }
 
+var (
+	clusterInstance *cluster.LocalProcessCluster
+	keyspaceName    = "mysqltest"
+	cell            = "mysqltest"
+
+	vtParams    mysql.ConnParams
+	mysqlParams mysql.ConnParams
+)
+
+func setupCluster() func() {
+	clusterInstance = cluster.NewCluster(cell, "localhost")
+
+	// Start topo server
+	err := clusterInstance.StartTopo()
+	if err != nil {
+		clusterInstance.Teardown()
+		panic(err)
+	}
+
+	// Start Unsharded keyspace
+	ukeyspace := &cluster.Keyspace{
+		Name: keyspaceName,
+	}
+	err = clusterInstance.StartUnshardedKeyspace(*ukeyspace, 0, false)
+	if err != nil {
+		clusterInstance.Teardown()
+		panic(err)
+	}
+
+	// Start vtgate
+	err = clusterInstance.StartVtgate()
+	if err != nil {
+		clusterInstance.Teardown()
+		panic(err)
+	}
+
+	vtParams = clusterInstance.GetVTParams(keyspaceName)
+
+	// create mysql instance and connection parameters
+	conn, closer, err := utils.NewMySQL(clusterInstance, keyspaceName, "")
+	if err != nil {
+		clusterInstance.Teardown()
+		panic(err)
+	}
+	mysqlParams = conn
+
+	return func() {
+		clusterInstance.Teardown()
+		closer()
+	}
+}
+
 func main() {
 	flag.Parse()
 	tests := flag.Args()
@@ -550,6 +604,9 @@ func main() {
 	}
 
 	log.Infof("running tests: %v", tests)
+
+	closer := setupCluster()
+	defer closer()
 
 	go func() {
 		executeTests(convertTestsToTestTasks(tests))

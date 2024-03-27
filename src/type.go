@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-var commandMap = map[string]int{
+var commandMap = map[string]CmdType{
 	"connection":                 Q_CONNECTION,
 	"query":                      Q_QUERY,
 	"connect":                    Q_CONNECT,
@@ -116,11 +116,20 @@ var commandMap = map[string]int{
 	"end_concurrent":             Q_END_CONCURRENT,
 }
 
-func findType(cmdName string) int {
+func findType(cmdName string) CmdType {
 	key := strings.ToLower(cmdName)
 	if v, ok := commandMap[key]; ok {
 		return v
 	}
 
 	return -1
+}
+
+func String(cmd CmdType) string {
+	for s, cmdType := range commandMap {
+		if cmdType == cmd {
+			return s
+		}
+	}
+	return "Unknown command type"
 }

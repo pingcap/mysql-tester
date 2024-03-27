@@ -22,9 +22,11 @@ import (
 
 var ErrInvalidCommand = errors.New("Found line beginning with -- that didn't contain a valid mysqltest command, check your syntax or use # if you intended to write comment")
 
+type CmdType int
+
 // Different query command type
 const (
-	Q_CONNECTION = iota + 1
+	Q_CONNECTION CmdType = iota + 1
 	Q_QUERY
 	Q_CONNECT
 	Q_SLEEP
@@ -120,8 +122,8 @@ const (
 	Q_SINGLE_QUERY
 	Q_BEGIN_CONCURRENT
 	Q_END_CONCURRENT
-	Q_UNKNOWN /* Unknown command.   */
-	Q_COMMENT /* Comments, ignored. */
+	Q_UNKNOWN
+	Q_COMMENT
 	Q_COMMENT_WITH_COMMAND
 	Q_EMPTY_LINE
 )

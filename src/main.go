@@ -30,7 +30,6 @@ import (
 
 	"vitess.io/vitess/go/mysql"
 	"vitess.io/vitess/go/test/endtoend/utils"
-	"vitess.io/vitess/go/vt/sqlparser"
 )
 
 var (
@@ -321,19 +320,6 @@ func (t *tester) execute(query query) error {
 
 func (t *tester) executeStmt(query string) error {
 	log.Debugf("executeStmt: %s", query)
-	parser := sqlparser.NewTestParser()
-	ast, err := parser.Parse(query)
-	if err != nil {
-		return err
-	}
-
-	var ordered, result bool
-
-	slct, ok := ast.(sqlparser.SelectStatement)
-	if ok {
-		result = true
-		ordered = len(slct.GetOrderBy()) > 0
-	}
 
 	switch {
 	case t.expectedErrs:
@@ -342,11 +328,7 @@ func (t *tester) executeStmt(query string) error {
 			// If we expected an error, but didn't get one, return an error
 			return fmt.Errorf("expected error, but got none")
 		}
-	case ordered || !result:
-		_ = t.curr.Exec(query)
-	// case !ordered:
-	// 	panic("not implemented")
-	case !ordered && result:
+	default:
 		_ = t.curr.Exec(query)
 	}
 	return nil

@@ -1,0 +1,7 @@
+create table basic(a int);
+
+insert into basic values(1), (2), (3), (4), (5);
+
+select * from basic;
+
+select * from basic order by a desc;

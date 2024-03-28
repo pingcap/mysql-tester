@@ -108,18 +108,18 @@ type (
 		replaceRegex []*ReplaceRegex
 	}
 
-	testingCtx struct{}
+	TestingCtx struct{}
 )
 
-func (t testingCtx) Errorf(format string, args ...interface{}) {
+func (t TestingCtx) Errorf(format string, args ...interface{}) {
 	panic(fmt.Sprintf(format, args...))
 }
 
-func (t testingCtx) FailNow() {
+func (t TestingCtx) FailNow() {
 	panic("test failed")
 }
 
-func (t testingCtx) Helper() {}
+func (t TestingCtx) Helper() {}
 
 func newTester(name string) *tester {
 	t := new(tester)
@@ -136,7 +136,7 @@ func newTester(name string) *tester {
 }
 
 func (t *tester) preProcess() {
-	mcmp, err := utils.NewMySQLCompare(testingCtx{}, vtParams, mysqlParams)
+	mcmp, err := utils.NewMySQLCompare(TestingCtx{}, vtParams, mysqlParams)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -144,6 +144,13 @@ func (t *tester) preProcess() {
 }
 
 func (t *tester) postProcess() {
+	r, err := t.curr.MySQLConn.ExecuteFetch("show tables", 1000, true)
+	if err != nil {
+		panic(err)
+	}
+	for _, row := range r.Rows {
+		t.curr.Exec(fmt.Sprintf("drop table %s", row[0].ToString()))
+	}
 	t.curr.Close()
 }
 

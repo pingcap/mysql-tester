@@ -1,0 +1,2 @@
+# creating table basic again to make sure it has been dropped in other tests
+create table basic(a int);

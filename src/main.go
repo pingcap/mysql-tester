@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"vitess.io/vitess/go/vt/sqlparser"
 
 	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
@@ -326,6 +327,16 @@ func (t *tester) execute(query query) error {
 }
 
 func (t *tester) executeStmt(query string) error {
+	parser := sqlparser.NewTestParser()
+	ast, err := parser.Parse(query)
+	if err != nil {
+		return err
+	}
+	_, commentOnly := ast.(*sqlparser.CommentOnly)
+	if commentOnly {
+		return nil
+	}
+
 	log.Debugf("executeStmt: %s", query)
 
 	switch {

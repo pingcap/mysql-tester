@@ -14,23 +14,20 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
-	"vitess.io/vitess/go/vt/sqlparser"
 
-	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
-	"vitess.io/vitess/go/test/endtoend/cluster"
-
 	"vitess.io/vitess/go/mysql"
+	"vitess.io/vitess/go/test/endtoend/cluster"
 	"vitess.io/vitess/go/test/endtoend/utils"
+	"vitess.io/vitess/go/vt/sqlparser"
+	"vitess.io/vitess/go/vt/vtgate/vindexes"
 )
 
 var (
@@ -43,6 +40,7 @@ var (
 	vtPasswd         string
 	logLevel         string
 	all              bool
+	sharded          bool
 	collationDisable bool
 )
 
@@ -56,6 +54,7 @@ func init() {
 	flag.StringVar(&vtPasswd, "vt-passwd", "", "The password for the vtgate")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
 	flag.BoolVar(&all, "all", false, "run all tests")
+	flag.BoolVar(&sharded, "sharded", false, "run all tests on a sharded keyspace")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 }
 
@@ -134,227 +133,6 @@ func newTester(name string) *tester {
 	t.enableInfo = false
 
 	return t
-}
-
-func (t *tester) preProcess() {
-	mcmp, err := utils.NewMySQLCompare(TestingCtx{}, vtParams, mysqlParams)
-	if err != nil {
-		panic(err.Error())
-	}
-	t.curr = mcmp
-}
-
-func (t *tester) postProcess() {
-	r, err := t.curr.MySQLConn.ExecuteFetch("show tables", 1000, true)
-	if err != nil {
-		panic(err)
-	}
-	for _, row := range r.Rows {
-		t.curr.Exec(fmt.Sprintf("drop table %s", row[0].ToString()))
-	}
-	t.curr.Close()
-}
-
-func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
-	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-		Classname:  "",
-		Name:       t.testFileName(),
-		Time:       "",
-		QueryCount: cnt,
-		Failure:    (*err).Error(),
-	})
-	testSuite.Failures++
-}
-
-func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
-	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-		Classname:  "",
-		Name:       t.testFileName(),
-		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
-		QueryCount: cnt,
-	})
-}
-
-func (t *tester) Run() error {
-
-	t.preProcess()
-	defer t.postProcess()
-	queries, err := t.loadQueries()
-	if err != nil {
-		err = errors.Trace(err)
-		t.addFailure(&testSuite, &err, 0)
-		return err
-	}
-
-	testCnt := 0
-	startTime := time.Now()
-	for _, q := range queries {
-		switch q.tp {
-		case Q_ENABLE_QUERY_LOG:
-			t.enableQueryLog = true
-		case Q_DISABLE_QUERY_LOG:
-			t.enableQueryLog = false
-		case Q_ENABLE_RESULT_LOG:
-			t.enableResultLog = true
-		case Q_DISABLE_RESULT_LOG:
-			t.enableResultLog = false
-		case Q_DISABLE_WARNINGS:
-			t.enableWarning = false
-		case Q_ENABLE_WARNINGS:
-			t.enableWarning = true
-		case Q_ENABLE_INFO:
-			t.enableInfo = true
-		case Q_DISABLE_INFO:
-			t.enableInfo = false
-		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET:
-			return fmt.Errorf("%s not supported", String(q.tp))
-		case Q_ERROR:
-			t.expectedErrs = true
-		case Q_ECHO:
-			log.Info(q.Query)
-		case Q_QUERY:
-			if err = t.execute(q); err != nil {
-				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				t.addFailure(&testSuite, &err, testCnt)
-				return err
-			}
-
-			testCnt++
-
-			t.sortedResult = false
-			t.replaceColumn = nil
-			t.replaceRegex = nil
-		case Q_SORTED_RESULT:
-			t.sortedResult = true
-		case Q_REPLACE_COLUMN:
-			// TODO: Use CSV module or so to handle quoted replacements
-			t.replaceColumn = nil // Only use the latest one!
-			cols := strings.Fields(q.Query)
-			// Require that col + replacement comes in pairs otherwise skip the last column number
-			for i := 0; i < len(cols)-1; i = i + 2 {
-				colNr, err := strconv.Atoi(cols[i])
-				if err != nil {
-					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
-					t.addFailure(&testSuite, &err, testCnt)
-					return err
-				}
-
-				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
-			}
-		case Q_REMOVE_FILE:
-			err = os.Remove(strings.TrimSpace(q.Query))
-			if err != nil {
-				return errors.Annotate(err, "failed to remove file")
-			}
-		case Q_REPLACE_REGEX:
-			t.replaceRegex = nil
-			regex, err := ParseReplaceRegex(q.Query)
-			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
-			}
-			t.replaceRegex = regex
-		default:
-			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
-		}
-	}
-
-	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
-
-	return nil
-}
-
-func (t *tester) loadQueries() ([]query, error) {
-	data, err := os.ReadFile(t.testFileName())
-	if err != nil {
-		return nil, err
-	}
-
-	seps := bytes.Split(data, []byte("\n"))
-	queries := make([]query, 0, len(seps))
-	newStmt := true
-	for i, v := range seps {
-		v := bytes.TrimSpace(v)
-		s := string(v)
-		// we will skip # comment here
-		if strings.HasPrefix(s, "#") {
-			newStmt = true
-			continue
-		} else if strings.HasPrefix(s, "--") {
-			queries = append(queries, query{Query: s, Line: i + 1})
-			newStmt = true
-			continue
-		} else if len(s) == 0 {
-			continue
-		}
-
-		if newStmt {
-			queries = append(queries, query{Query: s, Line: i + 1})
-		} else {
-			lastQuery := queries[len(queries)-1]
-			lastQuery = query{Query: fmt.Sprintf("%s\n%s", lastQuery.Query, s), Line: lastQuery.Line}
-			queries[len(queries)-1] = lastQuery
-		}
-
-		// if the line has a ; in the end, we will treat new line as the new statement.
-		newStmt = strings.HasSuffix(s, ";")
-	}
-
-	return ParseQueries(queries...)
-}
-
-func (t *tester) stmtExecute(query string) error {
-	return t.executeStmt(query)
-}
-
-func (t *tester) execute(query query) error {
-	if len(query.Query) == 0 {
-		return nil
-	}
-
-	err := t.stmtExecute(query.Query)
-
-	if err != nil {
-		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
-	}
-	// clear expected errors after we execute the first query
-	t.expectedErrs = false
-
-	if err != nil {
-		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
-	}
-
-	return errors.Trace(err)
-}
-
-func (t *tester) executeStmt(query string) error {
-	parser := sqlparser.NewTestParser()
-	ast, err := parser.Parse(query)
-	if err != nil {
-		return err
-	}
-	_, commentOnly := ast.(*sqlparser.CommentOnly)
-	if commentOnly {
-		return nil
-	}
-
-	log.Debugf("executeStmt: %s", query)
-
-	switch {
-	case t.expectedErrs:
-		_, err := t.curr.ExecAllowAndCompareError(query)
-		if err == nil {
-			// If we expected an error, but didn't get one, return an error
-			return fmt.Errorf("expected error, but got none")
-		}
-	default:
-		_ = t.curr.Exec(query)
-	}
-	return nil
-}
-
-func (t *tester) testFileName() string {
-	// test and result must be in current ./t the same as MySQL
-	return fmt.Sprintf("./t/%s.test", t.name)
 }
 
 func hasCollationPrefix(name string) bool {
@@ -517,7 +295,29 @@ var (
 	mysqlParams mysql.ConnParams
 )
 
-func setupCluster() func() {
+type hashVindex struct {
+	vindexes.Hash
+	Type string `json:"type"`
+}
+
+func (hv hashVindex) String() string {
+	return "hash"
+}
+
+var vschema = vindexes.VSchema{
+	Keyspaces: map[string]*vindexes.KeyspaceSchema{
+		keyspaceName: {
+			Keyspace: &vindexes.Keyspace{Sharded: true},
+			Tables:   map[string]*vindexes.Table{},
+			Vindexes: map[string]vindexes.Vindex{
+				"hash": &hashVindex{Type: "hash"},
+			},
+			Views: map[string]sqlparser.SelectStatement{},
+		},
+	},
+}
+
+func setupCluster(sharded bool) func() {
 	clusterInstance = cluster.NewCluster(cell, "localhost")
 
 	// Start topo server
@@ -527,14 +327,30 @@ func setupCluster() func() {
 		panic(err)
 	}
 
-	// Start Unsharded keyspace
-	ukeyspace := &cluster.Keyspace{
-		Name: keyspaceName,
-	}
-	err = clusterInstance.StartUnshardedKeyspace(*ukeyspace, 0, false)
-	if err != nil {
-		clusterInstance.Teardown()
-		panic(err)
+	if sharded {
+		ksSchema, err := json.Marshal(vschema.Keyspaces[keyspaceName])
+		if err != nil {
+			panic(err)
+		}
+		keyspace := &cluster.Keyspace{
+			Name:    keyspaceName,
+			VSchema: string(ksSchema),
+		}
+
+		err = clusterInstance.StartKeyspace(*keyspace, []string{"-80", "80-"}, 0, false)
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		// Start Unsharded keyspace
+		ukeyspace := &cluster.Keyspace{
+			Name: keyspaceName,
+		}
+		err = clusterInstance.StartUnshardedKeyspace(*ukeyspace, 0, false)
+		if err != nil {
+			clusterInstance.Teardown()
+			panic(err)
+		}
 	}
 
 	// Start vtgate
@@ -585,7 +401,7 @@ func main() {
 
 	log.Infof("running tests: %v", tests)
 
-	closer := setupCluster()
+	closer := setupCluster(sharded)
 	defer closer()
 
 	go func() {

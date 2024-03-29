@@ -198,16 +198,12 @@ func (t *tester) loadQueries() ([]query, error) {
 	return ParseQueries(queries...)
 }
 
-func (t *tester) stmtExecute(query string) error {
-	return t.executeStmt(query)
-}
-
 func (t *tester) execute(query query) error {
 	if len(query.Query) == 0 {
 		return nil
 	}
 
-	err := t.stmtExecute(query.Query)
+	err := t.executeStmt(query.Query)
 
 	if err != nil {
 		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
@@ -259,57 +255,67 @@ func (t *tester) executeStmt(query string) error {
 
 	create, ok := ast.(*sqlparser.CreateTable)
 	if ok {
-		tableName := create.Table.Name
-		ks := vschema.Keyspaces[keyspaceName]
-
-		var allIdCI []sqlparser.IdentifierCI
-		var allCols []vindexes.Column
-		for _, col := range create.TableSpec.Columns {
-			if col.Type.Options.KeyOpt == sqlparser.ColKeyPrimary {
-				create.TableSpec.Indexes = append([]*sqlparser.IndexDefinition{newPrimaryKeyIndexDefinitionSingleColumn(col.Name)}, create.TableSpec.Indexes...)
-				col.Type.Options.KeyOpt = sqlparser.ColKeyNone
-			}
-			allIdCI = append(allIdCI, col.Name)
-			allCols = append(allCols, vindexes.Column{Name: col.Name})
-		}
-		var cols []sqlparser.IdentifierCI
-		for _, index := range create.TableSpec.Indexes {
-			if index.Info.Type == sqlparser.IndexTypePrimary {
-				for _, column := range index.Columns {
-					cols = append(cols, column.Column)
-				}
-			}
-		}
-
-		if len(cols) == 0 {
-			cols = allIdCI
-		}
-
-		vx := &vindexes.ColumnVindex{
-			Columns: cols,
-			Name:    "hash",
-			Type:    "hash",
-		}
-
-		ks.Tables[tableName.String()] = &vindexes.Table{
-			Name:                    tableName,
-			Keyspace:                ks.Keyspace,
-			ColumnVindexes:          []*vindexes.ColumnVindex{vx},
-			Columns:                 allCols,
-			ColumnListAuthoritative: true,
-		}
-
-		ksJson, err := json.Marshal(ks)
-		if err != nil {
-			panic(err)
-		}
-
-		err = clusterInstance.VtctldClientProcess.ApplyVSchema(keyspaceName, string(ksJson))
-		if err != nil {
-			panic(err)
-		}
+		t.handleCreateTable(create)
 	}
 	return nil
+}
+
+func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.IdentifierCI, allCols []vindexes.Column) {
+	var allIdCI []sqlparser.IdentifierCI
+	// first we normalize the primary keys
+	for _, col := range create.TableSpec.Columns {
+		if col.Type.Options.KeyOpt == sqlparser.ColKeyPrimary {
+			create.TableSpec.Indexes = append(create.TableSpec.Indexes, newPrimaryKeyIndexDefinitionSingleColumn(col.Name))
+			col.Type.Options.KeyOpt = sqlparser.ColKeyNone
+		}
+		allIdCI = append(allIdCI, col.Name)
+		allCols = append(allCols, vindexes.Column{Name: col.Name})
+	}
+
+	// and now we can fetch the primary keys
+	for _, index := range create.TableSpec.Indexes {
+		if index.Info.Type == sqlparser.IndexTypePrimary {
+			for _, column := range index.Columns {
+				sks = append(sks, column.Column)
+			}
+		}
+	}
+
+	// if we have no primary keys, we'll use all columns as the sharding keys
+	if len(sks) == 0 {
+		sks = allIdCI
+	}
+	return
+}
+
+func (t *tester) handleCreateTable(create *sqlparser.CreateTable) {
+	sks, allCols := getShardingKeysForTable(create)
+
+	shardingKeys := &vindexes.ColumnVindex{
+		Columns: sks,
+		Name:    "hash",
+		Type:    "hash",
+	}
+
+	ks := vschema.Keyspaces[keyspaceName]
+	tableName := create.Table.Name
+	ks.Tables[tableName.String()] = &vindexes.Table{
+		Name:                    tableName,
+		Keyspace:                ks.Keyspace,
+		ColumnVindexes:          []*vindexes.ColumnVindex{shardingKeys},
+		Columns:                 allCols,
+		ColumnListAuthoritative: true,
+	}
+
+	ksJson, err := json.Marshal(ks)
+	if err != nil {
+		panic(err)
+	}
+
+	err = clusterInstance.VtctldClientProcess.ApplyVSchema(keyspaceName, string(ksJson))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (t *tester) testFileName() string {

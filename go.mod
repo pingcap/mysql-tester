@@ -1,4 +1,4 @@
-module vitess.io/mysql-tester
+module vitess.io/vitess-tester
 
 go 1.22.1
 

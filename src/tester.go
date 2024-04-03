@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
+	"path"
 	"strings"
 	"time"
 
@@ -32,8 +32,34 @@ import (
 	"vitess.io/vitess/go/vt/vtgate/vindexes"
 )
 
+type tester struct {
+	name string
+
+	curr utils.MySQLCompare
+
+	currentQuery string
+
+	// check expected error, use --error before the statement
+	// we only care if an error is returned, not the exact error message.
+	expectedErrs bool
+
+	failureCount       int
+	queryCount         int
+	successCount       int
+	errorFile          *os.File
+	currentQueryFailed bool
+}
+
+func newTester(name string) *tester {
+	t := new(tester)
+
+	t.name = name
+
+	return t
+}
+
 func (t *tester) preProcess() {
-	mcmp, err := utils.NewMySQLCompare(TestingCtx{}, vtParams, mysqlParams)
+	mcmp, err := utils.NewMySQLCompare(t, vtParams, mysqlParams)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -51,110 +77,115 @@ func (t *tester) postProcess() {
 	t.curr.Close()
 }
 
-func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
-	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-		Classname:  "",
-		Name:       t.testFileName(),
-		Time:       "",
-		QueryCount: cnt,
-		Failure:    (*err).Error(),
-	})
-	testSuite.Failures++
+var PERM os.FileMode = 0755
+
+func (t *tester) addFailure(err error) {
+	t.failureCount++
+	t.currentQueryFailed = true
+	currentQuery := t.currentQuery
+	if currentQuery == "" {
+		currentQuery = "GENERAL"
+	}
+	if t.errorFile == nil {
+		t.errorFile = t.createErrorFileFor(currentQuery)
+	}
+
+	_, err = t.errorFile.WriteString(err.Error())
+	if err != nil {
+		panic("failed to write error file\n" + err.Error())
+	}
 }
 
-func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
-	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-		Classname:  "",
-		Name:       t.testFileName(),
-		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
-		QueryCount: cnt,
-	})
+func (t *tester) createErrorFileFor(query string) *os.File {
+	qc := fmt.Sprintf("%d", t.queryCount)
+	err := os.MkdirAll(t.errorDir(), PERM)
+	if err != nil {
+		panic("failed to create error directory\n" + err.Error())
+	}
+	errorPath := path.Join(t.errorDir(), qc)
+	file, err := os.Create(errorPath)
+	if err != nil {
+		panic("failed to create error file\n" + err.Error())
+	}
+	_, err = file.WriteString(fmt.Sprintf("Error log for query:\n%s\n\n", query))
+
+	return file
+}
+
+func (t *tester) errorDir() string {
+	return path.Join("errors", t.name)
+}
+
+func (t *tester) addSuccess() {
+
 }
 
 func (t *tester) Run() error {
-
 	t.preProcess()
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
-		err = errors.Trace(err)
-		t.addFailure(&testSuite, &err, 0)
+		t.addFailure(err)
 		return err
 	}
 
-	testCnt := 0
 	startTime := time.Now()
 	for _, q := range queries {
 		switch q.tp {
-		case Q_ENABLE_QUERY_LOG:
-			t.enableQueryLog = true
-		case Q_DISABLE_QUERY_LOG:
-			t.enableQueryLog = false
-		case Q_ENABLE_RESULT_LOG:
-			t.enableResultLog = true
-		case Q_DISABLE_RESULT_LOG:
-			t.enableResultLog = false
-		case Q_DISABLE_WARNINGS:
-			t.enableWarning = false
-		case Q_ENABLE_WARNINGS:
-			t.enableWarning = true
-		case Q_ENABLE_INFO:
-			t.enableInfo = true
-		case Q_DISABLE_INFO:
-			t.enableInfo = false
-		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET:
-			return fmt.Errorf("%s not supported", String(q.tp))
+		// no-ops
+		case Q_ENABLE_QUERY_LOG,
+			Q_DISABLE_QUERY_LOG,
+			Q_ECHO,
+			Q_DISABLE_WARNINGS,
+			Q_ENABLE_WARNINGS,
+			Q_ENABLE_INFO,
+			Q_DISABLE_INFO,
+			Q_ENABLE_RESULT_LOG,
+			Q_DISABLE_RESULT_LOG,
+			Q_SORTED_RESULT,
+			Q_REPLACE_REGEX:
+			// do nothing
+		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
+			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		case Q_ERROR:
 			t.expectedErrs = true
-		case Q_ECHO:
-			log.Info(q.Query)
 		case Q_QUERY:
-			if err = t.execute(q); err != nil {
-				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				t.addFailure(&testSuite, &err, testCnt)
-				return err
+			t.queryCount++
+			t.currentQuery = q.Query
+			t.currentQueryFailed = false
+			if err = t.execute(q); err != nil && !t.expectedErrs {
+				t.failureCount++
+			} else if !t.currentQueryFailed {
+				t.successCount++
 			}
-
-			testCnt++
-
-			t.sortedResult = false
-			t.replaceColumn = nil
-			t.replaceRegex = nil
-		case Q_SORTED_RESULT:
-			t.sortedResult = true
-		case Q_REPLACE_COLUMN:
-			// TODO: Use CSV module or so to handle quoted replacements
-			t.replaceColumn = nil // Only use the latest one!
-			cols := strings.Fields(q.Query)
-			// Require that col + replacement comes in pairs otherwise skip the last column number
-			for i := 0; i < len(cols)-1; i = i + 2 {
-				colNr, err := strconv.Atoi(cols[i])
+			// clear expected errors and current query after we execute any query
+			t.expectedErrs = false
+			t.currentQuery = ""
+			if t.errorFile != nil {
+				err := t.errorFile.Close()
 				if err != nil {
-					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
-					t.addFailure(&testSuite, &err, testCnt)
-					return err
+					panic("failed to close error file\n" + err.Error())
 				}
-
-				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
+				t.errorFile = nil
 			}
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
-		case Q_REPLACE_REGEX:
-			t.replaceRegex = nil
-			regex, err := ParseReplaceRegex(q.Query)
-			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
-			}
-			t.replaceRegex = regex
 		default:
-			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
+			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		}
 	}
 
-	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
+	fmt.Printf(
+		"%s: ok! Ran %d queries, %d successfully and %d failures take time %v s\n",
+		t.testFileName(),
+		t.queryCount,
+		t.successCount,
+		t.queryCount-t.successCount,
+		time.Since(startTime).Seconds(),
+	)
 
 	return nil
 }
@@ -334,3 +365,13 @@ func (t *tester) testFileName() string {
 	// test and result must be in current ./t the same as MySQL
 	return fmt.Sprintf("./t/%s.test", t.name)
 }
+
+func (t *tester) Errorf(format string, args ...interface{}) {
+	t.addFailure(errors.Errorf(format, args...))
+}
+
+func (t *tester) FailNow() {
+	// we don't need to do anything here
+}
+
+func (t *tester) Helper() {}

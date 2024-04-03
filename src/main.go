@@ -16,10 +16,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -58,113 +56,23 @@ func init() {
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 }
 
-type (
-	query struct {
-		firstWord string
-		Query     string
-		Line      int
-		tp        CmdType
-	}
-	ReplaceColumn struct {
-		col     int
-		replace []byte
-	}
-	ReplaceRegex struct {
-		regex   *regexp.Regexp
-		replace string
-	}
-	tester struct {
-		name string
-
-		curr utils.MySQLCompare
-
-		// enable query log will output origin statement into result file too
-		// use --disable_query_log or --enable_query_log to control it
-		enableQueryLog bool
-
-		// enable result log will output to result file or not.
-		// use --enable_result_log or --disable_result_log to control it
-		enableResultLog bool
-
-		// sortedResult make the output or the current query sorted.
-		sortedResult bool
-
-		// Disable or enable warnings. This setting is enabled by default.
-		// With this setting enabled, mysqltest uses SHOW WARNINGS to display
-		// any warnings produced by SQL statements.
-		enableWarning bool
-
-		// enable query info, like rowsAffected, lastMessage etc.
-		enableInfo bool
-
-		// check expected error, use --error before the statement
-		// we only care if an error is returned, not the exact error message.
-		expectedErrs bool
-
-		// replace output column through --replace_column 1 <static data> 3 #
-		replaceColumn []ReplaceColumn
-
-		// replace output result through --replace_regex /\.dll/.so/
-		replaceRegex []*ReplaceRegex
-	}
-
-	TestingCtx struct{}
-)
-
-func (t TestingCtx) Errorf(format string, args ...interface{}) {
-	panic(fmt.Sprintf(format, args...))
+type query struct {
+	firstWord string
+	Query     string
+	Line      int
+	tp        CmdType
 }
 
-func (t TestingCtx) FailNow() {
-	panic("test failed")
-}
-
-func (t TestingCtx) Helper() {}
-
-func newTester(name string) *tester {
-	t := new(tester)
-
-	t.name = name
-	t.enableQueryLog = true
-	t.enableResultLog = true
-	// disable warning by default since our a lot of test cases
-	// are ported wihtout explictly "disablewarning"
-	t.enableWarning = false
-	t.enableInfo = false
-
-	return t
-}
-
-func hasCollationPrefix(name string) bool {
-	names := strings.Split(name, "/")
-	caseName := names[len(names)-1]
-	return strings.HasPrefix(caseName, "collation")
-}
-
-func (t *tester) resultFileName() string {
-	// test and result must be in current ./r, the same as MySQL
-	name := t.name
-	if hasCollationPrefix(name) {
-		if collationDisable {
-			name = name + "_disabled"
-		} else {
-			name = name + "_enabled"
-		}
-	}
-	return fmt.Sprintf("./r/%s.result", name)
-}
-
-func loadAllTests() ([]string, error) {
-	tests := make([]string, 0)
+func loadAllTests() (tests []string, err error) {
 	// tests must be in t folder or subdir in t folder
-	err := filepath.Walk("./t/", func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk("./t/", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if !info.IsDir() && strings.HasSuffix(path, ".test") {
 			name := strings.TrimPrefix(strings.TrimSuffix(path, ".test"), "t/")
-			if !collationDisable || hasCollationPrefix(name) {
+			if !collationDisable {
 				tests = append(tests, name)
 			}
 		}
@@ -177,113 +85,19 @@ func loadAllTests() ([]string, error) {
 	return tests, nil
 }
 
-// convertTestsToTestTasks convert all test cases into several testBatches.
-// If we have 11 cases and batchSize is 5, then we will have 4 testBatches.
-func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, have_is bool) {
-	batchSize := 30
-	total := (len(tests) / batchSize) + 2
-	// the extra 1 is for sub_query_more test
-	tTasks = make([]testBatch, total+1)
-	testIdx := 0
-	have_subqmore, have_role := false, false
-	for i := 0; i < total; i++ {
-		tTasks[i] = make(testBatch, 0, batchSize)
-		for j := 0; j <= batchSize && testIdx < len(tests); j++ {
-			// skip sub_query_more test, since it consumes the most time
-			// we better use a separate goroutine to run it
-			// role test has many connection/disconnection operation.
-			// we better use a separate goroutine to run it
-			switch tests[testIdx] {
-			case "sub_query_more":
-				have_subqmore = true
-			case "show":
-				have_show = true
-			case "infoschema":
-				have_is = true
-			case "role":
-				have_role = true
-			case "role2":
-				have_role = true
-			default:
-				tTasks[i] = append(tTasks[i], tests[testIdx])
-			}
-			testIdx++
+func executeTests(fileNames []string) (failed bool) {
+	for _, name := range fileNames {
+		show := newTester(name)
+		err := show.Run()
+		if err != nil {
+			failed = true
+			continue
 		}
-	}
-
-	if have_subqmore {
-		tTasks[total-1] = testBatch{"sub_query_more"}
-	}
-
-	if have_role {
-		tTasks[total] = testBatch{"role", "role2"}
+		if show.failureCount > 0 {
+			failed = true
+		}
 	}
 	return
-}
-
-var msgs = make(chan testTask)
-var testSuite XUnitTestSuite
-
-type testTask struct {
-	err  error
-	test string
-}
-
-type testBatch []string
-
-func (t testBatch) Run() {
-	for _, test := range t {
-		tr := newTester(test)
-		msgs <- testTask{
-			test: test,
-			err:  tr.Run(),
-		}
-	}
-}
-
-func (t testBatch) String() string {
-	return strings.Join(t, ", ")
-}
-
-func executeTests(tasks []testBatch, have_show, have_is bool) {
-	// show and infoschema have to be executed first, since the following
-	// tests will create database using their own name.
-	if have_show {
-		show := newTester("show")
-		msgs <- testTask{
-			test: "show",
-			err:  show.Run(),
-		}
-	}
-
-	if have_is {
-		infoschema := newTester("infoschema")
-		msgs <- testTask{
-			test: "infoschema",
-			err:  infoschema.Run(),
-		}
-	}
-
-	for _, t := range tasks {
-		t.Run()
-	}
-}
-
-func consumeError() []error {
-	var es []error
-	for {
-		if t, more := <-msgs; more {
-			if t.err != nil {
-				e := fmt.Errorf("run test [%s] err: %v", t.test, t.err)
-				log.Errorln(e)
-				es = append(es, e)
-			} else {
-				log.Infof("run test [%s] ok", t.test)
-			}
-		} else {
-			return es
-		}
-	}
 }
 
 var (
@@ -338,6 +152,7 @@ func setupCluster(sharded bool) func() {
 			VSchema: string(ksSchema),
 		}
 
+		println("starting sharded keyspace")
 		err = clusterInstance.StartKeyspace(*keyspace, []string{"-80", "80-"}, 0, false)
 		if err != nil {
 			panic(err.Error())
@@ -347,6 +162,7 @@ func setupCluster(sharded bool) func() {
 		ukeyspace := &cluster.Keyspace{
 			Name: keyspaceName,
 		}
+		println("starting unsharded keyspace")
 		err = clusterInstance.StartUnshardedKeyspace(*ukeyspace, 0, false)
 		if err != nil {
 			clusterInstance.Teardown()
@@ -405,21 +221,15 @@ func main() {
 	closer := setupCluster(sharded)
 	defer closer()
 
-	go func() {
-		executeTests(convertTestsToTestTasks(tests))
-		close(msgs)
-	}()
-
-	es := consumeError()
-	println()
-	if len(es) != 0 {
-		log.Errorf("%d tests failed\n", len(es))
-		for _, item := range es {
-			log.Errorln(item)
-		}
-		// Can't delete this statement.
-		os.Exit(1)
-	} else {
-		println("Great, All tests passed")
+	// remove errors folder if exists
+	err := os.RemoveAll("errors")
+	if err != nil {
+		panic(err.Error())
 	}
+
+	if failed := executeTests(tests); failed {
+		log.Errorf("some tests failed 😭\nsee errors in errors folder")
+		os.Exit(1)
+	}
+	println("Great, All tests passed")
 }

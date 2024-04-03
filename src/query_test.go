@@ -38,14 +38,6 @@ func TestParseQueryies(t *testing.T) {
 		t.Fatalf("error is not nil. %v", err)
 	}
 
-	sql = "--sorted_result select * from t;"
-	if q, err := ParseQueries(query{Query: sql, Line: 1}); err == nil {
-		assertEqual(t, q[0].tp, Q_SORTED_RESULT, "sorted_result")
-		assertEqual(t, q[0].Query, "select * from t;", fmt.Sprintf("Expected: '%s', got '%s'", "select * from t;", q[0].Query))
-	} else {
-		t.Fatalf("error is not nil. %s", err)
-	}
-
 	// invalid comment command style
 	sql = "--abc select * from t;"
 	_, err := ParseQueries(query{Query: sql, Line: 1})

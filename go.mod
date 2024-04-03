@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/pingcap/errors v0.11.5-0.20221009092201-b66cddb77c32
 	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.9.0 // indirect
 )
 
 require vitess.io/vitess v0.10.3-0.20240402201213-256a54d2b88d

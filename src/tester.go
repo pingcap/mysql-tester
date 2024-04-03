@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -32,8 +31,57 @@ import (
 	"vitess.io/vitess/go/vt/vtgate/vindexes"
 )
 
+type tester struct {
+	name string
+
+	curr utils.MySQLCompare
+
+	// enable query log will output origin statement into result file too
+	// use --disable_query_log or --enable_query_log to control it
+	enableQueryLog bool
+
+	// enable result log will output to result file or not.
+	// use --enable_result_log or --disable_result_log to control it
+	enableResultLog bool
+
+	// sortedResult make the output or the current query sorted.
+	sortedResult bool
+
+	// Disable or enable warnings. This setting is enabled by default.
+	// With this setting enabled, mysqltest uses SHOW WARNINGS to display
+	// any warnings produced by SQL statements.
+	enableWarning bool
+
+	// enable query info, like rowsAffected, lastMessage etc.
+	enableInfo bool
+
+	// check expected error, use --error before the statement
+	// we only care if an error is returned, not the exact error message.
+	expectedErrs bool
+
+	// replace output column through --replace_column 1 <static data> 3 #
+	replaceColumn []ReplaceColumn
+
+	// replace output result through --replace_regex /\.dll/.so/
+	replaceRegex []*ReplaceRegex
+}
+
+func newTester(name string) *tester {
+	t := new(tester)
+
+	t.name = name
+	t.enableQueryLog = true
+	t.enableResultLog = true
+	// disable warning by default since our a lot of test cases
+	// are ported wihtout explictly "disablewarning"
+	t.enableWarning = false
+	t.enableInfo = false
+
+	return t
+}
+
 func (t *tester) preProcess() {
-	mcmp, err := utils.NewMySQLCompare(TestingCtx{}, vtParams, mysqlParams)
+	mcmp, err := utils.NewMySQLCompare(t, vtParams, mysqlParams)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -51,34 +99,21 @@ func (t *tester) postProcess() {
 	t.curr.Close()
 }
 
-func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {
-	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-		Classname:  "",
-		Name:       t.testFileName(),
-		Time:       "",
-		QueryCount: cnt,
-		Failure:    (*err).Error(),
-	})
-	testSuite.Failures++
+func (t *tester) addFailure(err error) {
+	fmt.Println(err.Error())
 }
 
-func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt int) {
-	testSuite.TestCases = append(testSuite.TestCases, XUnitTestCase{
-		Classname:  "",
-		Name:       t.testFileName(),
-		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
-		QueryCount: cnt,
-	})
+func (t *tester) addSuccess(startTime *time.Time, cnt int) {
+
 }
 
 func (t *tester) Run() error {
-
 	t.preProcess()
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
 		err = errors.Trace(err)
-		t.addFailure(&testSuite, &err, 0)
+		t.addFailure(err)
 		return err
 	}
 
@@ -102,7 +137,7 @@ func (t *tester) Run() error {
 			t.enableInfo = true
 		case Q_DISABLE_INFO:
 			t.enableInfo = false
-		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET:
+		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
 			return fmt.Errorf("%s not supported", String(q.tp))
 		case Q_ERROR:
 			t.expectedErrs = true
@@ -111,7 +146,7 @@ func (t *tester) Run() error {
 		case Q_QUERY:
 			if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				t.addFailure(&testSuite, &err, testCnt)
+				t.addFailure(err)
 				return err
 			}
 
@@ -122,21 +157,6 @@ func (t *tester) Run() error {
 			t.replaceRegex = nil
 		case Q_SORTED_RESULT:
 			t.sortedResult = true
-		case Q_REPLACE_COLUMN:
-			// TODO: Use CSV module or so to handle quoted replacements
-			t.replaceColumn = nil // Only use the latest one!
-			cols := strings.Fields(q.Query)
-			// Require that col + replacement comes in pairs otherwise skip the last column number
-			for i := 0; i < len(cols)-1; i = i + 2 {
-				colNr, err := strconv.Atoi(cols[i])
-				if err != nil {
-					err = errors.Annotate(err, fmt.Sprintf("Could not parse column in --replace_column: sql:%v", q.Query))
-					t.addFailure(&testSuite, &err, testCnt)
-					return err
-				}
-
-				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
-			}
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {
@@ -334,3 +354,13 @@ func (t *tester) testFileName() string {
 	// test and result must be in current ./t the same as MySQL
 	return fmt.Sprintf("./t/%s.test", t.name)
 }
+
+func (t *tester) Errorf(format string, args ...interface{}) {
+	t.addFailure(errors.Errorf(format, args...))
+}
+
+func (t *tester) FailNow() {
+	// we don't need to do anything here
+}
+
+func (t *tester) Helper() {}

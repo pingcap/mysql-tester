@@ -73,85 +73,12 @@ type (
 		regex   *regexp.Regexp
 		replace string
 	}
-	tester struct {
-		name string
-
-		curr utils.MySQLCompare
-
-		// enable query log will output origin statement into result file too
-		// use --disable_query_log or --enable_query_log to control it
-		enableQueryLog bool
-
-		// enable result log will output to result file or not.
-		// use --enable_result_log or --disable_result_log to control it
-		enableResultLog bool
-
-		// sortedResult make the output or the current query sorted.
-		sortedResult bool
-
-		// Disable or enable warnings. This setting is enabled by default.
-		// With this setting enabled, mysqltest uses SHOW WARNINGS to display
-		// any warnings produced by SQL statements.
-		enableWarning bool
-
-		// enable query info, like rowsAffected, lastMessage etc.
-		enableInfo bool
-
-		// check expected error, use --error before the statement
-		// we only care if an error is returned, not the exact error message.
-		expectedErrs bool
-
-		// replace output column through --replace_column 1 <static data> 3 #
-		replaceColumn []ReplaceColumn
-
-		// replace output result through --replace_regex /\.dll/.so/
-		replaceRegex []*ReplaceRegex
-	}
-
-	TestingCtx struct{}
 )
-
-func (t TestingCtx) Errorf(format string, args ...interface{}) {
-	panic(fmt.Sprintf(format, args...))
-}
-
-func (t TestingCtx) FailNow() {
-	panic("test failed")
-}
-
-func (t TestingCtx) Helper() {}
-
-func newTester(name string) *tester {
-	t := new(tester)
-
-	t.name = name
-	t.enableQueryLog = true
-	t.enableResultLog = true
-	// disable warning by default since our a lot of test cases
-	// are ported wihtout explictly "disablewarning"
-	t.enableWarning = false
-	t.enableInfo = false
-
-	return t
-}
 
 func hasCollationPrefix(name string) bool {
 	names := strings.Split(name, "/")
 	caseName := names[len(names)-1]
 	return strings.HasPrefix(caseName, "collation")
-}
-
-func (t *tester) resultFileName() string {
-	// test and result must be in current ./r, the same as MySQL
-	name := t.name
-	if hasCollationPrefix(name) {
-		if collationDisable {
-			name = name + "_disabled"
-		} else {
-			name = name + "_enabled"
-		}
-	}
-	return fmt.Sprintf("./r/%s.result", name)
 }
 
 func loadAllTests() ([]string, error) {
@@ -222,7 +149,6 @@ func convertTestsToTestTasks(tests []string) (tTasks []testBatch, have_show, hav
 }
 
 var msgs = make(chan testTask)
-var testSuite XUnitTestSuite
 
 type testTask struct {
 	err  error

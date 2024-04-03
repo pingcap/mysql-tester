@@ -39,12 +39,6 @@ type tester struct {
 	// check expected error, use --error before the statement
 	// we only care if an error is returned, not the exact error message.
 	expectedErrs bool
-
-	// replace output column through --replace_column 1 <static data> 3 #
-	replaceColumn []ReplaceColumn
-
-	// replace output result through --replace_regex /\.dll/.so/
-	replaceRegex []*ReplaceRegex
 }
 
 func newTester(name string) *tester {
@@ -105,7 +99,8 @@ func (t *tester) Run() error {
 			Q_DISABLE_INFO,
 			Q_ENABLE_RESULT_LOG,
 			Q_DISABLE_RESULT_LOG,
-			Q_SORTED_RESULT:
+			Q_SORTED_RESULT,
+			Q_REPLACE_REGEX:
 			// do nothing
 		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
 			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
@@ -119,21 +114,11 @@ func (t *tester) Run() error {
 			}
 
 			testCnt++
-
-			t.replaceColumn = nil
-			t.replaceRegex = nil
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
-		case Q_REPLACE_REGEX:
-			t.replaceRegex = nil
-			regex, err := ParseReplaceRegex(q.Query)
-			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
-			}
-			t.replaceRegex = regex
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}

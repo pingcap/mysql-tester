@@ -20,4 +20,5 @@ go.work
 .idea
 .DS_Store
 
-mysql-tester
+# the produced binary
+vitess-tester

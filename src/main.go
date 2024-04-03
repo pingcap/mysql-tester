@@ -52,7 +52,7 @@ func init() {
 	flag.StringVar(&vtPort, "vt-port", "", "The listen port of vtgate server.")
 	flag.StringVar(&vtUser, "vt-user", "root", "The user for connecting to the vtgate")
 	flag.StringVar(&vtPasswd, "vt-passwd", "", "The password for the vtgate")
-	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
+	flag.StringVar(&logLevel, "log-level", "error", "The log level of vitess-tester: info, warn, error, debug.")
 	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&sharded, "sharded", false, "run all tests on a sharded keyspace")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")

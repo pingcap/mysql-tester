@@ -1,6 +1,6 @@
-# MySQL Tester
+# Vitess Tester
 
-This is a golang implementation of [MySQL Test Framework](https://github.com/mysql/mysql-server/tree/8.0/mysql-test).
+Vitess tester tests Vitess using the same test files as the [MySQL Test Framework](https://github.com/mysql/mysql-server/tree/8.0/mysql-test).
 
 ## Testing methodology
 
@@ -21,22 +21,20 @@ A critical aspect of working with Vitess involves defining sharding keys for all
 This method allows us to thoroughly test queries within a sharded environment, ensuring that applications running on Vitess can confidently handle both uniform and edge-case scenarios. By prioritizing functional correctness over performance in our testing environment, we can guarantee that Vitess behaves as expected under a variety of sharding configurations.
 
 
-
 ## Requirements
 
 - All the tests should be put in [`t`](./t), take [t/example.test](./t/example.test) as an example.
-- All the expected test results should be put in [`r`](./r). Result file has the same file name with the corresponding test file, but with a `.result` file suffix, take [r/example.result](./r/example.result) as an examle.
 
 ## How to use
 
-Build the `mysql-tester` binary:
+Build the `vitess-tester` binary:
 ```sh
 make
 ```
 
 Basic usage:
 ```
-Usage of ./mysql-tester:
+Usage of ./vitess-tester:
   -all
         run all tests
   -mysql-socket string
@@ -54,7 +52,7 @@ Usage of ./mysql-tester:
   -vt-passwd string
         The password for the vtgate
   -log-level string
-        The log level of mysql-tester: info, warn, error, debug. (default "error")
+        The log level of vitess-tester: info, warn, error, debug. (default "error")
   -sharded
         run all tests on a sharded keyspace
   -collation-disable
@@ -64,12 +62,10 @@ Usage of ./mysql-tester:
 By default, it connects to the MySQL server at 127.0.0.1 with root and no password, and to the vtgate server at 127.0.0.1 with root and no password:
 
 ```sh
-./mysql-tester # run all the tests
-./mysql-tester example # run a specified test
-./mysql-tester example1 example2   example3 # seperate different tests with one or more spaces
+./vitess-tester # run all the tests
+./vitess-tester example # run a specified test
+./vitess-tester example1 example2   example3 # seperate different tests with one or more spaces
 ```
-
-For more details about how to run and write test cases, see the [Wiki](https://github.com/pingcap/mysql-tester/wiki) page.
 
 ## Contributing
 
@@ -80,7 +76,6 @@ Contributions are welcomed and greatly appreciated. You can help by:
 - submitting new test cases
 - fixing bugs of this test framework
 - adding features that mysql test has but this implementation does not
-- ...
 
 In case you have any problem, discuss with us here on the repo
 
@@ -88,5 +83,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## License
 
-MySQL Tester is under the Apache 2.0 license. See the [LICENSE](./LICENSE) file for details.
+Vitess Tester is under the Apache 2.0 license. See the [LICENSE](./LICENSE) file for details.
 
+## Acknowledgements
+
+Vitess Tester was started as a fork from `pingcap/mysql-tester`. We would like to thank the original authors for their work.

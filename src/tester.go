@@ -64,6 +64,12 @@ func (t *tester) preProcess() {
 		panic(err.Error())
 	}
 	t.curr = mcmp
+	if olap {
+		_, err := t.curr.VtConn.ExecuteFetch("set workload = 'olap'", 0, false)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (t *tester) postProcess() {

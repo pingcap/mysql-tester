@@ -41,8 +41,8 @@ Usage of ./vitess-tester:
         The host of the MySQL server. (default "127.0.0.1")
   -mysql-user string
         The user for connecting to the MySQL database. (default "root")
-  -mysql-passwd string
-        The password for the MySQL user.
+  -olap
+        Use OLAP to run the queries.
   -vt-host string
         The host of the vtgate server. (default "127.0.0.1")
   -vt-port string

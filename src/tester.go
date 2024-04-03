@@ -36,25 +36,6 @@ type tester struct {
 
 	curr utils.MySQLCompare
 
-	// enable query log will output origin statement into result file too
-	// use --disable_query_log or --enable_query_log to control it
-	enableQueryLog bool
-
-	// enable result log will output to result file or not.
-	// use --enable_result_log or --disable_result_log to control it
-	enableResultLog bool
-
-	// sortedResult make the output or the current query sorted.
-	sortedResult bool
-
-	// Disable or enable warnings. This setting is enabled by default.
-	// With this setting enabled, mysqltest uses SHOW WARNINGS to display
-	// any warnings produced by SQL statements.
-	enableWarning bool
-
-	// enable query info, like rowsAffected, lastMessage etc.
-	enableInfo bool
-
 	// check expected error, use --error before the statement
 	// we only care if an error is returned, not the exact error message.
 	expectedErrs bool
@@ -70,12 +51,6 @@ func newTester(name string) *tester {
 	t := new(tester)
 
 	t.name = name
-	t.enableQueryLog = true
-	t.enableResultLog = true
-	// disable warning by default since our a lot of test cases
-	// are ported wihtout explictly "disablewarning"
-	t.enableWarning = false
-	t.enableInfo = false
 
 	return t
 }
@@ -103,7 +78,7 @@ func (t *tester) addFailure(err error) {
 	fmt.Println(err.Error())
 }
 
-func (t *tester) addSuccess(startTime *time.Time, cnt int) {
+func (t *tester) addSuccess() {
 
 }
 
@@ -112,7 +87,6 @@ func (t *tester) Run() error {
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
-		err = errors.Trace(err)
 		t.addFailure(err)
 		return err
 	}
@@ -121,28 +95,22 @@ func (t *tester) Run() error {
 	startTime := time.Now()
 	for _, q := range queries {
 		switch q.tp {
-		case Q_ENABLE_QUERY_LOG:
-			t.enableQueryLog = true
-		case Q_DISABLE_QUERY_LOG:
-			t.enableQueryLog = false
-		case Q_ENABLE_RESULT_LOG:
-			t.enableResultLog = true
-		case Q_DISABLE_RESULT_LOG:
-			t.enableResultLog = false
-		case Q_DISABLE_WARNINGS:
-			t.enableWarning = false
-		case Q_ENABLE_WARNINGS:
-			t.enableWarning = true
-		case Q_ENABLE_INFO:
-			t.enableInfo = true
-		case Q_DISABLE_INFO:
-			t.enableInfo = false
+		// no-ops
+		case Q_ENABLE_QUERY_LOG,
+			Q_DISABLE_QUERY_LOG,
+			Q_ECHO,
+			Q_DISABLE_WARNINGS,
+			Q_ENABLE_WARNINGS,
+			Q_ENABLE_INFO,
+			Q_DISABLE_INFO,
+			Q_ENABLE_RESULT_LOG,
+			Q_DISABLE_RESULT_LOG,
+			Q_SORTED_RESULT:
+			// do nothing
 		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
-			return fmt.Errorf("%s not supported", String(q.tp))
+			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		case Q_ERROR:
 			t.expectedErrs = true
-		case Q_ECHO:
-			log.Info(q.Query)
 		case Q_QUERY:
 			if err = t.execute(q); err != nil {
 				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
@@ -152,11 +120,8 @@ func (t *tester) Run() error {
 
 			testCnt++
 
-			t.sortedResult = false
 			t.replaceColumn = nil
 			t.replaceRegex = nil
-		case Q_SORTED_RESULT:
-			t.sortedResult = true
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {

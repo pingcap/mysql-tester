@@ -8,7 +8,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 )
 
-require vitess.io/vitess v0.10.3-0.20240327134242-2b478cdc2485
+require vitess.io/vitess v0.10.3-0.20240402201213-256a54d2b88d
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
@@ -96,9 +96,9 @@ require (
 	github.com/xlab/treeprint v1.2.0 // indirect
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/z-division/go-zookeeper v1.0.0 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.12 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.12 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.12 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.13 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.13 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.13 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect

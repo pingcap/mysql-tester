@@ -43,10 +43,11 @@ type tester struct {
 	// we only care if an error is returned, not the exact error message.
 	expectedErrs bool
 
-	failureCount int
-	queryCount   int
-	successCount int
-	errorFile    *os.File
+	failureCount       int
+	queryCount         int
+	successCount       int
+	errorFile          *os.File
+	currentQueryFailed bool
 }
 
 func newTester(name string) *tester {
@@ -80,6 +81,7 @@ var PERM os.FileMode = 0755
 
 func (t *tester) addFailure(err error) {
 	t.failureCount++
+	t.currentQueryFailed = true
 	currentQuery := t.currentQuery
 	if currentQuery == "" {
 		currentQuery = "GENERAL"
@@ -96,12 +98,11 @@ func (t *tester) addFailure(err error) {
 
 func (t *tester) createErrorFileFor(query string) *os.File {
 	qc := fmt.Sprintf("%d", t.queryCount)
-	errorDir := path.Join("errors", t.name)
-	err := os.MkdirAll(errorDir, PERM)
+	err := os.MkdirAll(t.errorDir(), PERM)
 	if err != nil {
 		panic("failed to create error directory\n" + err.Error())
 	}
-	errorPath := path.Join(errorDir, qc)
+	errorPath := path.Join(t.errorDir(), qc)
 	file, err := os.Create(errorPath)
 	if err != nil {
 		panic("failed to create error file\n" + err.Error())
@@ -109,6 +110,10 @@ func (t *tester) createErrorFileFor(query string) *os.File {
 	_, err = file.WriteString(fmt.Sprintf("Error log for query:\n%s\n\n", query))
 
 	return file
+}
+
+func (t *tester) errorDir() string {
+	return path.Join("errors", t.name)
 }
 
 func (t *tester) addSuccess() {
@@ -147,9 +152,10 @@ func (t *tester) Run() error {
 		case Q_QUERY:
 			t.queryCount++
 			t.currentQuery = q.Query
+			t.currentQueryFailed = false
 			if err = t.execute(q); err != nil && !t.expectedErrs {
 				t.failureCount++
-			} else {
+			} else if !t.currentQueryFailed {
 				t.successCount++
 			}
 			// clear expected errors and current query after we execute any query
@@ -177,7 +183,7 @@ func (t *tester) Run() error {
 		t.testFileName(),
 		t.queryCount,
 		t.successCount,
-		t.failureCount,
+		t.queryCount-t.successCount,
 		time.Since(startTime).Seconds(),
 	)
 

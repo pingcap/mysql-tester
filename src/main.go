@@ -44,7 +44,7 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&olap, "olap", false, "Use OLAP run the queries.")
+	flag.BoolVar(&olap, "olap", false, "Use OLAP to run the queries.")
 	flag.StringVar(&mysqlSocket, "mysql-socket", "127.0.0.1", "The host of the MySQL server.")
 	flag.StringVar(&mysqlUser, "mysql-user", "root", "The user for connecting to the MySQL database.")
 	flag.StringVar(&mysqlPasswd, "mysql-passwd", "", "The password for the MySQL user.")

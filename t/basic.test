@@ -1,1 +1,3 @@
 select 1;
+--error is expected here
+select 1 from does_not_exist;

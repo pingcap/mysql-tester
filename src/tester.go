@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -36,9 +37,16 @@ type tester struct {
 
 	curr utils.MySQLCompare
 
+	currentQuery string
+
 	// check expected error, use --error before the statement
 	// we only care if an error is returned, not the exact error message.
 	expectedErrs bool
+
+	failureCount int
+	queryCount   int
+	successCount int
+	errorFile    *os.File
 }
 
 func newTester(name string) *tester {
@@ -68,8 +76,39 @@ func (t *tester) postProcess() {
 	t.curr.Close()
 }
 
+var PERM os.FileMode = 0755
+
 func (t *tester) addFailure(err error) {
-	fmt.Println(err.Error())
+	t.failureCount++
+	currentQuery := t.currentQuery
+	if currentQuery == "" {
+		currentQuery = "GENERAL"
+	}
+	if t.errorFile == nil {
+		t.errorFile = t.createErrorFileFor(currentQuery)
+	}
+
+	_, err = t.errorFile.WriteString(err.Error())
+	if err != nil {
+		panic("failed to write error file\n" + err.Error())
+	}
+}
+
+func (t *tester) createErrorFileFor(query string) *os.File {
+	qc := fmt.Sprintf("%d", t.queryCount)
+	errorDir := path.Join("errors", t.name)
+	err := os.MkdirAll(errorDir, PERM)
+	if err != nil {
+		panic("failed to create error directory\n" + err.Error())
+	}
+	errorPath := path.Join(errorDir, qc)
+	file, err := os.Create(errorPath)
+	if err != nil {
+		panic("failed to create error file\n" + err.Error())
+	}
+	_, err = file.WriteString(fmt.Sprintf("Error log for query:\n%s\n\n", query))
+
+	return file
 }
 
 func (t *tester) addSuccess() {
@@ -85,7 +124,6 @@ func (t *tester) Run() error {
 		return err
 	}
 
-	testCnt := 0
 	startTime := time.Now()
 	for _, q := range queries {
 		switch q.tp {
@@ -107,24 +145,41 @@ func (t *tester) Run() error {
 		case Q_ERROR:
 			t.expectedErrs = true
 		case Q_QUERY:
-			if err = t.execute(q); err != nil {
-				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
-				t.addFailure(err)
-				return err
+			t.queryCount++
+			t.currentQuery = q.Query
+			if err = t.execute(q); err != nil && !t.expectedErrs {
+				t.failureCount++
+			} else {
+				t.successCount++
 			}
-
-			testCnt++
+			// clear expected errors and current query after we execute any query
+			t.expectedErrs = false
+			t.currentQuery = ""
+			if t.errorFile != nil {
+				err := t.errorFile.Close()
+				if err != nil {
+					panic("failed to close error file\n" + err.Error())
+				}
+				t.errorFile = nil
+			}
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
 		default:
-			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
+			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		}
 	}
 
-	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
+	fmt.Printf(
+		"%s: ok! Ran %d queries, %d successfully and %d failures take time %v s\n",
+		t.testFileName(),
+		t.queryCount,
+		t.successCount,
+		t.failureCount,
+		time.Since(startTime).Seconds(),
+	)
 
 	return nil
 }

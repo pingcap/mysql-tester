@@ -307,7 +307,7 @@ func (hv hashVindex) String() string {
 var vschema = vindexes.VSchema{
 	Keyspaces: map[string]*vindexes.KeyspaceSchema{
 		keyspaceName: {
-			Keyspace: &vindexes.Keyspace{Sharded: true},
+			Keyspace: &vindexes.Keyspace{},
 			Tables:   map[string]*vindexes.Table{},
 			Vindexes: map[string]vindexes.Vindex{
 				"hash": &hashVindex{Type: "hash"},
@@ -328,6 +328,7 @@ func setupCluster(sharded bool) func() {
 	}
 
 	if sharded {
+		vschema.Keyspaces[keyspaceName].Keyspace.Sharded = true
 		ksSchema, err := json.Marshal(vschema.Keyspaces[keyspaceName])
 		if err != nil {
 			panic(err)

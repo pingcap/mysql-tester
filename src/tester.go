@@ -269,7 +269,12 @@ func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.Ide
 			col.Type.Options.KeyOpt = sqlparser.ColKeyNone
 		}
 		allIdCI = append(allIdCI, col.Name)
-		allCols = append(allCols, vindexes.Column{Name: col.Name})
+		allCols = append(allCols, vindexes.Column{
+			Name:  col.Name,
+			Type:  col.Type.SQLType(),
+			Scale: getInt32FromPointer(col.Type.Scale),
+			Size:  getInt32FromPointer(col.Type.Length),
+		})
 	}
 
 	// and now we can fetch the primary keys
@@ -286,6 +291,13 @@ func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.Ide
 		sks = allIdCI
 	}
 	return
+}
+
+func getInt32FromPointer(val *int) int32 {
+	if val == nil {
+		return 0
+	}
+	return int32(*val)
 }
 
 func (t *tester) handleCreateTable(create *sqlparser.CreateTable) {

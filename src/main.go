@@ -97,7 +97,7 @@ type hashVindex struct {
 }
 
 func (hv hashVindex) String() string {
-	return "hash"
+	return "xxhash"
 }
 
 var vschema = vindexes.VSchema{
@@ -106,7 +106,7 @@ var vschema = vindexes.VSchema{
 			Keyspace: &vindexes.Keyspace{},
 			Tables:   map[string]*vindexes.Table{},
 			Vindexes: map[string]vindexes.Vindex{
-				"hash": &hashVindex{Type: "hash"},
+				"xxhash": &hashVindex{Type: "xxhash"},
 			},
 			Views: map[string]sqlparser.SelectStatement{},
 		},

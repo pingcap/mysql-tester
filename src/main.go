@@ -29,33 +29,15 @@ import (
 )
 
 var (
-	mysqlSocket      string
-	mysqlUser        string
-	mysqlPasswd      string
-	vtHost           string
-	vtPort           string
-	vtUser           string
-	vtPasswd         string
-	logLevel         string
-	all              bool
-	sharded          bool
-	collationDisable bool
-	olap             bool
+	logLevel string
+	sharded  bool
+	olap     bool
 )
 
 func init() {
 	flag.BoolVar(&olap, "olap", false, "Use OLAP to run the queries.")
-	flag.StringVar(&mysqlSocket, "mysql-socket", "127.0.0.1", "The host of the MySQL server.")
-	flag.StringVar(&mysqlUser, "mysql-user", "root", "The user for connecting to the MySQL database.")
-	flag.StringVar(&mysqlPasswd, "mysql-passwd", "", "The password for the MySQL user.")
-	flag.StringVar(&vtHost, "vt-host", "127.0.0.1", "The host of the vtgate server.")
-	flag.StringVar(&vtPort, "vt-port", "", "The listen port of vtgate server.")
-	flag.StringVar(&vtUser, "vt-user", "root", "The user for connecting to the vtgate")
-	flag.StringVar(&vtPasswd, "vt-passwd", "", "The password for the vtgate")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of vitess-tester: info, warn, error, debug.")
-	flag.BoolVar(&all, "all", false, "run all tests")
 	flag.BoolVar(&sharded, "sharded", false, "run all tests on a sharded keyspace")
-	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 }
 
 type query struct {
@@ -74,9 +56,7 @@ func loadAllTests() (tests []string, err error) {
 
 		if !info.IsDir() && strings.HasSuffix(path, ".test") {
 			name := strings.TrimPrefix(strings.TrimSuffix(path, ".test"), "t/")
-			if !collationDisable {
-				tests = append(tests, name)
-			}
+			tests = append(tests, name)
 		}
 		return nil
 	})

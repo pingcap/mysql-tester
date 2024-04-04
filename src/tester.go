@@ -20,6 +20,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -119,7 +122,17 @@ func (t *tester) createErrorFileFor(query string) *os.File {
 }
 
 func (t *tester) errorDir() string {
-	return path.Join("errors", t.name)
+	errFileName := t.name
+	if strings.HasPrefix(t.name, "http") {
+		u, err := url.Parse(t.name)
+		if err == nil {
+			errFileName = path.Base(u.Path)
+			if errFileName == "" || errFileName == "/" {
+				errFileName = url.QueryEscape(t.name)
+			}
+		}
+	}
+	return path.Join("errors", errFileName)
 }
 
 func (t *tester) addSuccess() {
@@ -160,7 +173,7 @@ func (t *tester) Run() error {
 			t.currentQuery = q.Query
 			t.currentQueryFailed = false
 			if err = t.execute(q); err != nil && !t.expectedErrs {
-				t.failureCount++
+				t.addFailure(err)
 			} else if !t.currentQueryFailed {
 				t.successCount++
 			}
@@ -186,7 +199,7 @@ func (t *tester) Run() error {
 
 	fmt.Printf(
 		"%s: ok! Ran %d queries, %d successfully and %d failures take time %v s\n",
-		t.testFileName(),
+		t.name,
 		t.queryCount,
 		t.successCount,
 		t.queryCount-t.successCount,
@@ -197,7 +210,7 @@ func (t *tester) Run() error {
 }
 
 func (t *tester) loadQueries() ([]query, error) {
-	data, err := os.ReadFile(t.testFileName())
+	data, err := t.readData()
 	if err != nil {
 		return nil, err
 	}
@@ -233,6 +246,22 @@ func (t *tester) loadQueries() ([]query, error) {
 	}
 
 	return ParseQueries(queries...)
+}
+
+func (t *tester) readData() ([]byte, error) {
+	if strings.HasPrefix(t.name, "http") {
+		client := http.Client{}
+		res, err := client.Get(t.name)
+		if err != nil {
+			return nil, err
+		}
+		if res.StatusCode != http.StatusOK {
+			return nil, errors.Errorf("failed to get data from %s, status code %d", t.name, res.StatusCode)
+		}
+		defer res.Body.Close()
+		return io.ReadAll(res.Body)
+	}
+	return os.ReadFile(t.testFileName())
 }
 
 func (t *tester) execute(query query) error {
@@ -342,8 +371,8 @@ func (t *tester) handleCreateTable(create *sqlparser.CreateTable) {
 
 	shardingKeys := &vindexes.ColumnVindex{
 		Columns: sks,
-		Name:    "hash",
-		Type:    "hash",
+		Name:    "xxhash",
+		Type:    "xxhash",
 	}
 
 	ks := vschema.Keyspaces[keyspaceName]

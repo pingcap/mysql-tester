@@ -35,28 +35,12 @@ make
 Basic usage:
 ```
 Usage of ./vitess-tester:
-  -all
-        run all tests
-  -mysql-socket string
-        The host of the MySQL server. (default "127.0.0.1")
-  -mysql-user string
-        The user for connecting to the MySQL database. (default "root")
-  -olap
-        Use OLAP to run the queries.
-  -vt-host string
-        The host of the vtgate server. (default "127.0.0.1")
-  -vt-port string
-        The listen port of vtgate server.
-  -vt-user string
-        The user for connecting to the vtgate (default "root")
-  -vt-passwd string
-        The password for the vtgate
-  -log-level string
+  --log-level string
         The log level of vitess-tester: info, warn, error, debug. (default "error")
-  -sharded
+  --olap
+        Use OLAP to run the queries.
+  --sharded
         run all tests on a sharded keyspace
-  -collation-disable
-        run collation related-test with new-collation disabled
 ```
 
 By default, it connects to the MySQL server at 127.0.0.1 with root and no password, and to the vtgate server at 127.0.0.1 with root and no password:

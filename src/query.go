@@ -126,6 +126,7 @@ const (
 	Q_COMMENT
 	Q_COMMENT_WITH_COMMAND
 	Q_EMPTY_LINE
+	Q_SKIP_IF_BELOW_VERSION
 )
 
 // ParseQueries parses an array of string into an array of query object.
@@ -192,7 +193,7 @@ func (q *query) getQueryType(qu string) error {
 	} else {
 		// No mysqltest command matched
 		if q.tp != Q_COMMENT_WITH_COMMAND {
-			// A query that will sent to tidb
+			// A query that will sent to vitess
 			q.Query = qu
 			q.tp = Q_QUERY
 		} else {

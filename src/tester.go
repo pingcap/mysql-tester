@@ -89,6 +89,9 @@ func (t *tester) postProcess() {
 var PERM os.FileMode = 0755
 
 func (t *tester) addFailure(err error) {
+	if t.failureCount == 0 {
+		t.printVschemaFile()
+	}
 	t.failureCount++
 	t.currentQueryFailed = true
 	currentQuery := t.currentQuery
@@ -410,3 +413,27 @@ func (t *tester) FailNow() {
 }
 
 func (t *tester) Helper() {}
+
+func (t *tester) printVschemaFile() {
+	err := os.MkdirAll(t.errorDir(), PERM)
+	if err != nil {
+		panic("failed to create error directory\n" + err.Error())
+	}
+	vschemaPath := path.Join(t.errorDir(), "vschema.json")
+	file, err := os.Create(vschemaPath)
+	if err != nil {
+		panic("failed to create vschema file\n" + err.Error())
+	}
+	vschemaBytes, err := json.MarshalIndent(vschema, "", "\t")
+	if err != nil {
+		panic("failed to marshal vschema\n" + err.Error())
+	}
+	_, err = file.Write(vschemaBytes)
+	if err != nil {
+		panic("failed to write vschema\n" + err.Error())
+	}
+	err = file.Close()
+	if err != nil {
+		panic("failed to close file\n" + err.Error())
+	}
+}

@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +42,9 @@ type tester struct {
 	curr utils.MySQLCompare
 
 	currentQuery string
+
+	skipBinary  string
+	skipVersion int
 
 	// check expected error, use --error before the statement
 	// we only care if an error is returned, not the exact error message.
@@ -89,9 +93,6 @@ func (t *tester) postProcess() {
 var PERM os.FileMode = 0755
 
 func (t *tester) addFailure(err error) {
-	if t.failureCount == 0 {
-		t.printVschemaFile()
-	}
 	t.failureCount++
 	t.currentQueryFailed = true
 	currentQuery := t.currentQuery
@@ -120,7 +121,23 @@ func (t *tester) createErrorFileFor(query string) *os.File {
 		panic("failed to create error file\n" + err.Error())
 	}
 	_, err = file.WriteString(fmt.Sprintf("Error log for query:\n%s\n\n", query))
+	if err != nil {
+		panic("failed to write to error file\n" + err.Error())
+	}
 
+	vschemaBytes, err := json.MarshalIndent(vschema, "", "\t")
+	if err != nil {
+		panic("failed to marshal vschema\n" + err.Error())
+	}
+	_, err = file.Write(vschemaBytes)
+	if err != nil {
+		panic("failed to write vschema\n" + err.Error())
+	}
+
+	_, err = file.WriteString("\n\n")
+	if err != nil {
+		panic("failed to write to error file\n" + err.Error())
+	}
 	return file
 }
 
@@ -169,9 +186,29 @@ func (t *tester) Run() error {
 			// do nothing
 		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
 			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
+		case Q_SKIP_IF_BELOW_VERSION:
+			strs := strings.Split(q.Query, " ")
+			if len(strs) != 3 {
+				t.addFailure(fmt.Errorf("incorrect syntax for Q_SKIP_IF_BELOW_VERSION in: %v", q.Query))
+				continue
+			}
+			t.skipBinary = strs[1]
+			var err error
+			t.skipVersion, err = strconv.Atoi(strs[2])
+			if err != nil {
+				t.addFailure(err)
+				continue
+			}
 		case Q_ERROR:
 			t.expectedErrs = true
 		case Q_QUERY:
+			if t.skipBinary != "" {
+				okayToRun := utils.BinaryIsAtLeastAtVersion(t.skipVersion, t.skipBinary)
+				t.skipBinary = ""
+				if !okayToRun {
+					continue
+				}
+			}
 			t.queryCount++
 			t.currentQuery = q.Query
 			t.currentQueryFailed = false
@@ -413,27 +450,3 @@ func (t *tester) FailNow() {
 }
 
 func (t *tester) Helper() {}
-
-func (t *tester) printVschemaFile() {
-	err := os.MkdirAll(t.errorDir(), PERM)
-	if err != nil {
-		panic("failed to create error directory\n" + err.Error())
-	}
-	vschemaPath := path.Join(t.errorDir(), "vschema.json")
-	file, err := os.Create(vschemaPath)
-	if err != nil {
-		panic("failed to create vschema file\n" + err.Error())
-	}
-	vschemaBytes, err := json.MarshalIndent(vschema, "", "\t")
-	if err != nil {
-		panic("failed to marshal vschema\n" + err.Error())
-	}
-	_, err = file.Write(vschemaBytes)
-	if err != nil {
-		panic("failed to write vschema\n" + err.Error())
-	}
-	err = file.Close()
-	if err != nil {
-		panic("failed to close file\n" + err.Error())
-	}
-}

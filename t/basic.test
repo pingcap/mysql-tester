@@ -1,3 +1,5 @@
 select 1;
 --error is expected here
 select 1 from does_not_exist;
+--error verify the create statement with the same column name repeated fails. It also verifies that the tester doesn't get stuck on schema tracking in case of a create statement failure.
+create table t(id int primary key, id varchar(30));

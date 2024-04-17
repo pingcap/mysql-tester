@@ -371,6 +371,10 @@ func (t *tester) executeStmt(query string) error {
 	}
 
 	log.Debugf("executeStmt: %s", query)
+	create, isCreateStatement := ast.(*sqlparser.CreateTable)
+	if isCreateStatement && !t.expectedErrs {
+		t.handleCreateTable(create)
+	}
 
 	switch {
 	case t.expectedErrs:
@@ -383,14 +387,16 @@ func (t *tester) executeStmt(query string) error {
 		_ = t.curr.Exec(query)
 	}
 
-	create, ok := ast.(*sqlparser.CreateTable)
-	if ok {
-		t.handleCreateTable(create)
+	if isCreateStatement && !t.expectedErrs {
+		err = utils.WaitForAuthoritative(t, keyspaceName, create.Table.Name.String(), clusterInstance.VtgateProcess.ReadVSchema)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return nil
 }
 
-func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.IdentifierCI, allCols []vindexes.Column) {
+func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.IdentifierCI) {
 	var allIdCI []sqlparser.IdentifierCI
 	// first we normalize the primary keys
 	for _, col := range create.TableSpec.Columns {
@@ -399,12 +405,6 @@ func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.Ide
 			col.Type.Options.KeyOpt = sqlparser.ColKeyNone
 		}
 		allIdCI = append(allIdCI, col.Name)
-		allCols = append(allCols, vindexes.Column{
-			Name:  col.Name,
-			Type:  col.Type.SQLType(),
-			Scale: getInt32FromPointer(col.Type.Scale),
-			Size:  getInt32FromPointer(col.Type.Length),
-		})
 	}
 
 	// and now we can fetch the primary keys
@@ -423,15 +423,8 @@ func getShardingKeysForTable(create *sqlparser.CreateTable) (sks []sqlparser.Ide
 	return
 }
 
-func getInt32FromPointer(val *int) int32 {
-	if val == nil {
-		return 0
-	}
-	return int32(*val)
-}
-
 func (t *tester) handleCreateTable(create *sqlparser.CreateTable) {
-	sks, allCols := getShardingKeysForTable(create)
+	sks := getShardingKeysForTable(create)
 
 	shardingKeys := &vindexes.ColumnVindex{
 		Columns: sks,
@@ -442,11 +435,9 @@ func (t *tester) handleCreateTable(create *sqlparser.CreateTable) {
 	ks := vschema.Keyspaces[keyspaceName]
 	tableName := create.Table.Name
 	ks.Tables[tableName.String()] = &vindexes.Table{
-		Name:                    tableName,
-		Keyspace:                ks.Keyspace,
-		ColumnVindexes:          []*vindexes.ColumnVindex{shardingKeys},
-		Columns:                 allCols,
-		ColumnListAuthoritative: true,
+		Name:           tableName,
+		Keyspace:       ks.Keyspace,
+		ColumnVindexes: []*vindexes.ColumnVindex{shardingKeys},
 	}
 
 	ksJson, err := json.Marshal(ks)

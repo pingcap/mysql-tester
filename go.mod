@@ -1,6 +1,6 @@
 module vitess.io/vitess-tester
 
-go 1.22.1
+go 1.22.2
 
 require (
 	github.com/pingcap/errors v0.11.5-0.20221009092201-b66cddb77c32
@@ -8,7 +8,7 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 )
 
-require vitess.io/vitess v0.10.3-0.20240402201213-256a54d2b88d
+require vitess.io/vitess v0.10.3-0.20240417140808-f11de060c218
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
@@ -104,9 +104,9 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect

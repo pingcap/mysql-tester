@@ -372,7 +372,8 @@ func (t *tester) executeStmt(query string) error {
 
 	log.Debugf("executeStmt: %s", query)
 	create, isCreateStatement := ast.(*sqlparser.CreateTable)
-	if isCreateStatement && !t.expectedErrs {
+	autoVschema := isCreateStatement && !t.expectedErrs && vschemaFile == ""
+	if autoVschema {
 		t.handleCreateTable(create)
 	}
 
@@ -387,7 +388,7 @@ func (t *tester) executeStmt(query string) error {
 		_ = t.curr.Exec(query)
 	}
 
-	if isCreateStatement && !t.expectedErrs {
+	if autoVschema {
 		err = utils.WaitForAuthoritative(t, keyspaceName, create.Table.Name.String(), clusterInstance.VtgateProcess.ReadVSchema)
 		if err != nil {
 			panic(err)

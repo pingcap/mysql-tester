@@ -1,0 +1,114 @@
+{
+  "routing_rules": null,
+  "shard_routing_rules": null,
+  "keyspace_routing_rules": null,
+  "keyspaces": {
+    "mysqltest": {
+      "sharded": true,
+      "foreignKeyMode": "unspecified",
+      "vindexes": {
+        "xxhash": {
+          "type": "xxhash"
+        }
+      },
+      "tables": {
+        "customer": {
+          "name": "customer",
+          "column_vindexes": [
+            {
+              "column": "C_CUSTKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "lineitem": {
+          "name": "lineitem",
+          "column_vindexes": [
+            {
+              "columns": [
+                "L_ORDERKEY",
+                "L_LINENUMBER"
+              ],
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "nation": {
+          "name": "nation",
+          "column_vindexes": [
+            {
+              "column": "N_NATIONKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "orders": {
+          "name": "orders",
+          "column_vindexes": [
+            {
+              "column": "O_ORDERKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "part": {
+          "name": "part",
+          "column_vindexes": [
+            {
+              "column": "P_PARTKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "partsupp": {
+          "name": "partsupp",
+          "column_vindexes": [
+            {
+              "columns": [
+                "PS_PARTKEY",
+                "PS_SUPPKEY"
+              ],
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "region": {
+          "name": "region",
+          "column_vindexes": [
+            {
+              "column": "R_REGIONKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "supplier": {
+          "name": "supplier",
+          "column_vindexes": [
+            {
+              "column": "S_SUPPKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        },
+        "test": {
+          "name": "test",
+          "column_vindexes": [
+            {
+              "column": "S_SUPPKEY",
+              "name": "xxhash",
+              "type": "xxhash"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

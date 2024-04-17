@@ -29,15 +29,17 @@ import (
 )
 
 var (
-	logLevel string
-	sharded  bool
-	olap     bool
+	logLevel    string
+	sharded     bool
+	olap        bool
+	vschemaFile string
 )
 
 func init() {
 	flag.BoolVar(&olap, "olap", false, "Use OLAP to run the queries.")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of vitess-tester: info, warn, error, debug.")
 	flag.BoolVar(&sharded, "sharded", false, "run all tests on a sharded keyspace")
+	flag.StringVar(&vschemaFile, "vschema", "", "Disable auto-vschema by providing your own vschema file")
 }
 
 type query struct {
@@ -91,6 +93,10 @@ var (
 	mysqlParams mysql.ConnParams
 )
 
+type rawKeyspaceVindex struct {
+	Keyspaces map[string]interface{} `json:"keyspaces"`
+}
+
 type hashVindex struct {
 	vindexes.Hash
 	Type string `json:"type"`
@@ -124,10 +130,51 @@ func setupCluster(sharded bool) func() {
 	}
 
 	if sharded {
-		vschema.Keyspaces[keyspaceName].Keyspace.Sharded = true
-		ksSchema, err := json.Marshal(vschema.Keyspaces[keyspaceName])
-		if err != nil {
-			panic(err)
+		var ksSchema []byte
+		if vschemaFile != "" {
+			// Get the struct representation of the vschema, this is used
+			// to have an updated view of the vschema at all time, although
+			// we could probably remove this in the future if a vschema file
+			// is provided and just send a call to vtctld to get the vschema.
+			formal, err := vindexes.LoadFormal(vschemaFile)
+			if err != nil {
+				panic(err.Error())
+			}
+			vschema = *(vindexes.BuildVSchema(formal, sqlparser.NewTestParser()))
+			if len(vschema.Keyspaces) != 1 {
+				panic("please use only one keyspace when giving your own vschema")
+			}
+			for name := range vschema.Keyspaces {
+				keyspaceName = name
+			}
+
+			// Get the full string representation of the keyspace vschema
+			// we want to send the complete string to StartKeyspace instead
+			// of marshalling the vschema structure back and forth, this will
+			// prevent an issue where fields are missing (like the vindex type)
+			// in the structure. FWIW, in the Vitess' end-to-end tests we also
+			// send the text version of the vschema to StartKeyspace.
+			vschemaContent, err := os.ReadFile(vschemaFile)
+			if err != nil {
+				panic(err.Error())
+			}
+			var rk rawKeyspaceVindex
+			err = json.Unmarshal(vschemaContent, &rk)
+			if err != nil {
+				panic(err.Error())
+			}
+			for _, v := range rk.Keyspaces {
+				ksSchema, err = json.Marshal(v)
+				if err != nil {
+					panic(err.Error())
+				}
+			}
+		} else {
+			vschema.Keyspaces[keyspaceName].Keyspace.Sharded = true
+			ksSchema, err = json.Marshal(vschema.Keyspaces[keyspaceName])
+			if err != nil {
+				panic(err)
+			}
 		}
 		keyspace := &cluster.Keyspace{
 			Name:    keyspaceName,

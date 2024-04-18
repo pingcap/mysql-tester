@@ -41,6 +41,8 @@ Usage of ./vitess-tester:
         Use OLAP to run the queries.
   --sharded
         run all tests on a sharded keyspace
+  --vschema file-name
+        The vschema file to use for sharded tests.
 ```
 
 By default, it connects to the MySQL server at 127.0.0.1 with root and no password, and to the vtgate server at 127.0.0.1 with root and no password:

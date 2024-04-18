@@ -55,6 +55,8 @@ type tester struct {
 	successCount       int
 	errorFile          *os.File
 	currentQueryFailed bool
+
+	skipNext bool
 }
 
 func newTester(name string) *tester {
@@ -191,6 +193,8 @@ func (t *tester) Run() error {
 			Q_SORTED_RESULT,
 			Q_REPLACE_REGEX:
 			// do nothing
+		case Q_SKIP:
+			t.skipNext = true
 		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
 			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		case Q_SKIP_IF_BELOW_VERSION:
@@ -209,6 +213,10 @@ func (t *tester) Run() error {
 		case Q_ERROR:
 			t.expectedErrs = true
 		case Q_QUERY:
+			if t.skipNext {
+				t.skipNext = false
+				continue
+			}
 			if t.skipBinary != "" {
 				okayToRun := utils.BinaryIsAtLeastAtVersion(t.skipVersion, t.skipBinary)
 				t.skipBinary = ""

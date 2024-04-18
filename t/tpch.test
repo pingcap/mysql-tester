@@ -155,7 +155,8 @@ order by
 	l_returnflag,
 	l_linestatus;
 
-
+/*
+correlated subquery not supported
 select
 	s_acctbal,
 	s_name,
@@ -200,6 +201,7 @@ order by
 	s_name,
 	p_partkey
 limit 100;
+*/
 
 /*
     Q3 Shipping Priority Query
@@ -742,8 +744,7 @@ order by
     What would be the average yearly gross (undiscounted) loss in revenue if orders for these parts with a quantity
     of less than 20% of this average were no longer taken?
 
-    Planner enahancement: aggregation pull up through join.
-*/
+-- correlated subquery not suppoerted
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -761,6 +762,7 @@ where
 		where
 			l_partkey = p_partkey
 	);
+*/
 
 /*
     Q18 Large Volume Customer Query
@@ -769,8 +771,6 @@ where
 
     The Large Volume Customer Query finds a list of the top 100 customers who have ever placed large quantity orders.
     The query lists the customer name, customer key, the order key, date and total price and the quantity for the order.
-
-    Planner enhancement: cost estimation is not so good, join reorder. The inner subquery's result is only 300+ rows.
 */
 select
 	c_name,

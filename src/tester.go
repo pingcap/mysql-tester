@@ -107,17 +107,13 @@ func (t *tester) addFailure(err error) {
 	if err != nil {
 		panic("failed to write error file\n" + err.Error())
 	}
+
+	t.createVSchemaDump()
 }
 
 func (t *tester) createVSchemaDump() {
-	vschemaDir := path.Join(t.errorDir(), "vschema")
-
-	// if the directory already exists, exit
-	if _, err := os.Stat(vschemaDir); err == nil {
-		return
-	}
-
-	err := os.MkdirAll(vschemaDir, PERM)
+	errorDir := t.errorDir()
+	err := os.MkdirAll(errorDir, PERM)
 	if err != nil {
 		panic("failed to create vschema directory\n" + err.Error())
 	}
@@ -127,7 +123,7 @@ func (t *tester) createVSchemaDump() {
 		panic("failed to marshal vschema\n" + err.Error())
 	}
 
-	err = os.WriteFile(path.Join(vschemaDir, "vschema.json"), vschemaBytes, PERM)
+	err = os.WriteFile(path.Join(errorDir, "vschema.json"), vschemaBytes, PERM)
 	if err != nil {
 		panic("failed to write vschema\n" + err.Error())
 	}
@@ -149,19 +145,6 @@ func (t *tester) createErrorFileFor(query string) *os.File {
 		panic("failed to write to error file\n" + err.Error())
 	}
 
-	vschemaBytes, err := json.MarshalIndent(vschema, "", "\t")
-	if err != nil {
-		panic("failed to marshal vschema\n" + err.Error())
-	}
-	_, err = file.Write(vschemaBytes)
-	if err != nil {
-		panic("failed to write vschema\n" + err.Error())
-	}
-
-	_, err = file.WriteString("\n\n")
-	if err != nil {
-		panic("failed to write to error file\n" + err.Error())
-	}
 	return file
 }
 

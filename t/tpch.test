@@ -744,7 +744,6 @@ order by
     What would be the average yearly gross (undiscounted) loss in revenue if orders for these parts with a quantity
     of less than 20% of this average were no longer taken?
 
--- correlated subquery not suppoerted
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from

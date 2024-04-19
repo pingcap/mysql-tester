@@ -646,51 +646,6 @@ where
 	and l_shipdate < date_add('1996-12-01', interval '1' month);
 
 /*
-    Q15 Top Supplier Query
-    This query determines the top supplier so it can be rewarded, given more business, or identified for special recognition.
-
-    The Top Supplier Query finds the supplier who contributed the most to the overall revenue for parts shipped during
-    a given quarter of a given year. In case of a tie, the query lists all suppliers whose contribution was equal to the
-    maximum, presented in supplier number order.
-
-    Planner enhancement: support view.
-*/
-create view revenue0 (supplier_no, total_revenue) as
-	select
-		l_suppkey,
-		sum(l_extendedprice * (1 - l_discount))
-	from
-		lineitem
-	where
-		l_shipdate >= '1997-07-01'
-		and l_shipdate < date_add('1997-07-01', interval '3' month)
-	group by
-		l_suppkey
-
-
-select
-	s_suppkey,
-	s_name,
-	s_address,
-	s_phone,
-	total_revenue
-from
-	supplier,
-	revenue0
-where
-	s_suppkey = supplier_no
-	and total_revenue = (
-		select
-			max(total_revenue)
-		from
-			revenue0
-	)
-order by
-	s_suppkey
-
-drop view revenue0
-
-/*
     Q16 Parts/Supplier Relationship Query
     This query finds out how many suppliers can supply parts with given attributes. It might be used, for example, to
     determine whether there is a sufficient number of suppliers for heavily ordered parts.
@@ -741,6 +696,7 @@ order by
     What would be the average yearly gross (undiscounted) loss in revenue if orders for these parts with a quantity
     of less than 20% of this average were no longer taken?
 */
+--skip correlated subquery is only supported for EXISTS
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -856,6 +812,7 @@ where
     defined to be more than 50% of the parts like the given part that the supplier shipped in a given year for a given
     nation. Only parts whose names share a certain naming convention are considered.
 */
+--skip correlated subquery is only supported for EXISTS
 select
 	s_name,
 	s_address
@@ -952,6 +909,7 @@ limit 100;
     but who have a greater than average “positive” account balance. It also reflects the magnitude of that balance.
     Country code is defined as the first two characters of c_phone.
 */
+-- skip correlated subquery is only supported for EXISTS
 select
 	cntrycode,
 	count(*) as numcust,

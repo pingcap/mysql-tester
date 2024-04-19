@@ -155,8 +155,7 @@ order by
 	l_returnflag,
 	l_linestatus;
 
-/*
-correlated subquery not supported
+-- skip
 select
 	s_acctbal,
 	s_name,
@@ -201,7 +200,6 @@ order by
 	s_name,
 	p_partkey
 limit 100;
-*/
 
 /*
     Q3 Shipping Priority Query
@@ -656,7 +654,7 @@ where
     maximum, presented in supplier number order.
 
     Planner enhancement: support view.
-
+*/
 create view revenue0 (supplier_no, total_revenue) as
 	select
 		l_suppkey,
@@ -691,7 +689,6 @@ order by
 	s_suppkey
 
 drop view revenue0
-*/
 
 /*
     Q16 Parts/Supplier Relationship Query
@@ -743,7 +740,7 @@ order by
     determines the average lineitem quantity of such parts ordered for all orders (past and pending) in the 7-year database.
     What would be the average yearly gross (undiscounted) loss in revenue if orders for these parts with a quantity
     of less than 20% of this average were no longer taken?
-
+*/
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -761,7 +758,6 @@ where
 		where
 			l_partkey = p_partkey
 	);
-*/
 
 /*
     Q18 Large Volume Customer Query

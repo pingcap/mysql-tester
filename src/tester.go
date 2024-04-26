@@ -41,7 +41,7 @@ type tester struct {
 
 	curr utils.MySQLCompare
 
-	currentQuery string
+	currentQuery *query
 
 	skipBinary  string
 	skipVersion int
@@ -97,12 +97,14 @@ var PERM os.FileMode = 0755
 func (t *tester) addFailure(err error) {
 	t.failureCount++
 	t.currentQueryFailed = true
-	currentQuery := t.currentQuery
-	if currentQuery == "" {
-		currentQuery = "GENERAL"
+	if t.currentQuery == nil {
+		t.currentQuery = &query{Query: "GENERAL"}
+		defer func() {
+			t.currentQuery = nil
+		}()
 	}
 	if t.errorFile == nil {
-		t.errorFile = t.createErrorFileFor(currentQuery)
+		t.errorFile = t.createErrorFileFor()
 	}
 
 	_, err = t.errorFile.WriteString(err.Error())
@@ -131,8 +133,8 @@ func (t *tester) createVSchemaDump() {
 	}
 }
 
-func (t *tester) createErrorFileFor(query string) *os.File {
-	qc := fmt.Sprintf("%d", t.queryCount)
+func (t *tester) createErrorFileFor() *os.File {
+	qc := fmt.Sprintf("%d", t.currentQuery.Line)
 	err := os.MkdirAll(t.errorDir(), PERM)
 	if err != nil {
 		panic("failed to create error directory\n" + err.Error())
@@ -142,7 +144,7 @@ func (t *tester) createErrorFileFor(query string) *os.File {
 	if err != nil {
 		panic("failed to create error file\n" + err.Error())
 	}
-	_, err = file.WriteString(fmt.Sprintf("Error log for query:\n%s\n\n", query))
+	_, err = file.WriteString(fmt.Sprintf("Error log for query on line %d:\n%s\n\n", t.currentQuery.Line, t.currentQuery.Query))
 	if err != nil {
 		panic("failed to write to error file\n" + err.Error())
 	}
@@ -225,7 +227,7 @@ func (t *tester) Run() error {
 				}
 			}
 			t.queryCount++
-			t.currentQuery = q.Query
+			t.currentQuery = &q
 			t.currentQueryFailed = false
 			if err = t.execute(q); err != nil && !t.expectedErrs {
 				t.addFailure(err)
@@ -234,7 +236,7 @@ func (t *tester) Run() error {
 			}
 			// clear expected errors and current query after we execute any query
 			t.expectedErrs = false
-			t.currentQuery = ""
+			t.currentQuery = nil
 			if t.errorFile != nil {
 				err := t.errorFile.Close()
 				if err != nil {

@@ -22,12 +22,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
@@ -41,28 +38,21 @@ type tester struct {
 
 	curr utils.MySQLCompare
 
-	currentQuery *query
-
 	skipBinary  string
 	skipVersion int
+	skipNext    bool
 
 	// check expected error, use --error before the statement
 	// we only care if an error is returned, not the exact error message.
 	expectedErrs bool
 
-	failureCount       int
-	queryCount         int
-	successCount       int
-	errorFile          *os.File
-	currentQueryFailed bool
-
-	skipNext bool
+	reporter Reporter
 }
 
-func newTester(name string) *tester {
+func newTester(name string, reporter Reporter) *tester {
 	t := new(tester)
-
 	t.name = name
+	t.reporter = reporter
 
 	return t
 }
@@ -94,78 +84,6 @@ func (t *tester) postProcess() {
 
 var PERM os.FileMode = 0755
 
-func (t *tester) addFailure(err error) {
-	t.failureCount++
-	t.currentQueryFailed = true
-	if t.currentQuery == nil {
-		t.currentQuery = &query{Query: "GENERAL"}
-		defer func() {
-			t.currentQuery = nil
-		}()
-	}
-	if t.errorFile == nil {
-		t.errorFile = t.createErrorFileFor()
-	}
-
-	_, err = t.errorFile.WriteString(err.Error())
-	if err != nil {
-		panic("failed to write error file\n" + err.Error())
-	}
-
-	t.createVSchemaDump()
-}
-
-func (t *tester) createVSchemaDump() {
-	errorDir := t.errorDir()
-	err := os.MkdirAll(errorDir, PERM)
-	if err != nil {
-		panic("failed to create vschema directory\n" + err.Error())
-	}
-
-	vschemaBytes, err := json.MarshalIndent(vschema, "", "\t")
-	if err != nil {
-		panic("failed to marshal vschema\n" + err.Error())
-	}
-
-	err = os.WriteFile(path.Join(errorDir, "vschema.json"), vschemaBytes, PERM)
-	if err != nil {
-		panic("failed to write vschema\n" + err.Error())
-	}
-}
-
-func (t *tester) createErrorFileFor() *os.File {
-	qc := fmt.Sprintf("%d", t.currentQuery.Line)
-	err := os.MkdirAll(t.errorDir(), PERM)
-	if err != nil {
-		panic("failed to create error directory\n" + err.Error())
-	}
-	errorPath := path.Join(t.errorDir(), qc)
-	file, err := os.Create(errorPath)
-	if err != nil {
-		panic("failed to create error file\n" + err.Error())
-	}
-	_, err = file.WriteString(fmt.Sprintf("Error log for query on line %d:\n%s\n\n", t.currentQuery.Line, t.currentQuery.Query))
-	if err != nil {
-		panic("failed to write to error file\n" + err.Error())
-	}
-
-	return file
-}
-
-func (t *tester) errorDir() string {
-	errFileName := t.name
-	if strings.HasPrefix(t.name, "http") {
-		u, err := url.Parse(t.name)
-		if err == nil {
-			errFileName = path.Base(u.Path)
-			if errFileName == "" || errFileName == "/" {
-				errFileName = url.QueryEscape(t.name)
-			}
-		}
-	}
-	return path.Join("errors", errFileName)
-}
-
 func (t *tester) addSuccess() {
 
 }
@@ -175,11 +93,10 @@ func (t *tester) Run() error {
 	defer t.postProcess()
 	queries, err := t.loadQueries()
 	if err != nil {
-		t.addFailure(err)
+		t.reporter.AddFailure(err)
 		return err
 	}
 
-	startTime := time.Now()
 	for _, q := range queries {
 		switch q.tp {
 		// no-ops
@@ -198,18 +115,18 @@ func (t *tester) Run() error {
 		case Q_SKIP:
 			t.skipNext = true
 		case Q_BEGIN_CONCURRENT, Q_END_CONCURRENT, Q_CONNECT, Q_CONNECTION, Q_DISCONNECT, Q_LET, Q_REPLACE_COLUMN:
-			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
+			t.reporter.AddFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		case Q_SKIP_IF_BELOW_VERSION:
 			strs := strings.Split(q.Query, " ")
 			if len(strs) != 3 {
-				t.addFailure(fmt.Errorf("incorrect syntax for Q_SKIP_IF_BELOW_VERSION in: %v", q.Query))
+				t.reporter.AddFailure(fmt.Errorf("incorrect syntax for Q_SKIP_IF_BELOW_VERSION in: %v", q.Query))
 				continue
 			}
 			t.skipBinary = strs[1]
 			var err error
 			t.skipVersion, err = strconv.Atoi(strs[2])
 			if err != nil {
-				t.addFailure(err)
+				t.reporter.AddFailure(err)
 				continue
 			}
 		case Q_ERROR:
@@ -226,42 +143,23 @@ func (t *tester) Run() error {
 					continue
 				}
 			}
-			t.queryCount++
-			t.currentQuery = &q
-			t.currentQueryFailed = false
+			t.reporter.AddTestCase(q.Query, q.Line)
 			if err = t.execute(q); err != nil && !t.expectedErrs {
-				t.addFailure(err)
-			} else if !t.currentQueryFailed {
-				t.successCount++
+				t.reporter.AddFailure(err)
 			}
+			t.reporter.EndTestCase()
 			// clear expected errors and current query after we execute any query
 			t.expectedErrs = false
-			t.currentQuery = nil
-			if t.errorFile != nil {
-				err := t.errorFile.Close()
-				if err != nil {
-					panic("failed to close error file\n" + err.Error())
-				}
-				t.errorFile = nil
-			}
 		case Q_REMOVE_FILE:
 			err = os.Remove(strings.TrimSpace(q.Query))
 			if err != nil {
 				return errors.Annotate(err, "failed to remove file")
 			}
 		default:
-			t.addFailure(fmt.Errorf("%s not supported", String(q.tp)))
+			t.reporter.AddFailure(fmt.Errorf("%s not supported", String(q.tp)))
 		}
 	}
-
-	fmt.Printf(
-		"%s: ok! Ran %d queries, %d successfully and %d failures take time %v s\n",
-		t.name,
-		t.queryCount,
-		t.successCount,
-		t.queryCount-t.successCount,
-		time.Since(startTime).Seconds(),
-	)
+	fmt.Printf("%s\n", t.reporter.Report())
 
 	return nil
 }
@@ -451,7 +349,7 @@ func (t *tester) testFileName() string {
 }
 
 func (t *tester) Errorf(format string, args ...interface{}) {
-	t.addFailure(errors.Errorf(format, args...))
+	t.reporter.AddFailure(errors.Errorf(format, args...))
 }
 
 func (t *tester) FailNow() {

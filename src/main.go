@@ -41,7 +41,6 @@ func init() {
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of vitess-tester: info, warn, error, debug.")
 	flag.BoolVar(&sharded, "sharded", false, "run all tests on a sharded keyspace")
 	flag.StringVar(&vschemaFile, "vschema", "", "Disable auto-vschema by providing your own vschema file")
-	flag.BoolVar(&xunit, "xunit", false, "Prints test output in xunit format")
 }
 
 type query struct {

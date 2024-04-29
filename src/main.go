@@ -33,6 +33,7 @@ var (
 	sharded     bool
 	olap        bool
 	vschemaFile string
+	xunit       bool
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of vitess-tester: info, warn, error, debug.")
 	flag.BoolVar(&sharded, "sharded", false, "run all tests on a sharded keyspace")
 	flag.StringVar(&vschemaFile, "vschema", "", "Disable auto-vschema by providing your own vschema file")
+	flag.BoolVar(&xunit, "xunit", false, "Prints test output in xunit format")
 }
 
 type query struct {
@@ -71,15 +73,14 @@ func loadAllTests() (tests []string, err error) {
 
 func executeTests(fileNames []string) (failed bool) {
 	for _, name := range fileNames {
-		show := newTester(name)
-		err := show.Run()
+		errFileReporter := newFileReporter(name)
+		vTester := newTester(name, errFileReporter)
+		err := vTester.Run()
 		if err != nil {
 			failed = true
 			continue
 		}
-		if show.failureCount > 0 {
-			failed = true
-		}
+		failed = errFileReporter.Failed()
 	}
 	return
 }

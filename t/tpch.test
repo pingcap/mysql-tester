@@ -76,50 +76,44 @@ CREATE TABLE IF NOT EXISTS lineitem ( L_ORDERKEY    INTEGER NOT NULL,
                              L_SHIPMODE     CHAR(10) NOT NULL,
                              L_COMMENT      VARCHAR(44) NOT NULL,
 			     PRIMARY KEY (L_ORDERKEY,L_LINENUMBER));
-# Inserting Regions
+
 INSERT INTO region (R_REGIONKEY, R_NAME, R_COMMENT) VALUES
   (1, 'ASIA', 'Eastern Asia'),
   (2, 'MIDDLE EAST', 'Rich cultural heritage');
-# Inserting Nations
+
 INSERT INTO nation (N_NATIONKEY, N_NAME, N_REGIONKEY, N_COMMENT) VALUES
   (1, 'China', 1, 'Large population'),
   (2, 'India', 1, 'Large variety of cultures'),
   (3, 'Nation A', 2, 'Historic sites'),
   (4, 'Nation B', 2, 'Beautiful landscapes');
-# Inserting Suppliers in ASIA
+
 INSERT INTO supplier (S_SUPPKEY, S_NAME, S_ADDRESS, S_NATIONKEY, S_PHONE, S_ACCTBAL, S_COMMENT) VALUES
   (1, 'Supplier A', '123 Square', 1, '86-123-4567', 5000.00, 'High quality steel'),
   (2, 'Supplier B', '456 Ganges St', 2, '91-789-4561', 5500.00, 'Efficient production'),
   (3, 'Supplier 1', 'Supplier Address 1', 3, '91-789-4562', 3000.00, 'Supplier Comment 1'),
   (4, 'Supplier 2', 'Supplier Address 2', 2, '91-789-4563', 4000.00, 'Supplier Comment 2');
 
-# Inserting Parts of size 30 and type 'STEEL'
 INSERT INTO part (P_PARTKEY, P_NAME, P_MFGR, P_BRAND, P_TYPE, P_SIZE, P_CONTAINER, P_RETAILPRICE, P_COMMENT) VALUES
   (100, 'Part 100', 'MFGR A', 'Brand X', 'BOLT STEEL', 30, 'SM BOX', 45.00, 'High strength'),
   (101, 'Part 101', 'MFGR B', 'Brand Y', 'NUT STEEL', 30, 'LG BOX', 30.00, 'Rust resistant');
-# Inserting PartSupp with varying supply costs
-# Note: Ensure the supply costs are different to get a minimum.
+
 INSERT INTO partsupp (PS_PARTKEY, PS_SUPPKEY, PS_AVAILQTY, PS_SUPPLYCOST, PS_COMMENT) VALUES
   (100, 1, 500, 10.00, 'Deliveries on time'),
   (101, 2, 300, 9.00, 'Back orders possible'),
   (100, 2, 600, 8.50, 'Bulk discounts available');
 
-  # Inserting Customers in the 'AUTOMOBILE' segment
 INSERT INTO customer (C_CUSTKEY, C_NAME, C_ADDRESS, C_NATIONKEY, C_PHONE, C_ACCTBAL, C_MKTSEGMENT, C_COMMENT) VALUES
   (1, 'Customer A', '1234 Drive Lane', 1, '123-456-7890', 1000.00, 'AUTOMOBILE', 'Frequent orders'),
   (2, 'Customer B', '5678 Park Ave', 2, '234-567-8901', 2000.00, 'AUTOMOBILE', 'Large orders'),
   (3, 'Customer 1', 'Address 1', 1, 'Phone 1', 1000.00, 'Segment 1', 'Comment 1'),
   (4, 'Customer 2', 'Address 2', 2, 'Phone 2', 2000.00, 'Segment 2', 'Comment 2');
 
-
-# Inserting Orders for these customers
 INSERT INTO orders (O_ORDERKEY, O_CUSTKEY, O_ORDERSTATUS, O_TOTALPRICE, O_ORDERDATE, O_ORDERPRIORITY, O_CLERK, O_SHIPPRIORITY, O_COMMENT) VALUES
   (100, 1, 'O', 15000.00, '1995-03-10', '1-URGENT', 'Clerk#0001', 1, 'N/A'),
   (101, 2, 'O', 25000.00, '1995-03-05', '2-HIGH', 'Clerk#0002', 2, 'N/A'),
   (1, 3, 'O', 10000.00, '1994-01-10', 'Priority 1', 'Clerk 1', 1, 'Order Comment 1'),
   (2, 4, 'O', 20000.00, '1994-06-15', 'Priority 2', 'Clerk 2', 1, 'Order Comment 2');
 
-# Inserting LineItems that link to these orders
 INSERT INTO lineitem (L_ORDERKEY, L_PARTKEY, L_SUPPKEY, L_LINENUMBER, L_QUANTITY, L_EXTENDEDPRICE, L_DISCOUNT, L_TAX, L_RETURNFLAG, L_LINESTATUS, L_SHIPDATE, L_COMMITDATE, L_RECEIPTDATE, L_SHIPINSTRUCT, L_SHIPMODE, L_COMMENT) VALUES
   (100, 200, 300, 1, 10, 5000.00, 0.05, 0.10, 'N', 'O', '1995-03-15', '1995-03-14', '1995-03-16', 'DELIVER IN PERSON', 'TRUCK', 'Urgent delivery'),
   (100, 201, 301, 2, 20, 10000.00, 0.10, 0.10, 'R', 'F', '1995-03-17', '1995-03-15', '1995-03-18', 'NONE', 'MAIL', 'Handle with care'),
@@ -133,6 +127,7 @@ INSERT INTO lineitem (L_ORDERKEY, L_PARTKEY, L_SUPPKEY, L_LINENUMBER, L_QUANTITY
   (14, 103, 5, 1, 90, 30000.00, 0.15, 0.10, 'A', 'O', '1998-05-15', '1998-05-16', '1998-05-17', 'DELIVER IN PERSON', 'RAIL', 'N/A'),
   (15, 104, 2, 1, 45, 45000.00, 0.20, 0.15, 'N', 'F', '1998-07-15', '1998-07-16', '1998-07-17', 'NONE', 'SHIP', 'N/A');
 
+# Query 1
 select
 	l_returnflag,
 	l_linestatus,
@@ -155,6 +150,7 @@ order by
 	l_returnflag,
 	l_linestatus;
 
+# Query 2
 -- skip
 select
 	s_acctbal,
@@ -201,17 +197,7 @@ order by
 	p_partkey
 limit 100;
 
-/*
-    Q3 Shipping Priority Query
-    This query retrieves the 10 unshipped orders with the highest value.
-
-    The Shipping Priority Query retrieves the shipping priority and potential revenue, defined as the sum of
-    l_extendedprice * (1-l_discount), of the orders having the largest revenue among those that had not been shipped as
-    of a given date. Orders are listed in decreasing order of revenue. If more than 10 unshipped orders exist, only the 10
-    orders with the largest revenue are listed.
-
-    planner enhancement: if group-by item have primary key, non-priamry key is useless.
-*/
+# Q3 Shipping Priority Query
 select
 	l_orderkey,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -236,14 +222,7 @@ order by
 	o_orderdate
 limit 10;
 
-/*
-    Q4 Order Priority Checking Query
-    This query determines how well the order priority system is working and gives an assessment of customer satisfaction.
-
-    The Order Priority Checking Query counts the number of orders ordered in a given quarter of a given year in which
-    at least one lineitem was received by the customer later than its committed date. The query lists the count of such
-    orders for each order priority sorted in ascending priority order.
-*/
+# Q4 Order Priority Checking Query
 select
 	o_orderpriority,
 	count(*) as order_count
@@ -266,19 +245,7 @@ group by
 order by
 	o_orderpriority;
 
-/*
-    Q5 Local Supplier Volume Query
-    This query lists the revenue volume done through local suppliers.
-
-    The Local Supplier Volume Query lists for each nation in a region the revenue volume that resulted from lineitem
-    transactions in which the customer ordering parts and the supplier filling them were both within that nation. The
-    query is run in order to determine whether to institute local distribution centers in a given region. The query considers
-    only parts ordered in a given year. The query displays the nations and revenue volume in descending order by
-    revenue. Revenue volume for all qualifying lineitems in a particular nation is defined as sum(l_extendedprice * (1 -
-    l_discount)).
-
-    Planner enhancement: join reorder.
-*/
+# Q5 Local Supplier Volume Query
 select
 	n_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue
@@ -304,18 +271,7 @@ group by
 order by
 	revenue desc;
 
-/*
-    Q6 Forecasting Revenue Change Query
-    This query quantifies the amount of revenue increase that would have resulted from eliminating certain companywide
-    discounts in a given percentage range in a given year. Asking this type of "what if" query can be used to look
-    for ways to increase revenues.
-
-    The Forecasting Revenue Change Query considers all the lineitems shipped in a given year with discounts between
-    DISCOUNT-0.01 and DISCOUNT+0.01. The query lists the amount by which the total revenue would have
-    increased if these discounts had been eliminated for lineitems with l_quantity less than quantity. Note that the
-    potential revenue increase is equal to the sum of [l_extendedprice * l_discount] for all lineitems with discounts and
-    quantities in the qualifying range.
-*/
+# Q6 Forecasting Revenue Change Query
 select
 	sum(l_extendedprice * l_discount) as revenue
 from
@@ -326,18 +282,7 @@ where
 	and l_discount between 0.06 - 0.01 and 0.06 + 0.01
 	and l_quantity < 24;
 
-/*
-    Q7 Volume Shipping Query
-    This query determines the value of goods shipped between certain nations to help in the re-negotiation of shipping
-    contracts.
-
-    The Volume Shipping Query finds, for two given nations, the gross discounted revenues derived from lineitems in
-    which parts were shipped from a supplier in either nation to a customer in the other nation during 1995 and 1996.
-    The query lists the supplier nation, the customer nation, the year, and the revenue from shipments that took place in
-    that year. The query orders the answer by Supplier nation, Customer nation, and year (all ascending).
-
-    Planner enahancement: join reorder.
-*/
+# Q7 Volume Shipping Query
 select
 	supp_nation,
 	cust_nation,
@@ -378,17 +323,7 @@ order by
 	cust_nation,
 	l_year;
 
-/*
-    Q8 National Market Share Query
-    This query determines how the market share of a given nation within a given region has changed over two years for
-    a given part type.
-
-    The market share for a given nation within a given region is defined as the fraction of the revenue, the sum of
-    [l_extendedprice * (1-l_discount)], from the products of a specified type in that region that was supplied by suppliers
-    from the given nation. The query determines this for the years 1995 and 1996 presented in this order.
-
-    Planner enhancement: join reorder.
-*/
+# Q8 National Market Share Query
 select
 	o_year,
 	sum(case
@@ -427,18 +362,7 @@ group by
 order by
 	o_year;
 
-/*
-    Q9 Product Type Profit Measure Query
-    This query determines how much profit is made on a given line of parts, broken out by supplier nation and year.
-
-    The Product Type Profit Measure Query finds, for each nation and each year, the profit for all parts ordered in that
-    year that contain a specified substring in their names and that were filled by a supplier in that nation. The profit is
-    defined as the sum of [(l_extendedprice*(1-l_discount)) - (ps_supplycost * l_quantity)] for all lineitems describing
-    parts in the specified line. The query lists the nations in ascending alphabetical order and, for each nation, the year
-    and profit in descending order by year (most recent first).
-
-    Planner enhancement: join reorder.
-*/
+# Q9 Product Type Profit Measure Query
 select
 	nation,
 	o_year,
@@ -472,18 +396,7 @@ order by
 	nation,
 	o_year desc;
 
-/*
-    Q10 Returned Item Reporting Query
-    The query identifies customers who might be having problems with the parts that are shipped to them.
-
-    The Returned Item Reporting Query finds the top 20 customers, in terms of their effect on lost revenue for a given
-    quarter, who have returned parts. The query considers only parts that were ordered in the specified quarter. The
-    query lists the customer's name, address, nation, phone number, account balance, comment information and revenue
-    lost. The customers are listed in descending order of lost revenue. Revenue lost is defined as
-    sum(l_extendedprice*(1-l_discount)) for all qualifying lineitems.
-
-    Planner enhancement: join reorder, if group-by item have primary key, non-priamry key is useless.
-*/
+# Q10 Returned Item Reporting Query
 select
 	c_custkey,
 	c_name,
@@ -517,14 +430,7 @@ order by
 	revenue desc
 limit 20;
 
-/*
-    Q11 Important Stock Identification Query
-    This query finds the most important subset of suppliers' stock in a given nation.
-
-    The Important Stock Identification Query finds, from scanning the available stock of suppliers in a given nation, all
-    the parts that represent a significant percentage of the total value of all available parts. The query displays the part
-    number and the value of those parts in descending order of value.
-*/
+# Q11 Important Stock Identification Query
 select
 	ps_partkey,
 	sum(ps_supplycost * ps_availqty) as value
@@ -553,17 +459,7 @@ group by
 order by
 	value desc;
 
-/*
-    Q12 Shipping Modes and Order Priority Query
-    This query determines whether selecting less expensive modes of shipping is negatively affecting the critical-priority
-    orders by causing more parts to be received by customers after the committed date.
-
-    The Shipping Modes and Order Priority Query counts, by ship mode, for lineitems actually received by customers in
-    a given year, the number of lineitems belonging to orders for which the l_receiptdate exceeds the l_commitdate for
-    two different specified ship modes. Only lineitems that were actually shipped before the l_commitdate are considered.
-    The late lineitems are partitioned into two groups, those with priority URGENT or HIGH, and those with a
-    priority other than URGENT or HIGH.
-*/
+# Q12 Shipping Modes and Order Priority Query
 select
 	l_shipmode,
 	sum(case
@@ -593,15 +489,7 @@ group by
 order by
 	l_shipmode;
 
-/*
-    Q13 Customer Distribution Query
-    This query seeks relationships between customers and the size of their orders.
-
-    This query determines the distribution of customers by the number of orders they have made, including customers
-    who have no record of orders, past or present. It counts and reports how many customers have no orders, how many
-    have 1, 2, 3, etc. A check is made to ensure that the orders counted do not fall into one of several special categories
-    of orders. Special categories are identified in the order comment column by looking for a particular pattern.
-*/
+# Q13 Customer Distribution Query
 select
 	c_count,
 	count(*) as custdist
@@ -623,14 +511,7 @@ order by
 	custdist desc,
 	c_count desc;
 
-/*
-    Q14 Promotion Effect Query
-    This query monitors the market response to a promotion such as TV advertisements or a special campaign.
-
-    The Promotion Effect Query determines what percentage of the revenue in a given year and month was derived from
-    promotional parts. The query considers only parts actually shipped in that month and gives the percentage. Revenue
-    is defined as (l_extendedprice * (1-l_discount)).
-*/
+# Q14 Promotion Effect Query
 select
 	100.00 * sum(case
 		when p_type like 'PROMO%'
@@ -645,16 +526,7 @@ where
 	and l_shipdate >= '1996-12-01'
 	and l_shipdate < date_add('1996-12-01', interval '1' month);
 
-/*
-    Q16 Parts/Supplier Relationship Query
-    This query finds out how many suppliers can supply parts with given attributes. It might be used, for example, to
-    determine whether there is a sufficient number of suppliers for heavily ordered parts.
-
-    The Parts/Supplier Relationship Query counts the number of suppliers who can supply parts that satisfy a particular
-    customer's requirements. The customer is interested in parts of eight different sizes as long as they are not of a given
-    type, not of a given brand, and not from a supplier who has had complaints registered at the Better Business Bureau.
-    Results must be presented in descending count and ascending brand, type, and size.
-*/
+# Q16 Parts/Supplier Relationship Query
 select
 	p_brand,
 	p_type,
@@ -686,16 +558,7 @@ order by
 	p_type,
 	p_size;
 
-/*
-    Q17 Small-Quantity-Order Revenue Query
-    This query determines how much average yearly revenue would be lost if orders were no longer filled for small
-    quantities of certain parts. This may reduce overhead expenses by concentrating sales on larger shipments.
-
-    The Small-Quantity-Order Revenue Query considers parts of a given brand and with a given container type and
-    determines the average lineitem quantity of such parts ordered for all orders (past and pending) in the 7-year database.
-    What would be the average yearly gross (undiscounted) loss in revenue if orders for these parts with a quantity
-    of less than 20% of this average were no longer taken?
-*/
+# Q17 Small-Quantity-Order Revenue Query
 --skip correlated subquery is only supported for EXISTS
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
@@ -715,14 +578,7 @@ where
 			l_partkey = p_partkey
 	);
 
-/*
-    Q18 Large Volume Customer Query
-    The Large Volume Customer Query ranks customers based on their having placed a large quantity order. Large
-    quantity orders are defined as those orders whose total quantity is above a certain level.
-
-    The Large Volume Customer Query finds a list of the top 100 customers who have ever placed large quantity orders.
-    The query lists the customer name, customer key, the order key, date and total price and the quantity for the order.
-*/
+# Q18 Large Volume Customer Query
 select
 	c_name,
 	c_custkey,
@@ -757,16 +613,7 @@ order by
 	o_orderdate
 limit 100;
 
-/*
-    Q19 Discounted Revenue Query
-    The Discounted Revenue Query reports the gross discounted revenue attributed to the sale of selected parts handled
-    in a particular manner. This query is an example of code such as might be produced programmatically by a data
-    mining tool.
-
-    The Discounted Revenue query finds the gross discounted revenue for all orders for three different types of parts
-    that were shipped by air and delivered in person. Parts are selected based on the combination of specific brands, a
-    list of containers, and a range of sizes.
-*/
+# Q19 Discounted Revenue Query
 select
 	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
@@ -803,15 +650,7 @@ where
 		and l_shipinstruct = 'DELIVER IN PERSON'
 	);
 
-/*
-    Q20 Potential Part Promotion Query
-    The Potential Part Promotion Query identifies suppliers in a particular nation having selected parts that may be candidates
-    for a promotional offer.
-
-    The Potential Part Promotion query identifies suppliers who have an excess of a given part available; an excess is
-    defined to be more than 50% of the parts like the given part that the supplier shipped in a given year for a given
-    nation. Only parts whose names share a certain naming convention are considered.
-*/
+# Q20 Potential Part Promotion Query
 --skip correlated subquery is only supported for EXISTS
 select
 	s_name,
@@ -851,14 +690,8 @@ where
 order by
 	s_name;
 
-/*
-    Q21 Suppliers Who Kept Orders Waiting Query
-    This query identifies certain suppliers who were not able to ship required parts in a timely manner.
 
-    The Suppliers Who Kept Orders Waiting query identifies suppliers, for a given nation, whose product was part of a
-    multi-supplier order (with current status of 'F') where they were the only supplier who failed to meet the committed
-    delivery date.
-*/
+# Q21 Suppliers Who Kept Orders Waiting Query
 select
 	s_name,
 	count(*) as numwait
@@ -900,15 +733,7 @@ order by
 	s_name
 limit 100;
 
-/*
-    Q22 Global Sales Opportunity Query
-    The Global Sales Opportunity Query identifies geographies where there are customers who may be likely to make a
-    purchase.
-
-    This query counts how many customers within a specific range of country codes have not placed orders for 7 years
-    but who have a greater than average “positive” account balance. It also reflects the magnitude of that balance.
-    Country code is defined as the first two characters of c_phone.
-*/
+# Q22 Global Sales Opportunity Query
 -- skip correlated subquery is only supported for EXISTS
 select
 	cntrycode,

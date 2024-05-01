@@ -16,6 +16,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -135,7 +136,8 @@ func setupCluster(sharded bool) func() {
 		println("starting sharded keyspace")
 		err = clusterInstance.StartKeyspace(*keyspace, []string{"-80", "80-"}, 0, false)
 		if err != nil {
-			panic(err.Error())
+			fmt.Printf("Failed to start vitess cluster: %s\n", err.Error())
+			os.Exit(1)
 		}
 	} else {
 		// Start Unsharded keyspace

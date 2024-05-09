@@ -2,6 +2,12 @@
 
 Vitess tester tests Vitess using the same test files as the [MySQL Test Framework](https://github.com/mysql/mysql-server/tree/8.0/mysql-test).
 
+## Install
+
+```
+go install github.com/vitessio/vitess-tester/src/vitess-tester@latest
+```
+
 ## Testing methodology
 
 To ensure compatibility and correctness, our testing strategy involves running identical queries against both MySQL and vtgate, then comparing the results and errors from the two systems. This approach helps us verify that vtgate behaves as expected in a variety of scenarios, mimicking MySQL's behavior as closely as possible.

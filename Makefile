@@ -5,10 +5,10 @@ GO := go
 default: build
 
 build:
-	$(GO) build -o vitess-tester ./src
+	$(GO) build -o vitess-tester ./src/vitess-tester
 
 debug:
-	$(GO) build -gcflags="all=-N -l" -o vitess-tester ./src
+	$(GO) build -gcflags="all=-N -l" -o vitess-tester ./src/vitess-tester
 
 test: build
 	$(GO) test -cover ./...

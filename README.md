@@ -79,4 +79,4 @@ Vitess Tester is under the Apache 2.0 license. See the [LICENSE](./LICENSE) file
 
 ## Acknowledgements
 
-Vitess Tester was started as a fork from `pingcap/mysql-tester`. We would like to thank the original authors for their work.
+Vitess Tester was started as a fork from [`pingcap/mysql-tester`](https://github.com/pingcap/mysql-tester). We would like to thank the original authors for their work.

@@ -7,8 +7,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: install mysql-server to get perror
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-server 
+      - name: checkout mysql-tester
         uses: actions/checkout@v4
+      - name: checkout TiDB
+        uses: actions/checkout@v4
+        with:
+          repository: pingcap/tidb
       - name: setup go
         uses: actions/setup-go@v4
         with:

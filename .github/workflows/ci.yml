@@ -18,7 +18,6 @@ jobs:
           path: 'tidb'
       - name: setup go
         uses: actions/setup-go@v4
-        working-directory: 'mysql-tester'
         with:
           go-version: 1.21
       - name: vet

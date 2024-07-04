@@ -136,7 +136,7 @@ func main() {
 			log.Fatalf("Error setting up call to perrror: %s", err)
 		}
 		if err = cmd.Start(); err != nil {
-			log.Fatalf("Error staring call to perror: %s", err)
+			log.Fatalf("Error starting call to perror: %s", err)
 		}
 		s := bufio.NewScanner(stdout)
 		r := regexp.MustCompile(`^MySQL error code MY-0*(\d+) \((\w+)\)`)

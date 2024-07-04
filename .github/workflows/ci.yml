@@ -12,7 +12,7 @@ jobs:
       - name: checkout TiDB
         uses: actions/checkout@v4
       - name: Move TiDB
-         run: mv tidb ../
+        run: mv tidb ../
       - name: setup go
         uses: actions/setup-go@v4
         with:

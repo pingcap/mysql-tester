@@ -33,6 +33,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Generate perror.go
+//go:generate ../gen_perror
+
 var (
 	host             string
 	port             string

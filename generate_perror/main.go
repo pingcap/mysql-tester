@@ -155,7 +155,7 @@ func main() {
 		}
 		err = cmd.Wait()
 		if err != nil {
-			slog.Debug("Warning: Call to 'perror %d' failed: %s", i, err)
+			slog.Debug("Warning: Call to perror failed", "errorcode", i, "error", err)
 		}
 	}
 	if maxError >= 1000 {

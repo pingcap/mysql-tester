@@ -1,0 +1,3 @@
+--echo first line
+--source include/hello.inc
+--echo last line

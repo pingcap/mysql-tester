@@ -136,6 +136,7 @@ func ParseQueries(qs ...query) ([]query, error) {
 		q := query{}
 		q.tp = Q_UNKNOWN
 		q.Line = rs.Line
+		q.File = rs.File
 		// a valid query's length should be at least 3.
 		if len(s) < 3 {
 			continue

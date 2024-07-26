@@ -425,7 +425,7 @@ func (t *tester) runQueries(queries []query) (int, error) {
 			if t.enableConcurrent {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
-				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				err = errors.Annotate(err, fmt.Sprintf("sql:%v line:%s", q.Query, q.location()))
 				t.addFailure(&testSuite, &err, testCnt)
 				return testCnt, err
 			}
@@ -549,10 +549,11 @@ func (t *tester) runQueries(queries []query) (int, error) {
 			if err != nil {
 				return testCnt, errors.Annotate(err, fmt.Sprintf("error loading queries from %s", fileName))
 			}
-			_, err = t.runQueries(includedQueries)
+			includeCnt, err := t.runQueries(includedQueries)
 			if err != nil {
 				return testCnt, err
 			}
+			testCnt += includeCnt
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.location()}).Warn("command not implemented")
 		}

@@ -51,6 +51,9 @@ var (
 )
 
 func init() {
+	// Disable the `--source` command by default to avoid breaking existing tests
+	disableSource = true
+
 	flag.StringVar(&host, "host", "127.0.0.1", "The host of the TiDB/MySQL server.")
 	flag.StringVar(&port, "port", "4000", "The listen port of TiDB/MySQL server.")
 	flag.StringVar(&user, "user", "root", "The user for connecting to the database.")
@@ -523,7 +526,7 @@ func (t *tester) runQueries(queries []query) (int, error) {
 			disableSource = true
 		case Q_SOURCE:
 			if disableSource {
-				log.WithFields(log.Fields{"line": q.location()}).Warn("source command disabled")
+				log.WithFields(log.Fields{"line": q.location()}).Warn("source command disabled, add '--enable_source' to your file to enable")
 				break
 			}
 			fileName := strings.TrimSpace(q.Query)

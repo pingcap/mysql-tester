@@ -47,6 +47,7 @@ var (
 	retryConnCount   int
 	collationDisable bool
 	checkErr         bool
+	disableSource    bool
 )
 
 func init() {
@@ -516,7 +517,15 @@ func (t *tester) runQueries(queries []query) (int, error) {
 						q.location(), q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_ENABLE_SOURCE:
+			disableSource = false
+		case Q_DISABLE_SOURCE:
+			disableSource = true
 		case Q_SOURCE:
+			if disableSource {
+				log.WithFields(log.Fields{"line": q.location()}).Warn("source command disabled")
+				break
+			}
 			fileName := strings.TrimSpace(q.Query)
 			cwd, err := os.Getwd()
 			if err != nil {

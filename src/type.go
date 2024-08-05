@@ -114,6 +114,8 @@ var commandMap = map[string]int{
 	"single_query":               Q_SINGLE_QUERY,
 	"begin_concurrent":           Q_BEGIN_CONCURRENT,
 	"end_concurrent":             Q_END_CONCURRENT,
+	"backup_and_restore":         Q_BACKUP_AND_RESTORE,
+	"dump_and_import":			Q_DUMP_AND_IMPORT,
 }
 
 func findType(cmdName string) int {

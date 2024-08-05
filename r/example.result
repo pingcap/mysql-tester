@@ -6,8 +6,9 @@ a	b
 SELECT 1 FROM NON_EXISTING_TABLE;
 Error 1146 (42S02): Table 'example.NON_EXISTING_TABLE' doesn't exist
 SELECT 2 FROM NON_EXISTING_TABLE;
+Error 1146 (42S02): Table 'example.NON_EXISTING_TABLE' doesn't exist
 SELECT 3 FROM NON_EXISTING_TABLE;
-Got one of the listed errors
+Error 1146 (42S02): Table 'example.NON_EXISTING_TABLE' doesn't exist
 SELECT 4;
 4
 4
@@ -20,18 +21,41 @@ SELECT 6;
 1 SELECT;
 Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 1 near "1 SELECT;" 
 2 SELECT;
+Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 1 near "2 SELECT;" 
 3 SELECT;
-Got one of the listed errors
+Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 1 near "3 SELECT;" 
 explain analyze format='brief' select * from t;
 id	estRows	actRows	task	access object	execution info	operator info	memory	disk
-TableReader	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan	<num> Bytes	N/A
-└─TableFullScan	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A
+TableReader	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, tot_proc:<num>, tot_wait:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>, rpc_info:{Cop:{num_rpc:<num>, total_time:<num>}}	data:TableFullScan	<num> Bytes	N/A
+└─TableFullScan	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>, scan_detail: {total_process_keys:<num>, total_process_keys_size:<num>, total_keys:<num>, get_snapshot_time:<num>, rocksdb: {key_skipped_count:<num>, block: {}}}, time_detail: {total_process_time:<num>, total_wait_time:<num>, tikv_wall_time:<num>}	keep order:false, stats:pseudo	N/A	N/A
 explain analyze select * from t;
 id	estRows	actRows	task	access object	execution info	operator info	memory	disk
-TableReader_5	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, rpc_num:<num>, rpc_time:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>}	data:TableFullScan_4	<num> Bytes	N/A
-└─TableFullScan_4	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>}	keep order:false, stats:pseudo	N/A	N/A
+TableReader_5	10000.00	5	root	NULL	time:<num>, loops:<num>, RU:<num>, cop_task: {num:<num>, max:<num>, proc_keys:<num>, tot_proc:<num>, tot_wait:<num>, copr_cache_hit_ratio:<num>, build_task_duration:<num>, max_distsql_concurrency:<num>, rpc_info:{Cop:{num_rpc:<num>, total_time:<num>}}	data:TableFullScan_4	<num> Bytes	N/A
+└─TableFullScan_4	10000.00	5	cop[tikv]	table:t	tikv_task:{time:<num>, loops:<num>, scan_detail: {total_process_keys:<num>, total_process_keys_size:<num>, total_keys:<num>, get_snapshot_time:<num>, rocksdb: {key_skipped_count:<num>, block: {}}}, time_detail: {total_process_time:<num>, total_wait_time:<num>, tikv_wall_time:<num>}	keep order:false, stats:pseudo	N/A	N/A
 insert into t values (6, 6);
 affected rows: 1
+info: 
+Destination	Size	BackupTS	Queue Time	Execution Time
+/tmp/t_b7987183-d39f-4572-868d-75e25c8cd215	1876	451473879442653228	2024-07-29 14:56:13	2024-07-29 14:56:13
+affected rows: 0
+info: 
+affected rows: 0
+info: 
+affected rows: 0
+info: 
+Destination	Size	BackupTS	Cluster TS	Queue Time	Execution Time
+/tmp/t_b7987183-d39f-4572-868d-75e25c8cd215	1876	451473879442653228	451473880386371620	2024-07-29 14:56:17	2024-07-29 14:56:17
+affected rows: 0
+info: 
+affected rows: 0
+info: 
+affected rows: 0
+info: 
+affected rows: 0
+info: 
+Job_ID	Data_Source	Target_Table	Table_ID	Phase	Status	Source_File_Size	Imported_Rows	Result_Message	Create_Time	Start_Time	End_Time	Created_By
+3	/tmp/t_6cac1a43-c66c-4af9-962f-95287fa12432/example.t.000000000.csv	`example`.`td`	453		finished	30B	6		2024-07-29 14:56:17.619215	2024-07-29 14:56:18.125792	2024-07-29 14:56:19.640005	root@%
+affected rows: 0
 info: 
 DROP TABLE IF EXISTS t1;
 affected rows: 0

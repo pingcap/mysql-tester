@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -29,6 +30,7 @@ import (
 	"time"
 
 	"github.com/defined2014/mysql"
+	"github.com/google/uuid"
 	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,6 +49,8 @@ var (
 	retryConnCount   int
 	collationDisable bool
 	checkErr         bool
+	pathBR           string
+	pathDumpling     string
 )
 
 func init() {
@@ -63,6 +67,8 @@ func init() {
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
+	flag.StringVar(&pathBR, "path-br", "", "Path of BR")
+	flag.StringVar(&pathDumpling, "path-dumpling", "", "Path of Dumpling")
 }
 
 const (
@@ -96,6 +102,11 @@ type ReplaceColumn struct {
 type ReplaceRegex struct {
 	regex   *regexp.Regexp
 	replace string
+}
+
+type SourceAndTarget struct {
+	sourceTable string
+	targetTable string
 }
 
 type tester struct {
@@ -148,6 +159,12 @@ type tester struct {
 
 	// replace output result through --replace_regex /\.dll/.so/
 	replaceRegex []*ReplaceRegex
+
+	// backup and restore context through --backup_and_restore $BACKUP_TABLE as $RESTORE_TABLE'
+	backupAndRestore *SourceAndTarget
+
+	// dump and import context through --dump_and_import $SOURCE_TABLE as $TARGET_TABLE'
+	dumpAndImport *SourceAndTarget
 }
 
 func newTester(name string) *tester {
@@ -352,6 +369,58 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 	})
 }
 
+func generateBRStatements(source, target string) (string, string) {
+	// Generate a random UUID
+	uuid := uuid.NewString()
+
+	// Create the TMP_DIR path
+	tmpDir := fmt.Sprintf("/tmp/%s_%s", source, uuid)
+
+	// Generate the SQL statements
+	backupSQL := fmt.Sprintf("BACKUP TABLE `%s` TO '%s'", source, tmpDir)
+	restoreSQL := fmt.Sprintf("RESTORE TABLE `%s` FROM '%s'", source, tmpDir)
+
+	return backupSQL, restoreSQL
+}
+
+func (t *tester) dumpTable(source string) (string, error) {
+	log.Warnf("Start dumping table: %s", source)
+	path := "/tmp/" + source + "_" + uuid.NewString()
+	cmdArgs := []string{
+		fmt.Sprintf("-h%s", host),
+		fmt.Sprintf("-P%s", port),
+		fmt.Sprintf("-u%s", user),
+		fmt.Sprintf("-T%s.%s", t.name, source),
+		fmt.Sprintf("-o%s", path),
+		"--no-header",
+		"--filetype",
+		"csv",
+	}
+
+	if passwd != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("-p%s", passwd))
+	}
+
+	cmd := exec.Command(pathDumpling, cmdArgs...)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Warnf("Failed executing commands: %s, output: %s)",
+			cmd.String(), string(output))
+		return "", err
+	}
+	log.Warnf("Done executing commands: %s, output: %s)",
+		cmd.String(), string(output))
+	return path, nil
+}
+
+func (t *tester) importTableStmt(path, target string) string {
+	return fmt.Sprintf(`
+        IMPORT INTO %s
+        FROM '%s/example.t.000000000.csv'
+    `, target, path)
+}
+
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
@@ -523,6 +592,61 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_BACKUP_AND_RESTORE:
+			t.backupAndRestore, err = parseSourceAndTarget(q.Query)
+			if err != nil {
+				return errors.Annotate(err, fmt.Sprintf("Could not parse backup table and restore table name in --backup_and_restore, line: %d sql:%v", q.Line, q.Query))
+			}
+			backupStmt, restoreStmt := generateBRStatements(t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
+			log.WithFields(log.Fields{"stmt": backupStmt, "line": q.Line}).Warn("Backup started")
+			if err := t.executeStmt(backupStmt); err != nil {
+				return err
+			}
+			log.WithFields(log.Fields{"stmt": backupStmt, "line": q.Line}).Warn("Backup end")
+			tempTable := t.backupAndRestore.sourceTable + uuid.NewString()
+			renameStmt := fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, tempTable)
+			if err := t.executeStmt(renameStmt); err != nil {
+				return err
+			}
+			dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.backupAndRestore.sourceTable, tempTable)
+			if err := t.executeStmt(dupTableStmt); err != nil {
+				return err
+			}
+			log.WithFields(log.Fields{"stmt": restoreStmt, "line": q.Line}).Warn("Restore start")
+			if err := t.executeStmt(restoreStmt); err != nil {
+				return err
+			}
+			log.WithFields(log.Fields{"stmt": restoreStmt, "line": q.Line}).Warn("Restore end")
+			renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
+			if err := t.executeStmt(renameStmt); err != nil {
+				return err
+			}
+			renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", tempTable, t.backupAndRestore.sourceTable)
+			if err := t.executeStmt(renameStmt); err != nil {
+				return err
+			}
+		case Q_DUMP_AND_IMPORT:
+			t.dumpAndImport, err = parseSourceAndTarget(q.Query)
+			if err != nil {
+				return err
+			}
+			path, err := t.dumpTable(t.dumpAndImport.sourceTable)
+			if err != nil {
+				return err
+			}
+
+			dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.dumpAndImport.targetTable, t.backupAndRestore.sourceTable)
+			if err := t.executeStmt(dupTableStmt); err != nil {
+				return err
+			}
+
+			importStmt := t.importTableStmt(path, t.dumpAndImport.targetTable)
+			log.WithFields(log.Fields{"stmt": importStmt, "line": q.Line}).Warn("Import start")
+			if err = t.executeStmt(importStmt); err != nil {
+				return err
+			}
+			log.WithFields(log.Fields{"stmt": importStmt, "line": q.Line}).Warn("Restore end")
+
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}

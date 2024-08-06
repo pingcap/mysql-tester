@@ -277,7 +277,7 @@ func (t *tester) preProcess() {
 	}
 
 	if !reserveSchema {
-		// store origial schemas
+		// store original schemas
 		t.originalSchemas = make(map[string]struct{})
 		rows, err := mdb.Query("show databases")
 		if err != nil {

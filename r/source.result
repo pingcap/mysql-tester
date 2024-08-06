@@ -1,0 +1,10 @@
+before source
+Hello from the included file
+SELECT 1
+1
+1
+after source
+Goodbye from the included file
+SELECT 3
+3
+3

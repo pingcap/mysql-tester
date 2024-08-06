@@ -124,6 +124,8 @@ const (
 	Q_COMMENT /* Comments, ignored. */
 	Q_COMMENT_WITH_COMMAND
 	Q_EMPTY_LINE
+	Q_DISABLE_SOURCE
+	Q_ENABLE_SOURCE
 )
 
 // ParseQueries parses an array of string into an array of query object.
@@ -136,6 +138,7 @@ func ParseQueries(qs ...query) ([]query, error) {
 		q := query{}
 		q.tp = Q_UNKNOWN
 		q.Line = rs.Line
+		q.File = rs.File
 		// a valid query's length should be at least 3.
 		if len(s) < 3 {
 			continue

@@ -1,0 +1,11 @@
+--enable_source
+
+--echo before source
+--source include/hello1.inc
+--echo after source
+
+--disable_source
+--source include/hello2.inc
+--enable_source
+
+--source include/hello3.inc

@@ -102,6 +102,8 @@ type tester struct {
 	mdb  *sql.DB
 	name string
 
+	originalSchemas map[string]struct{}
+
 	curr *Conn
 
 	buf bytes.Buffer
@@ -274,6 +276,20 @@ func (t *tester) preProcess() {
 		log.Fatalf("Open db err %v", err)
 	}
 
+	if !reserveSchema {
+		// store original schemas
+		t.originalSchemas = make(map[string]struct{})
+		rows, err := mdb.Query("show databases")
+		if err != nil {
+			log.Errorf("failed to get databases: %s", err.Error())
+			return
+		}
+		for rows.Next() {
+			rows.Scan(&dbName)
+			t.originalSchemas[dbName] = struct{}{}
+		}
+	}
+
 	dbName = strings.ReplaceAll(t.name, "/", "__")
 	log.Debugf("Create new db `%s`", dbName)
 	if _, err = mdb.Exec(fmt.Sprintf("create database `%s`", dbName)); err != nil {
@@ -290,16 +306,30 @@ func (t *tester) preProcess() {
 }
 
 func (t *tester) postProcess() {
+	defer func() {
+		for _, v := range t.conn {
+			v.conn.Close()
+		}
+		t.mdb.Close()
+	}()
 	if !reserveSchema {
-		_, err := t.mdb.Exec(fmt.Sprintf("drop database `%s`", strings.ReplaceAll(t.name, "/", "__")))
+		rows, err := t.mdb.Query("show databases")
 		if err != nil {
-			log.Errorf("failed to drop database: %s", err.Error())
+			log.Errorf("failed to get databases: %s", err.Error())
+			return
+		}
+		var dbName string
+		for rows.Next() {
+			rows.Scan(&dbName)
+			if _, exists := t.originalSchemas[dbName]; !exists {
+				_, err := t.mdb.Exec(fmt.Sprintf("drop database `%s`", dbName))
+				if err != nil {
+					log.Errorf("failed to drop database: %s", err.Error())
+					return
+				}
+			}
 		}
 	}
-	for _, v := range t.conn {
-		v.conn.Close()
-	}
-	t.mdb.Close()
 }
 
 func (t *tester) addFailure(testSuite *XUnitTestSuite, err *error, cnt int) {

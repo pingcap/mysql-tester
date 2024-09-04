@@ -528,6 +528,12 @@ func (t *tester) Run() error {
 		}
 	}
 
+	// check do we have remained lines in result file
+	buf := make([]byte, 32)
+	if n, _ := t.resultFD.ReadAt(buf, int64(t.buf.Len())); n != 0 {
+		return errors.Trace(errors.Errorf("There is extra data at the end of the result file: %s", buf))
+	}
+
 	fmt.Printf("%s: ok! %d test cases passed, take time %v s\n", t.testFileName(), testCnt, time.Since(startTime).Seconds())
 
 	if xmlPath != "" {
@@ -784,12 +790,9 @@ func (t *tester) execute(query query) error {
 	if err != nil {
 		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
 	}
+
 	// clear expected errors after we execute the first query
 	t.expectedErrs = nil
-
-	if err != nil {
-		return errors.Trace(errors.Errorf("run \"%v\" at line %d err %v", query.Query, query.Line, err))
-	}
 
 	if !record {
 		// check test result now

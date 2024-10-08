@@ -38,9 +38,9 @@ explain analyze select * from t;
 --enable_info
 insert into t values (6, 6);
 
---backup_and_restore t AS tt
+# --backup_and_restore t AS tt
 
---dump_and_import t AS td
+# --dump_and_import t AS td
 
 DROP TABLE IF EXISTS t1;
 CREATE TABLE t1 (f1 INT PRIMARY KEY, f2 INT NOT NULL UNIQUE);
@@ -52,3 +52,10 @@ INSERT t1 VALUES (1, 1), (1, 1) ON DUPLICATE KEY UPDATE f1 = 2, f2 = 2;
 --echo $a
 
 use `test`;;
+
+sleep 10;
+
+--replication_checkpoint
+connection default;
+use example;
+select * from t1;

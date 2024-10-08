@@ -126,6 +126,7 @@ const (
 	Q_EMPTY_LINE
 	Q_BACKUP_AND_RESTORE
 	Q_DUMP_AND_IMPORT
+	Q_REPLICATION_CHECKPOINT
 )
 
 // ParseQueries parses an array of string into an array of query object.

@@ -115,7 +115,9 @@ var commandMap = map[string]int{
 	"begin_concurrent":           Q_BEGIN_CONCURRENT,
 	"end_concurrent":             Q_END_CONCURRENT,
 	"backup_and_restore":         Q_BACKUP_AND_RESTORE,
-	"dump_and_import":			Q_DUMP_AND_IMPORT,
+	"dump_and_import":            Q_DUMP_AND_IMPORT,
+	"replication_checkpoint":     Q_REPLICATION_CHECKPOINT,
+	"replication":                Q_REPLICATION,
 }
 
 func findType(cmdName string) int {

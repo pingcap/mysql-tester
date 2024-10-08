@@ -15,7 +15,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -118,8 +117,5 @@ func parseSourceAndTarget(s string) (*SourceAndTarget, error) {
 		sourceTable: strings.TrimSpace(parts[0]),
 		targetTable: strings.TrimSpace(parts[1]),
 	}
-
-	fmt.Printf("Parse source: %s and target: %s\n", st.sourceTable, st.targetTable)
-
 	return st, nil
 }

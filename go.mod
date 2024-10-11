@@ -1,4 +1,4 @@
-module github.com/pingcap/mysql-tester
+module github.com/bb7133/mysql-tester
 
 go 1.21
 

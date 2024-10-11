@@ -474,6 +474,45 @@ func generateBRStatements(source, target string) (string, string) {
 	return backupSQL, restoreSQL
 }
 
+func (t *tester) handleBackupAndRestore(q query) error {
+	if !isTiDB(t.mdb) {
+		return errors.New(fmt.Sprintf("backup_and_restore is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
+	}
+	t.enableResultLog = false
+	defer func() { t.enableResultLog = true }()
+
+	var err error
+	t.backupAndRestore, err = parseSourceAndTarget(q.Query)
+	if err != nil {
+		return errors.Annotate(err, fmt.Sprintf("Could not parse backup table and restore table name in --backup_and_restore, line: %d sql:%v", q.Line, q.Query))
+	}
+	backupStmt, restoreStmt := generateBRStatements(t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
+	if err := t.executeStmt(backupStmt); err != nil {
+		return err
+	}
+	tempTable := t.backupAndRestore.sourceTable + uuid.NewString()
+	renameStmt := fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, tempTable)
+	if err := t.executeStmt(renameStmt); err != nil {
+		return err
+	}
+	dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.backupAndRestore.sourceTable, tempTable)
+	if err := t.executeStmt(dupTableStmt); err != nil {
+		return err
+	}
+	if err := t.executeStmt(restoreStmt); err != nil {
+		return err
+	}
+	renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
+	if err := t.executeStmt(renameStmt); err != nil {
+		return err
+	}
+	renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", tempTable, t.backupAndRestore.sourceTable)
+	if err := t.executeStmt(renameStmt); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (t *tester) dumpTable(source string) (string, error) {
 	// Check if the file exists
 	if _, err := os.Stat(pathDumpling); os.IsNotExist(err) {
@@ -517,7 +556,29 @@ func (t *tester) importTableStmt(path, target string) string {
     `, target, path)
 }
 
-func (t *tester) startReplication(tables string) error {
+func (t *tester) handleDumpAndImport(q query) error {
+	if !isTiDB(t.mdb) {
+		return errors.New(fmt.Sprintf("dump_and_import is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
+	}
+	t.enableResultLog = false
+	defer func() { t.enableResultLog = true }()
+	var err error
+	t.dumpAndImport, err = parseSourceAndTarget(q.Query)
+	if err != nil {
+		return err
+	}
+	path, err := t.dumpTable(t.dumpAndImport.sourceTable)
+	if err != nil {
+		return err
+	}
+	dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.dumpAndImport.targetTable, t.dumpAndImport.sourceTable)
+	if err := t.executeStmt(dupTableStmt); err != nil {
+		return err
+	}
+	importStmt := t.importTableStmt(path, t.dumpAndImport.targetTable)
+	if err = t.executeStmt(importStmt); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -736,64 +797,9 @@ func (t *tester) Run() error {
 			}
 			t.replaceRegex = regex
 		case Q_BACKUP_AND_RESTORE:
-			if !isTiDB(t.mdb) {
-				return errors.New(fmt.Sprintf("backup_and_restore is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
-			}
-			t.backupAndRestore, err = parseSourceAndTarget(q.Query)
-			if err != nil {
-				return errors.Annotate(err, fmt.Sprintf("Could not parse backup table and restore table name in --backup_and_restore, line: %d sql:%v", q.Line, q.Query))
-			}
-			backupStmt, restoreStmt := generateBRStatements(t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
-			if err := t.executeStmt(backupStmt); err != nil {
-				return err
-			}
-			tempTable := t.backupAndRestore.sourceTable + uuid.NewString()
-			renameStmt := fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, tempTable)
-			if err := t.executeStmt(renameStmt); err != nil {
-				return err
-			}
-			dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.backupAndRestore.sourceTable, tempTable)
-			if err := t.executeStmt(dupTableStmt); err != nil {
-				return err
-			}
-			if err := t.executeStmt(restoreStmt); err != nil {
-				return err
-			}
-			renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
-			if err := t.executeStmt(renameStmt); err != nil {
-				return err
-			}
-			renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", tempTable, t.backupAndRestore.sourceTable)
-			if err := t.executeStmt(renameStmt); err != nil {
-				return err
-			}
+			t.handleBackupAndRestore(q)
 		case Q_DUMP_AND_IMPORT:
-			if !isTiDB(t.mdb) {
-				return errors.New(fmt.Sprintf("dump_and_import is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
-			}
-			t.dumpAndImport, err = parseSourceAndTarget(q.Query)
-			if err != nil {
-				return err
-			}
-			path, err := t.dumpTable(t.dumpAndImport.sourceTable)
-			if err != nil {
-				return err
-			}
-			dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.dumpAndImport.targetTable, t.dumpAndImport.sourceTable)
-			if err := t.executeStmt(dupTableStmt); err != nil {
-				return err
-			}
-			importStmt := t.importTableStmt(path, t.dumpAndImport.targetTable)
-			if err = t.executeStmt(importStmt); err != nil {
-				return err
-			}
-		case Q_REPLICATION:
-			if !isTiDB(t.mdb) {
-				return errors.New(fmt.Sprintf("replication is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
-			}
-			if err := t.startReplication(q.Query); err != nil {
-				return err
-			}
+			t.handleDumpAndImport(q)
 		case Q_REPLICATION_CHECKPOINT:
 			if !isTiDB(t.mdb) {
 				return errors.New(fmt.Sprintf("replication_checkpoint is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))

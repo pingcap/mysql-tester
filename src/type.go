@@ -117,7 +117,6 @@ var commandMap = map[string]int{
 	"backup_and_restore":         Q_BACKUP_AND_RESTORE,
 	"dump_and_import":            Q_DUMP_AND_IMPORT,
 	"replication_checkpoint":     Q_REPLICATION_CHECKPOINT,
-	"replication":                Q_REPLICATION,
 }
 
 func findType(cmdName string) int {

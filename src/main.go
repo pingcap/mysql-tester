@@ -495,10 +495,6 @@ func (t *tester) handleBackupAndRestore(q query) error {
 	if err := t.executeStmt(renameStmt); err != nil {
 		return err
 	}
-	dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.backupAndRestore.sourceTable, tempTable)
-	if err := t.executeStmt(dupTableStmt); err != nil {
-		return err
-	}
 	if err := t.executeStmt(restoreStmt); err != nil {
 		return err
 	}
@@ -797,9 +793,13 @@ func (t *tester) Run() error {
 			}
 			t.replaceRegex = regex
 		case Q_BACKUP_AND_RESTORE:
-			t.handleBackupAndRestore(q)
+			if err := t.handleBackupAndRestore(q); err != nil {
+				return err
+			}
 		case Q_DUMP_AND_IMPORT:
-			t.handleDumpAndImport(q)
+			if err := t.handleDumpAndImport(q); err != nil {
+				return err
+			}
 		case Q_REPLICATION_CHECKPOINT:
 			if !isTiDB(t.mdb) {
 				return errors.New(fmt.Sprintf("replication_checkpoint is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))

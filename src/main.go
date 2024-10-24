@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -29,6 +30,7 @@ import (
 	"time"
 
 	"github.com/defined2014/mysql"
+	"github.com/google/uuid"
 	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,6 +49,17 @@ var (
 	retryConnCount   int
 	collationDisable bool
 	checkErr         bool
+	pathBR           string
+	pathDumpling     string
+	pathCDC          string
+	addressCDC       string
+	downstream       string
+
+	downStreamHost     string
+	downStreamPort     string
+	downStreamUser     string
+	downStreamPassword string
+	downStreamDB       string
 )
 
 func init() {
@@ -63,6 +76,11 @@ func init() {
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
+	flag.StringVar(&pathBR, "path-br", "", "Path of BR binary")
+	flag.StringVar(&pathDumpling, "path-dumpling", "", "Path of Dumpling binary")
+	flag.StringVar(&pathCDC, "path-cdc", "", "Path of TiCDC binary")
+	flag.StringVar(&addressCDC, "address-cdc", "127.0.0.1:8300", "Address of Server")
+	flag.StringVar(&downstream, "downstream", "", "Connection string of downstream TiDB cluster")
 }
 
 const (
@@ -96,6 +114,11 @@ type ReplaceColumn struct {
 type ReplaceRegex struct {
 	regex   *regexp.Regexp
 	replace string
+}
+
+type SourceAndTarget struct {
+	sourceTable string
+	targetTable string
 }
 
 type tester struct {
@@ -148,6 +171,18 @@ type tester struct {
 
 	// replace output result through --replace_regex /\.dll/.so/
 	replaceRegex []*ReplaceRegex
+
+	// backup and restore context through --backup_and_restore $BACKUP_TABLE as $RESTORE_TABLE'
+	backupAndRestore *SourceAndTarget
+
+	// dump and import context through --dump_and_import $SOURCE_TABLE as $TARGET_TABLE'
+	dumpAndImport *SourceAndTarget
+
+	// replication checkpoint database name
+	replicationCheckpointDB string
+
+	// replication checkpoint ID
+	replicationCheckpointID int
 }
 
 func newTester(name string) *tester {
@@ -162,6 +197,8 @@ func newTester(name string) *tester {
 	t.enableConcurrent = false
 	t.enableInfo = false
 
+	t.replicationCheckpointDB = "checkpoint-" + uuid.NewString()
+	t.replicationCheckpointID = 0
 	return t
 }
 
@@ -202,7 +239,7 @@ func isTiDB(db *sql.DB) bool {
 	return true
 }
 
-func (t *tester) addConnection(connName, hostName, userName, password, db string) {
+func (t *tester) addConnection(connName, hostName, port, userName, password, db string) {
 	var (
 		mdb *sql.DB
 		err error
@@ -268,6 +305,64 @@ func (t *tester) disconnect(connName string) {
 	t.currConnName = default_connection
 }
 
+func parseUserInfo(userInfo string) (string, string, error) {
+	colonIndex := strings.Index(userInfo, ":")
+	if colonIndex == -1 {
+		return "", "", fmt.Errorf("missing password in userinfo")
+	}
+	return userInfo[:colonIndex], userInfo[colonIndex+1:], nil
+}
+
+func parseHostPort(hostPort string) (string, string, error) {
+	colonIndex := strings.Index(hostPort, ":")
+	if colonIndex == -1 {
+		return "", "", fmt.Errorf("missing port in host:port")
+	}
+	return hostPort[:colonIndex], hostPort[colonIndex+1:], nil
+}
+
+func parseDownstream(connStr string) (dbname string, host string, port string, user string, password string) {
+	// Splitting into userinfo and network/database parts
+	parts := strings.SplitN(connStr, "@", 2)
+	if len(parts) != 2 {
+		fmt.Println("Invalid connection string format")
+		return
+	}
+
+	// Parsing userinfo
+	userInfo := parts[0]
+	user, password, err := parseUserInfo(userInfo)
+	if err != nil {
+		fmt.Println("Error parsing userinfo:", err)
+		return
+	}
+
+	// Splitting network type and database part
+	networkAndDB := parts[1]
+	networkTypeIndex := strings.Index(networkAndDB, "(")
+	if networkTypeIndex == -1 {
+		fmt.Println("Invalid connection string format: missing network type")
+		return
+	}
+
+	// Extracting host, port, and database name
+	hostPortDB := networkAndDB[networkTypeIndex+1:]
+	hostPortDBParts := strings.SplitN(hostPortDB, ")/", 2)
+	if len(hostPortDBParts) != 2 {
+		fmt.Println("Invalid connection string format")
+		return
+	}
+
+	host, port, err = parseHostPort(hostPortDBParts[0])
+	if err != nil {
+		fmt.Println("Error parsing host and port:", err)
+		return
+	}
+
+	dbname = hostPortDBParts[1]
+	return
+}
+
 func (t *tester) preProcess() {
 	dbName := "test"
 	mdb, err := OpenDBWithRetry("mysql", user+":"+passwd+"@tcp("+host+":"+port+")/"+dbName+"?time_zone=%27Asia%2FShanghai%27&allowAllFiles=true"+params, retryConnCount)
@@ -296,6 +391,7 @@ func (t *tester) preProcess() {
 		log.Fatalf("Executing create db %s err[%v]", dbName, err)
 	}
 	t.mdb = mdb
+
 	conn, err := initConn(mdb, user, passwd, host, dbName)
 	if err != nil {
 		log.Fatalf("Open db err %v", err)
@@ -303,6 +399,17 @@ func (t *tester) preProcess() {
 	t.conn[default_connection] = conn
 	t.curr = conn
 	t.currConnName = default_connection
+
+	if downstream != "" {
+		// create replication checkpoint database
+		if _, err := t.mdb.Exec(fmt.Sprintf("create database if not exists `%s`", t.replicationCheckpointDB)); err != nil {
+			log.Fatalf("Executing create db %s err[%v]", t.replicationCheckpointDB, err)
+		}
+
+		downStreamDB, downStreamHost, downStreamPort, downStreamUser, downStreamPassword = parseDownstream(downstream)
+		t.addConnection("downstream", downStreamHost, downStreamPort, downStreamUser, downStreamPassword, downStreamDB)
+	}
+	t.switchConnection(default_connection)
 }
 
 func (t *tester) postProcess() {
@@ -312,6 +419,7 @@ func (t *tester) postProcess() {
 		}
 		t.mdb.Close()
 	}()
+	t.switchConnection(default_connection)
 	if !reserveSchema {
 		rows, err := t.mdb.Query("show databases")
 		if err != nil {
@@ -350,6 +458,167 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 		Time:       fmt.Sprintf("%fs", time.Since(*startTime).Seconds()),
 		QueryCount: cnt,
 	})
+}
+
+func generateBRStatements(source, target string) (string, string) {
+	// Generate a random UUID
+	uuid := uuid.NewString()
+
+	// Create the TMP_DIR path
+	tmpDir := fmt.Sprintf("/tmp/%s_%s", source, uuid)
+
+	// Generate the SQL statements
+	backupSQL := fmt.Sprintf("BACKUP TABLE `%s` TO '%s'", source, tmpDir)
+	restoreSQL := fmt.Sprintf("RESTORE TABLE `%s` FROM '%s'", source, tmpDir)
+
+	return backupSQL, restoreSQL
+}
+
+func (t *tester) handleBackupAndRestore(q query) error {
+	if !isTiDB(t.mdb) {
+		return errors.New(fmt.Sprintf("backup_and_restore is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
+	}
+	t.enableResultLog = false
+	defer func() { t.enableResultLog = true }()
+
+	var err error
+	t.backupAndRestore, err = parseSourceAndTarget(q.Query)
+	if err != nil {
+		return errors.Annotate(err, fmt.Sprintf("Could not parse backup table and restore table name in --backup_and_restore, line: %d sql:%v", q.Line, q.Query))
+	}
+	backupStmt, restoreStmt := generateBRStatements(t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
+	if err := t.executeStmt(backupStmt); err != nil {
+		return err
+	}
+	tempTable := t.backupAndRestore.sourceTable + uuid.NewString()
+	renameStmt := fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, tempTable)
+	if err := t.executeStmt(renameStmt); err != nil {
+		return err
+	}
+	if err := t.executeStmt(restoreStmt); err != nil {
+		return err
+	}
+	renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", t.backupAndRestore.sourceTable, t.backupAndRestore.targetTable)
+	if err := t.executeStmt(renameStmt); err != nil {
+		return err
+	}
+	renameStmt = fmt.Sprintf("RENAME TABLE `%s` TO `%s`", tempTable, t.backupAndRestore.sourceTable)
+	if err := t.executeStmt(renameStmt); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *tester) dumpTable(source string) (string, error) {
+	// Check if the file exists
+	if _, err := os.Stat(pathDumpling); os.IsNotExist(err) {
+		return "", errors.New(fmt.Sprintf("path-dumpling [%s] does not exist.", pathDumpling))
+	}
+
+	log.Warnf("Start dumping table: %s", source)
+	path := "/tmp/" + source + "_" + uuid.NewString()
+	cmdArgs := []string{
+		fmt.Sprintf("-h%s", host),
+		fmt.Sprintf("-P%s", port),
+		fmt.Sprintf("-u%s", user),
+		fmt.Sprintf("-T%s.%s", t.name, source),
+		fmt.Sprintf("-o%s", path),
+		"--output-filename-template",
+		"tempDump",
+		"--no-header",
+		"--filetype",
+		"csv",
+	}
+
+	if passwd != "" {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("-p%s", passwd))
+	}
+
+	cmd := exec.Command(pathDumpling, cmdArgs...)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.Annotate(err, fmt.Sprintf("Dumpling failed: %s, output: %s.", cmd.String(), string(output)))
+	}
+	log.Warnf("Done executing commands: %s, output: %s)",
+		cmd.String(), string(output))
+	return path, nil
+}
+
+func (t *tester) importTableStmt(path, target string) string {
+	return fmt.Sprintf(`
+        IMPORT INTO %s
+        FROM '%s/tempDump.csv'
+    `, target, path)
+}
+
+func (t *tester) handleDumpAndImport(q query) error {
+	if !isTiDB(t.mdb) {
+		return errors.New(fmt.Sprintf("dump_and_import is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
+	}
+	t.enableResultLog = false
+	defer func() { t.enableResultLog = true }()
+	var err error
+	t.dumpAndImport, err = parseSourceAndTarget(q.Query)
+	if err != nil {
+		return err
+	}
+	path, err := t.dumpTable(t.dumpAndImport.sourceTable)
+	if err != nil {
+		return err
+	}
+	dupTableStmt := fmt.Sprintf("CREATE TABLE `%s` LIKE `%s`", t.dumpAndImport.targetTable, t.dumpAndImport.sourceTable)
+	if err := t.executeStmt(dupTableStmt); err != nil {
+		return err
+	}
+	importStmt := t.importTableStmt(path, t.dumpAndImport.targetTable)
+	if err = t.executeStmt(importStmt); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *tester) waitForReplicationCheckpoint() error {
+	curr := t.currConnName
+	defer t.switchConnection(curr)
+
+	if err := t.executeStmt(fmt.Sprintf("use `%s`", t.replicationCheckpointDB)); err != nil {
+		return err
+	}
+
+	markerTable := fmt.Sprintf("marker_%d", t.replicationCheckpointID)
+	if err := t.executeStmt(fmt.Sprintf("create table `%s`.`%s` (id int primary key)", t.replicationCheckpointDB, markerTable)); err != nil {
+		return err
+	}
+
+	t.switchConnection("downstream")
+
+	checkInterval := 1 * time.Second
+	queryTimeout := 10 * time.Second
+
+	// Keep querying until the table is found
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
+		defer cancel()
+
+		query := fmt.Sprintf("select * from information_schema.tables where table_schema = '%s' and table_name = '%s';", t.replicationCheckpointDB, markerTable)
+		rows, err := t.mdb.QueryContext(ctx, query)
+		if err != nil {
+			log.Printf("Error checking for table: %v", err)
+			return err
+		}
+
+		if rows.Next() {
+			fmt.Printf("Table '%s' found!\n", markerTable)
+			break
+		} else {
+			fmt.Printf("Table '%s' not found. Retrying in %v...\n", markerTable, checkInterval)
+		}
+
+		time.Sleep(checkInterval)
+	}
+
+	return nil
 }
 
 func (t *tester) Run() error {
@@ -474,7 +743,7 @@ func (t *tester) Run() error {
 			for i := 0; i < 4; i++ {
 				args = append(args, "")
 			}
-			t.addConnection(args[0], args[1], args[2], args[3], args[4])
+			t.addConnection(args[0], args[1], port, args[2], args[3], args[4])
 		case Q_CONNECTION:
 			q.Query = strings.TrimSpace(q.Query)
 			if q.Query[len(q.Query)-1] == ';' {
@@ -523,6 +792,21 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_BACKUP_AND_RESTORE:
+			if err := t.handleBackupAndRestore(q); err != nil {
+				return err
+			}
+		case Q_DUMP_AND_IMPORT:
+			if err := t.handleDumpAndImport(q); err != nil {
+				return err
+			}
+		case Q_REPLICATION_CHECKPOINT:
+			if !isTiDB(t.mdb) {
+				return errors.New(fmt.Sprintf("replication_checkpoint is only supported on TiDB, line: %d sql:%v", q.Line, q.Query))
+			}
+			if err := t.waitForReplicationCheckpoint(); err != nil {
+				return err
+			}
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
@@ -539,7 +823,6 @@ func (t *tester) Run() error {
 	if xmlPath != "" {
 		t.addSuccess(&testSuite, &startTime, testCnt)
 	}
-
 	return t.flushResult()
 }
 

@@ -104,3 +104,18 @@ func ParseReplaceRegex(originalString string) ([]*ReplaceRegex, error) {
 	}
 	return ret, nil
 }
+
+func parseSourceAndTarget(s string) (*SourceAndTarget, error) {
+	s = strings.ToLower(strings.TrimSpace(s))
+
+	parts := strings.Split(s, "as")
+	if len(parts) != 2 {
+		return nil, errors.Errorf("Could not parse source table and target table name: %v", s)
+	}
+
+	st := &SourceAndTarget{
+		sourceTable: strings.TrimSpace(parts[0]),
+		targetTable: strings.TrimSpace(parts[1]),
+	}
+	return st, nil
+}

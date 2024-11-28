@@ -35,6 +35,9 @@ explain analyze format='brief' select * from t;
 --replace_regex /:[ ]?[.0-9]+.*?,/:<num>,/ /:[ ]?[.0-9]+.*?}/:<num>}/ /[0-9]+ Bytes/<num> Bytes/
 explain analyze select * from t;
 
+--replace_result Matched Changed
+select "My Matched matched changed Changed"
+
 --enable_info
 insert into t values (6, 6);
 

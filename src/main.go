@@ -148,6 +148,9 @@ type tester struct {
 
 	// replace output result through --replace_regex /\.dll/.so/
 	replaceRegex []*ReplaceRegex
+
+	// the delimter for TiDB, default value is ";"
+	delimiter string
 }
 
 func newTester(name string) *tester {
@@ -161,6 +164,7 @@ func newTester(name string) *tester {
 	t.enableWarning = false
 	t.enableConcurrent = false
 	t.enableInfo = false
+	t.delimiter = ";"
 
 	return t
 }
@@ -355,7 +359,7 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
-	queries, err := t.loadQueries()
+	queries, err := t.LoadQueries()
 	if err != nil {
 		err = errors.Trace(err)
 		t.addFailure(&testSuite, &err, 0)
@@ -642,7 +646,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	}
 }
 
-func (t *tester) loadQueries() ([]query, error) {
+func (t *tester) LoadQueries() ([]query, error) {
 	data, err := os.ReadFile(t.testFileName())
 	if err != nil {
 		return nil, err
@@ -650,35 +654,70 @@ func (t *tester) loadQueries() ([]query, error) {
 
 	seps := bytes.Split(data, []byte("\n"))
 	queries := make([]query, 0, len(seps))
-	newStmt := true
+	buffer := ""
 	for i, v := range seps {
 		v := bytes.TrimSpace(v)
 		s := string(v)
 		// we will skip # comment here
 		if strings.HasPrefix(s, "#") {
-			newStmt = true
+			if len(buffer) != 0 {
+				return nil, errors.Errorf("Has remained message(%s) before COMMENTS", buffer)
+			}
 			continue
 		} else if strings.HasPrefix(s, "--") {
-			queries = append(queries, query{Query: s, Line: i + 1})
-			newStmt = true
+			if len(buffer) != 0 {
+				return nil, errors.Errorf("Has remained message(%s) before COMMANDS", buffer)
+			}
+			ParseQuery(query{Query: s, Line: i + 1})
+			continue
+		} else if strings.HasPrefix(strings.ToLower(strings.TrimSpace(s)), "delimiter ") {
+			if len(buffer) != 0 {
+				return nil, errors.Errorf("Has remained message(%s) before DELIMITER COMMAND", buffer)
+			}
+			tokens := strings.Split(strings.TrimSpace(s), " ")
+			if len(tokens) <= 1 {
+				return nil, errors.Errorf("DELIMITER must be followed by a 'delimiter' character or string")
+			}
+			t.delimiter = tokens[1]
 			continue
 		} else if len(s) == 0 {
 			continue
 		}
 
-		if newStmt {
-			queries = append(queries, query{Query: s, Line: i + 1})
-		} else {
-			lastQuery := queries[len(queries)-1]
-			lastQuery = query{Query: fmt.Sprintf("%s\n%s", lastQuery.Query, s), Line: lastQuery.Line}
-			queries[len(queries)-1] = lastQuery
+		if len(buffer) != 0 {
+			buffer += "\n"
 		}
+		buffer += s
+		for {
+			idx := strings.Index(buffer, t.delimiter)
+			if idx == -1 {
+				break
+			}
 
-		// if the line has a ; in the end, we will treat new line as the new statement.
-		newStmt = strings.HasSuffix(s, ";")
+			queryStr := buffer[:idx]
+			buffer = buffer[idx+len(t.delimiter):]
+			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1})
+			if err != nil {
+				return nil, err
+			}
+			if q == nil {
+				continue
+			}
+			if q.tp == Q_DELIMITER {
+				tokens := strings.Split(strings.TrimSpace(q.Query), " ")
+				if len(tokens) == 0 {
+					return nil, errors.Errorf("DELIMITER must be followed by a 'delimiter' character or string")
+				}
+				t.delimiter = tokens[0]
+			} else {
+				queries = append(queries, *q)
+			}
+		}
 	}
-
-	return ParseQueries(queries...)
+	if len(buffer) != 0 {
+		return nil, errors.Errorf("Has remained text(%s) in file", buffer)
+	}
+	return queries, nil
 }
 
 func (t *tester) stmtExecute(query string) (err error) {

@@ -74,24 +74,24 @@ func TestLoadQueries(t *testing.T) {
 		queries []query
 	}{
 		{
-			input: "select 1; delimiter | ; select 2|",
-			queries: []query{
-				{Query: "select 1"},
-				{Query: "select 2"},
-			},
-		},
-		{
 			input: "delimiter |\n do something; select something; |\n delimiter ; \nselect 1;",
 			queries: []query{
-				{Query: "do something; select something;"},
-				{Query: "select 1"},
+				{Query: "do something; select something; |", tp: Q_QUERY},
+				{Query: "select 1;", tp: Q_QUERY},
 			},
 		},
 		{
 			input: "delimiter |\ndrop procedure if exists scopel\ncreate procedure scope(a int, b float)\nbegin\ndeclare b int;\ndeclare c float;\nbegin\ndeclare c int;\nend;\nend |\ndrop procedure scope|\ndelimiter ;\n",
 			queries: []query{
-				{Query: "drop procedure if exists scopel\ncreate procedure scope(a int, b float)\nbegin\ndeclare b int;\ndeclare c float;\nbegin\ndeclare c int;\nend;\nend"},
-				{Query: "drop procedure scope"},
+				{Query: "drop procedure if exists scopel\ncreate procedure scope(a int, b float)\nbegin\ndeclare b int;\ndeclare c float;\nbegin\ndeclare c int;\nend;\nend |", tp: Q_QUERY},
+				{Query: "drop procedure scope|", tp: Q_QUERY},
+			},
+		},
+		{
+			input: "--error 1054\nselect 1;",
+			queries: []query{
+				{Query: " 1054", tp: Q_ERROR},
+				{Query: "select 1;", tp: Q_QUERY},
 			},
 		},
 	}
@@ -110,6 +110,7 @@ func TestLoadQueries(t *testing.T) {
 		assert.Len(t, queries, len(testCase.queries))
 		for i, query := range testCase.queries {
 			assert.Equal(t, queries[i].Query, query.Query)
+			assert.Equal(t, queries[i].tp, query.tp)
 		}
 	}
 }

@@ -668,7 +668,14 @@ func (t *tester) LoadQueries() ([]query, error) {
 			if len(buffer) != 0 {
 				return nil, errors.Errorf("Has remained message(%s) before COMMANDS", buffer)
 			}
-			ParseQuery(query{Query: s, Line: i + 1})
+			q, err := ParseQuery(query{Query: s, Line: i + 1})
+			if err != nil {
+				return nil, err
+			}
+			if q == nil {
+				continue
+			}
+			queries = append(queries, *q)
 			continue
 		} else if strings.HasPrefix(strings.ToLower(strings.TrimSpace(s)), "delimiter ") {
 			if len(buffer) != 0 {
@@ -689,12 +696,12 @@ func (t *tester) LoadQueries() ([]query, error) {
 		}
 		buffer += s
 		for {
-			idx := strings.Index(buffer, t.delimiter)
+			idx := strings.LastIndex(buffer, t.delimiter)
 			if idx == -1 {
 				break
 			}
 
-			queryStr := buffer[:idx]
+			queryStr := buffer[:idx+len(t.delimiter)]
 			buffer = buffer[idx+len(t.delimiter):]
 			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1})
 			if err != nil {
@@ -703,15 +710,7 @@ func (t *tester) LoadQueries() ([]query, error) {
 			if q == nil {
 				continue
 			}
-			if q.tp == Q_DELIMITER {
-				tokens := strings.Split(strings.TrimSpace(q.Query), " ")
-				if len(tokens) == 0 {
-					return nil, errors.Errorf("DELIMITER must be followed by a 'delimiter' character or string")
-				}
-				t.delimiter = tokens[0]
-			} else {
-				queries = append(queries, *q)
-			}
+			queries = append(queries, *q)
 		}
 	}
 	if len(buffer) != 0 {
@@ -1006,7 +1005,7 @@ func (t *tester) executeStmt(query string) error {
 	}
 
 	if t.enableWarning {
-		raw, err := t.curr.conn.QueryContext(context.Background(), "show warnings;")
+		raw, err := t.curr.conn.QueryContext(context.Background(), "show warnings")
 		if err != nil {
 			return errors.Trace(err)
 		}

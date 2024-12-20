@@ -675,7 +675,15 @@ func (t *tester) LoadQueries() ([]query, error) {
 			if q == nil {
 				continue
 			}
-			queries = append(queries, *q)
+			if q.tp == Q_DELIMITER {
+				tokens := strings.Split(strings.TrimSpace(q.Query), " ")
+				if len(tokens) == 0 {
+					return nil, errors.Errorf("DELIMITER must be followed by a 'delimiter' character or string")
+				}
+				t.delimiter = tokens[0]
+			} else {
+				queries = append(queries, *q)
+			}
 			continue
 		} else if strings.HasPrefix(strings.ToLower(strings.TrimSpace(s)), "delimiter ") {
 			if len(buffer) != 0 {

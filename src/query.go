@@ -128,7 +128,7 @@ const (
 
 // ParseQuery parses an array of string into an array of query object.
 // Note: a query statement may reside in several lines.
-func ParseQuery(rs query) (*query, error) {
+func ParseQuery(rs query, delimiter string) (*query, error) {
 	realS := rs.Query
 	s := rs.Query
 	q := query{}
@@ -154,9 +154,9 @@ func ParseQuery(rs query) (*query, error) {
 
 	if q.tp != Q_COMMENT {
 		// Calculate first word length(the command), terminated
-		// by 'space' , '('
+		// by 'space' , '(' and delimiter
 		var i int
-		for i = 0; i < len(s) && s[i] != '(' && s[i] != ' ' && s[i] != '\n'; i++ {
+		for i = 0; i < len(s) && s[i] != '(' && s[i] != ' ' && !(i+len(delimiter) < len(s) && s[i:i+len(delimiter)] == delimiter) && s[i] != '\n'; i++ {
 		}
 		if i > 0 {
 			q.firstWord = s[:i]

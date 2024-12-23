@@ -668,7 +668,7 @@ func (t *tester) LoadQueries() ([]query, error) {
 			if len(buffer) != 0 {
 				return nil, errors.Errorf("Has remained message(%s) before COMMANDS", buffer)
 			}
-			q, err := ParseQuery(query{Query: s, Line: i + 1})
+			q, err := ParseQuery(query{Query: s, Line: i + 1}, t.delimiter)
 			if err != nil {
 				return nil, err
 			}
@@ -711,7 +711,7 @@ func (t *tester) LoadQueries() ([]query, error) {
 
 			queryStr := buffer[:idx+len(t.delimiter)]
 			buffer = buffer[idx+len(t.delimiter):]
-			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1})
+			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1}, t.delimiter)
 			if err != nil {
 				return nil, err
 			}

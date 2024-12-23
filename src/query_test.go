@@ -35,7 +35,7 @@ func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
 func TestParseQueryies(t *testing.T) {
 	sql := "select * from t;"
 
-	if q, err := ParseQuery(query{Query: sql, Line: 1}); err == nil {
+	if q, err := ParseQuery(query{Query: sql, Line: 1}, ";"); err == nil {
 		assertEqual(t, q.tp, Q_QUERY, fmt.Sprintf("Expected: %d, got: %d", Q_QUERY, q.tp))
 		assertEqual(t, q.Query, sql, fmt.Sprintf("Expected: %s, got: %s", sql, q.Query))
 	} else {
@@ -43,7 +43,7 @@ func TestParseQueryies(t *testing.T) {
 	}
 
 	sql = "--sorted_result select * from t;"
-	if q, err := ParseQuery(query{Query: sql, Line: 1}); err == nil {
+	if q, err := ParseQuery(query{Query: sql, Line: 1}, ";"); err == nil {
 		assertEqual(t, q.tp, Q_SORTED_RESULT, "sorted_result")
 		assertEqual(t, q.Query, "select * from t;", fmt.Sprintf("Expected: '%s', got '%s'", "select * from t;", q.Query))
 	} else {
@@ -52,11 +52,11 @@ func TestParseQueryies(t *testing.T) {
 
 	// invalid comment command style
 	sql = "--abc select * from t;"
-	_, err := ParseQuery(query{Query: sql, Line: 1})
+	_, err := ParseQuery(query{Query: sql, Line: 1}, ";")
 	assertEqual(t, err, ErrInvalidCommand, fmt.Sprintf("Expected: %v, got %v", ErrInvalidCommand, err))
 
 	sql = "--let $foo=`SELECT 1`"
-	if q, err := ParseQuery(query{Query: sql, Line: 1}); err == nil {
+	if q, err := ParseQuery(query{Query: sql, Line: 1}, ";"); err == nil {
 		assertEqual(t, q.tp, Q_LET, fmt.Sprintf("Expected: %d, got: %d", Q_LET, q.tp))
 	}
 }

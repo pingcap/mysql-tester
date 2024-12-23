@@ -720,6 +720,10 @@ func (t *tester) LoadQueries() ([]query, error) {
 			}
 			queries = append(queries, *q)
 		}
+		// If has remained comments, ignore them.
+		if len(buffer) != 0 && strings.HasPrefix(strings.TrimSpace(buffer), "#") {
+			buffer = ""
+		}
 	}
 	if len(buffer) != 0 {
 		return nil, errors.Errorf("Has remained text(%s) in file", buffer)

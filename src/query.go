@@ -156,7 +156,13 @@ func ParseQuery(rs query, delimiter string) (*query, error) {
 		// Calculate first word length(the command), terminated
 		// by 'space' , '(' and delimiter
 		var i int
-		for i = 0; i < len(s) && s[i] != '(' && s[i] != ' ' && !(i+len(delimiter) < len(s) && s[i:i+len(delimiter)] == delimiter) && s[i] != '\n'; i++ {
+		for i = 0; i < len(s); i++ {
+			if s[i] == '(' || s[i] == ' ' || s[i] == '\n' {
+				break
+			}
+			if i+len(delimiter) <= len(s) && s[i:i+len(delimiter)] == delimiter {
+				break
+			}
 		}
 		if i > 0 {
 			q.firstWord = s[:i]

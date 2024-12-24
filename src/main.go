@@ -72,6 +72,7 @@ const (
 type query struct {
 	firstWord string
 	Query     string
+	Delimiter string
 	Line      int
 	tp        int
 }
@@ -626,7 +627,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 			return
 		}
 
-		err := tt.stmtExecute(query.Query)
+		err := tt.stmtExecute(query)
 		if err != nil && len(t.expectedErrs) > 0 {
 			for _, tStr := range t.expectedErrs {
 				if strings.Contains(err.Error(), tStr) {
@@ -668,7 +669,7 @@ func (t *tester) loadQueries() ([]query, error) {
 			if len(buffer) != 0 {
 				return nil, errors.Errorf("Has remained message(%s) before COMMANDS", buffer)
 			}
-			q, err := ParseQuery(query{Query: s, Line: i + 1}, t.delimiter)
+			q, err := ParseQuery(query{Query: s, Line: i + 1, Delimiter: t.delimiter})
 			if err != nil {
 				return nil, err
 			}
@@ -711,7 +712,7 @@ func (t *tester) loadQueries() ([]query, error) {
 
 			queryStr := buffer[:idx+len(t.delimiter)]
 			buffer = buffer[idx+len(t.delimiter):]
-			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1}, t.delimiter)
+			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1, Delimiter: t.delimiter})
 			if err != nil {
 				return nil, err
 			}
@@ -731,12 +732,13 @@ func (t *tester) loadQueries() ([]query, error) {
 	return queries, nil
 }
 
-func (t *tester) stmtExecute(query string) (err error) {
+func (t *tester) stmtExecute(query query) (err error) {
 	if t.enableQueryLog {
-		t.buf.WriteString(query)
+		t.buf.WriteString(query.Query)
 		t.buf.WriteString("\n")
 	}
-	return t.executeStmt(query)
+
+	return t.executeStmt(strings.TrimSuffix(query.Query, query.Delimiter))
 }
 
 // checkExpectedError check if error was expected
@@ -834,7 +836,7 @@ func (t *tester) execute(query query) error {
 	}
 
 	offset := t.buf.Len()
-	err := t.stmtExecute(query.Query)
+	err := t.stmtExecute(query)
 
 	err = t.checkExpectedError(query, err)
 	if err != nil {

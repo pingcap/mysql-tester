@@ -126,56 +126,57 @@ const (
 	Q_EMPTY_LINE
 )
 
-// ParseQueries parses an array of string into an array of query object.
+// ParseQuery parses an array of string into an array of query object.
 // Note: a query statement may reside in several lines.
-func ParseQueries(qs ...query) ([]query, error) {
-	queries := make([]query, 0, len(qs))
-	for _, rs := range qs {
-		realS := rs.Query
-		s := rs.Query
-		q := query{}
-		q.tp = Q_UNKNOWN
-		q.Line = rs.Line
-		// a valid query's length should be at least 3.
-		if len(s) < 3 {
-			continue
-		}
-		// we will skip #comment and line with zero characters here
-		if s[0] == '#' {
-			q.tp = Q_COMMENT
-		} else if s[0:2] == "--" {
-			q.tp = Q_COMMENT_WITH_COMMAND
-			if s[2] == ' ' {
-				s = s[3:]
-			} else {
-				s = s[2:]
-			}
-		} else if s[0] == '\n' {
-			q.tp = Q_EMPTY_LINE
-		}
-
-		if q.tp != Q_COMMENT {
-			// Calculate first word length(the command), terminated
-			// by 'space' , '(' or 'delimiter'
-			var i int
-			for i = 0; i < len(s) && s[i] != '(' && s[i] != ' ' && s[i] != ';' && s[i] != '\n'; i++ {
-			}
-			if i > 0 {
-				q.firstWord = s[:i]
-			}
-			s = s[i:]
-
-			q.Query = s
-			if q.tp == Q_UNKNOWN || q.tp == Q_COMMENT_WITH_COMMAND {
-				if err := q.getQueryType(realS); err != nil {
-					return nil, err
-				}
-			}
-		}
-
-		queries = append(queries, q)
+func ParseQuery(rs query) (*query, error) {
+	realS := rs.Query
+	s := rs.Query
+	q := query{delimiter: rs.delimiter, Line: rs.Line}
+	q.tp = Q_UNKNOWN
+	// a valid query's length should be at least 3.
+	if len(s) < 3 {
+		return nil, nil
 	}
-	return queries, nil
+	// we will skip #comment and line with zero characters here
+	if s[0] == '#' {
+		q.tp = Q_COMMENT
+	} else if s[0:2] == "--" {
+		q.tp = Q_COMMENT_WITH_COMMAND
+		if s[2] == ' ' {
+			s = s[3:]
+		} else {
+			s = s[2:]
+		}
+	} else if s[0] == '\n' {
+		q.tp = Q_EMPTY_LINE
+	}
+
+	if q.tp != Q_COMMENT {
+		// Calculate first word length(the command), terminated
+		// by 'space' , '(' and delimiter
+		var i int
+		for i = 0; i < len(s); i++ {
+			if s[i] == '(' || s[i] == ' ' || s[i] == '\n' {
+				break
+			}
+			if i+len(rs.delimiter) <= len(s) && s[i:i+len(rs.delimiter)] == rs.delimiter {
+				break
+			}
+		}
+		if i > 0 {
+			q.firstWord = s[:i]
+		}
+		s = s[i:]
+
+		q.Query = s
+		if q.tp == Q_UNKNOWN || q.tp == Q_COMMENT_WITH_COMMAND {
+			if err := q.getQueryType(realS); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &q, nil
 }
 
 // for a single query, it has some prefix. Prefix mapps to a query type.

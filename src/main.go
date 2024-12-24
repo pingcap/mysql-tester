@@ -67,6 +67,7 @@ func init() {
 
 const (
 	default_connection = "default"
+	default_delimiter  = ";"
 )
 
 type query struct {
@@ -165,7 +166,7 @@ func newTester(name string) *tester {
 	t.enableWarning = false
 	t.enableConcurrent = false
 	t.enableInfo = false
-	t.delimiter = ";"
+	t.delimiter = default_delimiter
 
 	return t
 }
@@ -729,7 +730,12 @@ func (t *tester) stmtExecute(query query) (err error) {
 		t.buf.WriteString("\n")
 	}
 
-	return t.executeStmt(strings.TrimSuffix(query.Query, query.delimiter))
+	// Maintain compatibility with previous versions
+	if query.delimiter != default_delimiter {
+		return t.executeStmt(strings.TrimSuffix(query.Query, query.delimiter))
+	} else {
+		return t.executeStmt(query.Query)
+	}
 }
 
 // checkExpectedError check if error was expected

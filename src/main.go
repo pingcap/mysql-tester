@@ -467,10 +467,7 @@ func (t *tester) Run() error {
 				t.replaceColumn = append(t.replaceColumn, ReplaceColumn{col: colNr, replace: []byte(cols[i+1])})
 			}
 		case Q_CONNECT:
-			q.Query = strings.TrimSpace(q.Query)
-			if q.Query[len(q.Query)-1] == ';' {
-				q.Query = q.Query[:len(q.Query)-1]
-			}
+			q.Query = strings.TrimSuffix(strings.TrimSpace(q.Query), q.delimiter)
 			q.Query = q.Query[1 : len(q.Query)-1]
 			args := strings.Split(q.Query, ",")
 			for i := range args {
@@ -481,16 +478,10 @@ func (t *tester) Run() error {
 			}
 			t.addConnection(args[0], args[1], args[2], args[3], args[4])
 		case Q_CONNECTION:
-			q.Query = strings.TrimSpace(q.Query)
-			if q.Query[len(q.Query)-1] == ';' {
-				q.Query = q.Query[:len(q.Query)-1]
-			}
+			q.Query = strings.TrimSuffix(strings.TrimSpace(q.Query), q.delimiter)
 			t.switchConnection(q.Query)
 		case Q_DISCONNECT:
-			q.Query = strings.TrimSpace(q.Query)
-			if q.Query[len(q.Query)-1] == ';' {
-				q.Query = q.Query[:len(q.Query)-1]
-			}
+			q.Query = strings.TrimSuffix(strings.TrimSpace(q.Query), q.delimiter)
 			t.disconnect(q.Query)
 		case Q_LET:
 			q.Query = strings.TrimSpace(q.Query)

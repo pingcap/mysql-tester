@@ -35,7 +35,7 @@ func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
 func TestParseQueryies(t *testing.T) {
 	sql := "select * from t;"
 
-	if q, err := ParseQuery(query{Query: sql, Line: 1, Delimiter: ";"}); err == nil {
+	if q, err := ParseQuery(query{Query: sql, Line: 1, delimiter: ";"}); err == nil {
 		assertEqual(t, q.tp, Q_QUERY, fmt.Sprintf("Expected: %d, got: %d", Q_QUERY, q.tp))
 		assertEqual(t, q.Query, sql, fmt.Sprintf("Expected: %s, got: %s", sql, q.Query))
 	} else {
@@ -43,7 +43,7 @@ func TestParseQueryies(t *testing.T) {
 	}
 
 	sql = "--sorted_result select * from t;"
-	if q, err := ParseQuery(query{Query: sql, Line: 1, Delimiter: ";"}); err == nil {
+	if q, err := ParseQuery(query{Query: sql, Line: 1, delimiter: ";"}); err == nil {
 		assertEqual(t, q.tp, Q_SORTED_RESULT, "sorted_result")
 		assertEqual(t, q.Query, "select * from t;", fmt.Sprintf("Expected: '%s', got '%s'", "select * from t;", q.Query))
 	} else {
@@ -52,11 +52,11 @@ func TestParseQueryies(t *testing.T) {
 
 	// invalid comment command style
 	sql = "--abc select * from t;"
-	_, err := ParseQuery(query{Query: sql, Line: 1, Delimiter: ";"})
+	_, err := ParseQuery(query{Query: sql, Line: 1, delimiter: ";"})
 	assertEqual(t, err, ErrInvalidCommand, fmt.Sprintf("Expected: %v, got %v", ErrInvalidCommand, err))
 
 	sql = "--let $foo=`SELECT 1`"
-	if q, err := ParseQuery(query{Query: sql, Line: 1, Delimiter: ";"}); err == nil {
+	if q, err := ParseQuery(query{Query: sql, Line: 1, delimiter: ";"}); err == nil {
 		assertEqual(t, q.tp, Q_LET, fmt.Sprintf("Expected: %d, got: %d", Q_LET, q.tp))
 	}
 }
@@ -76,22 +76,22 @@ func TestLoadQueries(t *testing.T) {
 		{
 			input: "delimiter |\n do something; select something; |\n delimiter ; \nselect 1;",
 			queries: []query{
-				{Query: "do something; select something; |", tp: Q_QUERY, Delimiter: "|"},
-				{Query: "select 1;", tp: Q_QUERY, Delimiter: ";"},
+				{Query: "do something; select something; |", tp: Q_QUERY, delimiter: "|"},
+				{Query: "select 1;", tp: Q_QUERY, delimiter: ";"},
 			},
 		},
 		{
 			input: "delimiter |\ndrop procedure if exists scopel\ncreate procedure scope(a int, b float)\nbegin\ndeclare b int;\ndeclare c float;\nbegin\ndeclare c int;\nend;\nend |\ndrop procedure scope|\ndelimiter ;\n",
 			queries: []query{
-				{Query: "drop procedure if exists scopel\ncreate procedure scope(a int, b float)\nbegin\ndeclare b int;\ndeclare c float;\nbegin\ndeclare c int;\nend;\nend |", tp: Q_QUERY, Delimiter: "|"},
-				{Query: "drop procedure scope|", tp: Q_QUERY, Delimiter: "|"},
+				{Query: "drop procedure if exists scopel\ncreate procedure scope(a int, b float)\nbegin\ndeclare b int;\ndeclare c float;\nbegin\ndeclare c int;\nend;\nend |", tp: Q_QUERY, delimiter: "|"},
+				{Query: "drop procedure scope|", tp: Q_QUERY, delimiter: "|"},
 			},
 		},
 		{
 			input: "--error 1054\nselect 1;",
 			queries: []query{
-				{Query: " 1054", tp: Q_ERROR, Delimiter: ";"},
-				{Query: "select 1;", tp: Q_QUERY, Delimiter: ";"},
+				{Query: " 1054", tp: Q_ERROR, delimiter: ";"},
+				{Query: "select 1;", tp: Q_QUERY, delimiter: ";"},
 			},
 		},
 	}
@@ -111,7 +111,7 @@ func TestLoadQueries(t *testing.T) {
 		for i, query := range testCase.queries {
 			assert.Equal(t, queries[i].Query, query.Query)
 			assert.Equal(t, queries[i].tp, query.tp)
-			assert.Equal(t, queries[i].Delimiter, query.Delimiter)
+			assert.Equal(t, queries[i].delimiter, query.delimiter)
 		}
 	}
 }

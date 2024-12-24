@@ -131,7 +131,7 @@ const (
 func ParseQuery(rs query) (*query, error) {
 	realS := rs.Query
 	s := rs.Query
-	q := query{Delimiter: rs.Delimiter, Line: rs.Line}
+	q := query{delimiter: rs.delimiter, Line: rs.Line}
 	q.tp = Q_UNKNOWN
 	// a valid query's length should be at least 3.
 	if len(s) < 3 {
@@ -159,7 +159,7 @@ func ParseQuery(rs query) (*query, error) {
 			if s[i] == '(' || s[i] == ' ' || s[i] == '\n' {
 				break
 			}
-			if i+len(rs.Delimiter) <= len(s) && s[i:i+len(rs.Delimiter)] == rs.Delimiter {
+			if i+len(rs.delimiter) <= len(s) && s[i:i+len(rs.delimiter)] == rs.delimiter {
 				break
 			}
 		}

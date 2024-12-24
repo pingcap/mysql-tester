@@ -72,7 +72,7 @@ const (
 type query struct {
 	firstWord string
 	Query     string
-	Delimiter string
+	delimiter string
 	Line      int
 	tp        int
 }
@@ -669,7 +669,7 @@ func (t *tester) loadQueries() ([]query, error) {
 			if len(buffer) != 0 {
 				return nil, errors.Errorf("Has remained message(%s) before COMMANDS", buffer)
 			}
-			q, err := ParseQuery(query{Query: s, Line: i + 1, Delimiter: t.delimiter})
+			q, err := ParseQuery(query{Query: s, Line: i + 1, delimiter: t.delimiter})
 			if err != nil {
 				return nil, err
 			}
@@ -712,7 +712,7 @@ func (t *tester) loadQueries() ([]query, error) {
 
 			queryStr := buffer[:idx+len(t.delimiter)]
 			buffer = buffer[idx+len(t.delimiter):]
-			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1, Delimiter: t.delimiter})
+			q, err := ParseQuery(query{Query: strings.TrimSpace(queryStr), Line: i + 1, delimiter: t.delimiter})
 			if err != nil {
 				return nil, err
 			}
@@ -738,7 +738,7 @@ func (t *tester) stmtExecute(query query) (err error) {
 		t.buf.WriteString("\n")
 	}
 
-	return t.executeStmt(strings.TrimSuffix(query.Query, query.Delimiter))
+	return t.executeStmt(strings.TrimSuffix(query.Query, query.delimiter))
 }
 
 // checkExpectedError check if error was expected

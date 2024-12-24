@@ -105,7 +105,7 @@ func TestLoadQueries(t *testing.T) {
 		f.Close()
 
 		test := newTester("test")
-		queries, err := test.LoadQueries()
+		queries, err := test.loadQueries()
 		assert.NoError(t, err)
 		assert.Len(t, queries, len(testCase.queries))
 		for i, query := range testCase.queries {

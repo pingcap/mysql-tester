@@ -359,7 +359,7 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
-	queries, err := t.LoadQueries()
+	queries, err := t.loadQueries()
 	if err != nil {
 		err = errors.Trace(err)
 		t.addFailure(&testSuite, &err, 0)
@@ -646,7 +646,7 @@ func (t *tester) concurrentExecute(querys []query, wg *sync.WaitGroup, errOccure
 	}
 }
 
-func (t *tester) LoadQueries() ([]query, error) {
+func (t *tester) loadQueries() ([]query, error) {
 	data, err := os.ReadFile(t.testFileName())
 	if err != nil {
 		return nil, err

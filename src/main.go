@@ -47,6 +47,7 @@ var (
 	retryConnCount   int
 	collationDisable bool
 	checkErr         bool
+	cascades         bool
 )
 
 func init() {
@@ -63,6 +64,7 @@ func init() {
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
+	flag.BoolVar(&cascades, "cascades", false, "run exec and query based on cascades planner")
 }
 
 const (
@@ -195,6 +197,11 @@ func setSessionVariable(db *Conn) {
 	}
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_clustered_index='int_only'"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_enable_clustered_index='int_only'\" err[%v]", err)
+	}
+	if cascades {
+		if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_cascades_planner=1"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_enable_cascades_planner=1\" err[%v]", err)
+		}
 	}
 }
 
@@ -1081,7 +1088,11 @@ func (t *tester) resultFileName() string {
 			name = name + "_enabled"
 		}
 	}
-	return fmt.Sprintf("./r/%s.result", name)
+	suffix := "result"
+	if cascades {
+		suffix = "casult"
+	}
+	return fmt.Sprintf("./r/%s.%s", name, suffix)
 }
 
 func loadAllTests() ([]string, error) {

@@ -39,6 +39,10 @@ Usage of ./mysql-tester:
         The user for connecting to the database. (default "root")
   -xunitfile string
         The xml file path to record testing results.
+  -check-error
+        If --error ERR does not match, return error instead of just warn
+  -cascades
+        Record the result based on cascades planner into result file with .casult suffix. 
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:
@@ -46,6 +50,11 @@ By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root`
 ./mysql-tester # run all the tests
 ./mysql-tester example # run a specified test
 ./mysql-tester example1 example2   example3 # seperate different tests with one or more spaces
+# modify current example cases for .result output.
+./mysql-tester ./mysql-tester -record=1 -check-error=1
+# modify current example cases for .casult output.
+./mysql-tester ./mysql-tester -record=1 -check-error=1 -cascades=1
+
 ```
 
 For more details about how to run and write test cases, see the [Wiki](https://github.com/pingcap/mysql-tester/wiki) page.

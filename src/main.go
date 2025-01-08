@@ -48,6 +48,7 @@ var (
 	collationDisable bool
 	checkErr         bool
 	cascades         bool
+	cascadesSuffix   string
 )
 
 func init() {
@@ -65,6 +66,7 @@ func init() {
 	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
 	flag.BoolVar(&cascades, "cascades", false, "run exec and query based on cascades planner")
+	flag.StringVar(&cascadesSuffix, "cascades-suffix", "casult", "the result file suffix for cascades planner")
 }
 
 const (
@@ -201,6 +203,10 @@ func setSessionVariable(db *Conn) {
 	if cascades {
 		if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_cascades_planner=1"); err != nil {
 			log.Fatalf("Executing \"SET @@tidb_enable_cascades_planner=1\" err[%v]", err)
+		}
+	} else {
+		if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_cascades_planner=0"); err != nil {
+			log.Fatalf("Executing \"SET @@tidb_enable_cascades_planner=0\" err[%v]", err)
 		}
 	}
 }
@@ -1090,7 +1096,7 @@ func (t *tester) resultFileName() string {
 	}
 	suffix := "result"
 	if cascades {
-		suffix = "casult"
+		suffix = cascadesSuffix
 	}
 	return fmt.Sprintf("./r/%s.%s", name, suffix)
 }

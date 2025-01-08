@@ -43,6 +43,8 @@ Usage of ./mysql-tester:
         If --error ERR does not match, return error instead of just warn
   -cascades
         Record the result based on cascades planner into result file with .casult suffix. 
+  -cascades-suffix
+        Specify the result file suffix for cascades planner, default with .casult suffix.
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:

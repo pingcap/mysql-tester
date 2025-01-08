@@ -41,8 +41,8 @@ Usage of ./mysql-tester:
         The xml file path to record testing results.
   -check-error
         If --error ERR does not match, return error instead of just warn
-  -suffix
-        Specify the suffix of result file under special requirement, default as ".result"
+  -extension
+        Specify the extension of result file under special requirement, default as ".result"
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:
@@ -51,9 +51,9 @@ By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root`
 ./mysql-tester example # run a specified test
 ./mysql-tester example1 example2   example3 # seperate different tests with one or more spaces
 # modify current example cases for .result output.
-./mysql-tester ./mysql-tester -record=1 -check-error=1
+./mysql-tester -record=1 -check-error=1
 # modify current example cases for .casult output, set the tidb planner as cascades manually.
-./mysql-tester ./mysql-tester -record=1 -check-error=1 -suffix="casult"
+./mysql-tester -record=1 -check-error=1 -extension="casult"
 
 ```
 

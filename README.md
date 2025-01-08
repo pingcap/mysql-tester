@@ -41,6 +41,8 @@ Usage of ./mysql-tester:
         The xml file path to record testing results.
   -check-error
         If --error ERR does not match, return error instead of just warn
+  -suffix
+        Specify the suffix of result file under special requirement, default as ".result"
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:

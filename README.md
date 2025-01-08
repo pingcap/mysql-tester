@@ -5,7 +5,7 @@ This is a golang implementation of [MySQL Test Framework](https://github.com/mys
 ## Requirements
 
 - All the tests should be put in [`t`](./t), take [t/example.test](./t/example.test) as an example.
-- All the expected test results should be put in [`r`](./r). Result file has the same file name with the corresponding test file, but with a `.result` file suffix, take [r/example.result](./r/example.result) as an examle.
+- All the expected test results should be put in [`r`](./r). Result file has the same file name with the corresponding test file, but with a default `.result` file extension, it can be changed by `-extension`, take [r/example.result](./r/example.result) as an examle.
 
 ## How to use
 
@@ -39,6 +39,10 @@ Usage of ./mysql-tester:
         The user for connecting to the database. (default "root")
   -xunitfile string
         The xml file path to record testing results.
+  -check-error
+        If --error ERR does not match, return error instead of just warn
+  -extension
+        Specify the extension of result file under special requirement, default as ".result"
 ```
 
 By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root` and no passward:
@@ -46,6 +50,9 @@ By default, it connects to the TiDB/MySQL server at `127.0.0.1:4000` with `root`
 ./mysql-tester # run all the tests
 ./mysql-tester example # run a specified test
 ./mysql-tester example1 example2   example3 # seperate different tests with one or more spaces
+# modify current example cases for .result output.
+./mysql-tester -record=1 -check-error=1
+
 ```
 
 For more details about how to run and write test cases, see the [Wiki](https://github.com/pingcap/mysql-tester/wiki) page.

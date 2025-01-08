@@ -47,6 +47,7 @@ var (
 	retryConnCount   int
 	collationDisable bool
 	checkErr         bool
+	extension        string
 )
 
 func init() {
@@ -63,6 +64,7 @@ func init() {
 	flag.IntVar(&retryConnCount, "retry-connection-count", 120, "The max number to retry to connect to the database.")
 	flag.BoolVar(&checkErr, "check-error", false, "if --error ERR does not match, return error instead of just warn")
 	flag.BoolVar(&collationDisable, "collation-disable", false, "run collation related-test with new-collation disabled")
+	flag.StringVar(&extension, "extension", "result", "the result file extension for result file")
 }
 
 const (
@@ -1081,7 +1083,7 @@ func (t *tester) resultFileName() string {
 			name = name + "_enabled"
 		}
 	}
-	return fmt.Sprintf("./r/%s.result", name)
+	return fmt.Sprintf("./r/%s.%s", name, extension)
 }
 
 func loadAllTests() ([]string, error) {

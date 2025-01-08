@@ -5,7 +5,7 @@ This is a golang implementation of [MySQL Test Framework](https://github.com/mys
 ## Requirements
 
 - All the tests should be put in [`t`](./t), take [t/example.test](./t/example.test) as an example.
-- All the expected test results should be put in [`r`](./r). Result file has the same file name with the corresponding test file, but with a `.result` file suffix, take [r/example.result](./r/example.result) as an examle.
+- All the expected test results should be put in [`r`](./r). Result file has the same file name with the corresponding test file, but with a default `.result` file extension, it can be changed by `-extension`, take [r/example.result](./r/example.result) as an examle.
 
 ## How to use
 

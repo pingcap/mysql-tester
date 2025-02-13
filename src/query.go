@@ -124,6 +124,8 @@ const (
 	Q_COMMENT /* Comments, ignored. */
 	Q_COMMENT_WITH_COMMAND
 	Q_EMPTY_LINE
+	Q_ENABLE_COMPARE_RESULT
+	Q_DISABLE_COMPARE_RESULT
 )
 
 // ParseQuery parses an array of string into an array of query object.

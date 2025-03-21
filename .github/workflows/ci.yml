@@ -7,15 +7,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: checkout mysql-tester
         uses: actions/checkout@v4
+        with:
+          path: 'mysql-tester'
+      - name: checkout TiDB
+        uses: actions/checkout@v4
+        with:
+          repository: pingcap/tidb
+          path: 'tidb'
       - name: setup go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.21
+          go-version-file: 'mysql-tester/go.mod'
       - name: vet
+        working-directory: 'mysql-tester'
         run: go vet ./...
       - name: build
+        working-directory: 'mysql-tester'
         run: make build
       - name: test
+        working-directory: 'mysql-tester'
         run: make test

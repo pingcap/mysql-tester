@@ -1,2 +1,2 @@
 SELECT 1 FROM NON_EXISTING_TABLE;
-Got one of the listed errors
+Error 1146 (42S02): Table 'extensions.NON_EXISTING_TABLE' doesn't exist

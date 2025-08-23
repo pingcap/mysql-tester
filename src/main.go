@@ -186,9 +186,7 @@ func setSessionVariable(db *Conn) {
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_hash_join_concurrency=1"); err != nil {
 		log.Fatalf("Executing \"SET @@tidb_hash_join_concurrency=1\" err[%v]", err)
 	}
-	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_pseudo_for_outdated_stats=false"); err != nil {
-		log.Fatalf("Executing \"SET @@tidb_enable_pseudo_for_outdated_stats=false\" err[%v]", err)
-	}
+
 	// enable tidb_enable_analyze_snapshot in order to let analyze request with SI isolation level to get accurate response
 	if _, err := db.conn.ExecContext(ctx, "SET @@tidb_enable_analyze_snapshot=1"); err != nil {
 		log.Warnf("Executing \"SET @@tidb_enable_analyze_snapshot=1 failed\" err[%v]", err)

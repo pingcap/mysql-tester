@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/defined2014/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
 	log "github.com/sirupsen/logrus"
 )

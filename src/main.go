@@ -849,7 +849,7 @@ func (t *tester) execute(query query) error {
 		}
 
 		if !bytes.Equal(gotBuf, buf) {
-			return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
+			return errors.Trace(NewWrongResultError(query.Line, query.Query, string(buf), string(gotBuf)))
 		}
 	}
 

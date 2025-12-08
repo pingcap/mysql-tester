@@ -1054,6 +1054,7 @@ func (t *tester) waitTiFlashReplicaReady() error {
 				return err
 			}
 			if result == "0" {
+				time.Sleep(1 * time.Second)
 				return nil
 			}
 		case <-time.After(20 * time.Minute):

@@ -170,7 +170,12 @@ func ParseQuery(rs query) (*query, error) {
 		s = s[i:]
 
 		q.Query = s
-		if q.tp == Q_UNKNOWN || q.tp == Q_COMMENT_WITH_COMMAND {
+		switch q.tp {
+		case Q_COMMENT_WITH_COMMAND:
+			if err := q.getQueryType(s); err != nil {
+				return nil, err
+			}
+		case Q_UNKNOWN:
 			if err := q.getQueryType(realS); err != nil {
 				return nil, err
 			}

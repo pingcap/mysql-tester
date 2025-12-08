@@ -124,6 +124,7 @@ const (
 	Q_COMMENT /* Comments, ignored. */
 	Q_COMMENT_WITH_COMMAND
 	Q_EMPTY_LINE
+	Q_WAIT_TIFLASH_REPLICA_READY
 )
 
 // ParseQuery parses an array of string into an array of query object.

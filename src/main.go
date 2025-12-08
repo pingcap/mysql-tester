@@ -1257,7 +1257,7 @@ func main() {
 		}
 		log.SetLevel(ll)
 	}
-
+	log.SetFormatter(&log.TextFormatter{DisableColors: false})
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)
 		if err == nil {

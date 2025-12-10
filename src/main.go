@@ -521,6 +521,12 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_WAIT_TIFLASH_REPLICA_READY:
+			// wait tiflash replica ready
+			err := t.waitTiFlashReplicaReady()
+			if err != nil {
+				log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line, "err": err.Error()}).Warn("wait for tiflash replica ready failed")
+			}
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
@@ -1039,6 +1045,24 @@ func (t *tester) executeStmtString(query string) (string, error) {
 	return result, nil
 }
 
+func (t *tester) waitTiFlashReplicaReady() error {
+	for {
+		select {
+		case <-time.After(100 * time.Millisecond):
+			result, err := t.executeStmtString(`select count(*) from information_schema.tiflash_replica where AVAILABLE=0;`)
+			if err != nil {
+				return err
+			}
+			if result == "0" {
+				return nil
+			}
+		case <-time.After(2 * time.Minute):
+			return errors.New("wait tiflash replica ready timeout")
+		}
+	}
+
+}
+
 func (t *tester) openResult() error {
 	if record {
 		return nil
@@ -1233,7 +1257,6 @@ func main() {
 		}
 		log.SetLevel(ll)
 	}
-
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)
 		if err == nil {

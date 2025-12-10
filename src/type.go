@@ -114,7 +114,7 @@ var commandMap = map[string]int{
 	"single_query":               Q_SINGLE_QUERY,
 	"begin_concurrent":           Q_BEGIN_CONCURRENT,
 	"end_concurrent":             Q_END_CONCURRENT,
-	"wait_tiflash_replica_ready":  Q_WAIT_TIFLASH_REPLICA_READY,
+	"wait_tiflash_replica_ready": Q_WAIT_TIFLASH_REPLICA_READY,
 }
 
 func findType(cmdName string) int {

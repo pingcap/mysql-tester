@@ -1,6 +1,6 @@
 module github.com/pingcap/mysql-tester
 
-go 1.21
+go 1.25
 
 require (
 	// It forks from github.com/go-sql-driver/mysql v1.7.1
@@ -16,6 +16,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

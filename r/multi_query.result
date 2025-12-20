@@ -1,0 +1,11 @@
+set global tidb_enable_procedure = ON;
+CREATE PROCEDURE multi_select()
+BEGIN
+SELECT 1;
+SELECT 2, 3;
+END//
+CALL multi_select();
+1
+1
+2	3
+2	3

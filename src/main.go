@@ -521,6 +521,12 @@ func (t *tester) Run() error {
 				return errors.Annotate(err, fmt.Sprintf("Could not parse regex in --replace_regex: line: %d sql:%v", q.Line, q.Query))
 			}
 			t.replaceRegex = regex
+		case Q_WAIT_TIFLASH_REPLICA_READY:
+			// wait tiflash replica ready
+			err := t.waitTiFlashReplicaReady()
+			if err != nil {
+				log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line, "err": err.Error()}).Warn("wait for tiflash replica ready failed")
+			}
 		default:
 			log.WithFields(log.Fields{"command": q.firstWord, "arguments": q.Query, "line": q.Line}).Warn("command not implemented")
 		}
@@ -849,7 +855,7 @@ func (t *tester) execute(query query) error {
 		}
 
 		if !bytes.Equal(gotBuf, buf) {
-			return errors.Trace(errors.Errorf("failed to run query \n\"%v\" \n around line %d, \nwe need(%v):\n%s\nbut got(%v):\n%s\n", query.Query, query.Line, len(buf), buf, len(gotBuf), gotBuf))
+			return errors.Trace(NewWrongResultError(query.Line, query.Query, string(buf), string(gotBuf)))
 		}
 	}
 
@@ -947,15 +953,17 @@ func (rows *byteRows) Swap(i, j int) {
 	rows.data[i], rows.data[j] = rows.data[j], rows.data[i]
 }
 
-func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+func dumpToByteRows(rows *sql.Rows) ([]*byteRows, error) {
+	var result []*byteRows
 
-	data := make([]byteRow, 0, 8)
-	args := make([]interface{}, len(cols))
 	for {
+		cols, err := rows.Columns()
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		data := make([]byteRow, 0, 8)
+		args := make([]interface{}, len(cols))
 		for rows.Next() {
 			tmp := make([][]byte, len(cols))
 			for i := 0; i < len(args); i++ {
@@ -968,16 +976,19 @@ func dumpToByteRows(rows *sql.Rows) (*byteRows, error) {
 
 			data = append(data, byteRow{tmp})
 		}
+
+		result = append(result, &byteRows{cols: cols, data: data})
+
 		if !rows.NextResultSet() {
 			break
 		}
 	}
-	err = rows.Err()
+	err := rows.Err()
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	return &byteRows{cols: cols, data: data}, nil
+	return result, nil
 }
 
 func (t *tester) executeStmt(query string) error {
@@ -986,15 +997,20 @@ func (t *tester) executeStmt(query string) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	defer raw.Close()
 
-	rows, err := dumpToByteRows(raw)
+	allRows, err := dumpToByteRows(raw)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
-	if t.enableResultLog && (len(rows.cols) > 0 || len(rows.data) > 0) {
-		if err = t.writeQueryResult(rows); err != nil {
-			return errors.Trace(err)
+	if t.enableResultLog {
+		for _, rows := range allRows {
+			if len(rows.cols) > 0 || len(rows.data) > 0 {
+				if err = t.writeQueryResult(rows); err != nil {
+					return errors.Trace(err)
+				}
+			}
 		}
 	}
 
@@ -1017,14 +1033,14 @@ func (t *tester) executeStmt(query string) error {
 			return errors.Trace(err)
 		}
 
-		rows, err := dumpToByteRows(raw)
+		allRows, err := dumpToByteRows(raw)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		if len(rows.data) > 0 {
-			sort.Sort(rows)
-			return t.writeQueryResult(rows)
+		if len(allRows) > 0 && len(allRows[0].data) > 0 {
+			sort.Sort(allRows[0])
+			return t.writeQueryResult(allRows[0])
 		}
 	}
 	return nil
@@ -1037,6 +1053,24 @@ func (t *tester) executeStmtString(query string) (string, error) {
 		return "", err
 	}
 	return result, nil
+}
+
+func (t *tester) waitTiFlashReplicaReady() error {
+	for {
+		select {
+		case <-time.After(100 * time.Millisecond):
+			result, err := t.executeStmtString(`select count(*) from information_schema.tiflash_replica where AVAILABLE=0;`)
+			if err != nil {
+				return err
+			}
+			if result == "0" {
+				return nil
+			}
+		case <-time.After(2 * time.Minute):
+			return errors.New("wait tiflash replica ready timeout")
+		}
+	}
+
 }
 
 func (t *tester) openResult() error {
@@ -1233,7 +1267,6 @@ func main() {
 		}
 		log.SetLevel(ll)
 	}
-
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)
 		if err == nil {

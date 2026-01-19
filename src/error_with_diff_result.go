@@ -38,6 +38,9 @@ func NewWrongResultError(line int, query, expected, actual string) *WrongResultE
 func (e *WrongResultError) Error() string {
 	diff := diffmatchpatch.New()
 	diffText := diff.DiffPrettyText(diff.DiffMain(e.actual, e.expected, false))
+	if !shouldUseColor() {
+		diffText = stripANSIEscapeCodes(diffText)
+	}
 	return fmt.Sprintf("failed to run query \n\"%v\" \n around line %d, \n we need(%v):\n%s\nbut got(%v):\n%s\ndiff:\n%s\n",
 		e.query, e.line, len(e.expected), e.expected, len(e.actual), e.actual, diffText)
 }

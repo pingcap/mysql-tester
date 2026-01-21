@@ -39,6 +39,7 @@ var (
 	user             string
 	passwd           string
 	logLevel         string
+	colorMode        string
 	record           bool
 	params           string
 	all              bool
@@ -56,6 +57,7 @@ func init() {
 	flag.StringVar(&user, "user", "root", "The user for connecting to the database.")
 	flag.StringVar(&passwd, "passwd", "", "The password for the user.")
 	flag.StringVar(&logLevel, "log-level", "error", "The log level of mysql-tester: info, warn, error, debug.")
+	flag.StringVar(&colorMode, "color", "always", "Colorize output: always, auto, never.")
 	flag.BoolVar(&record, "record", false, "Whether to record the test output to the result file.")
 	flag.StringVar(&params, "params", "", "Additional params pass as DSN(e.g. session variable)")
 	flag.BoolVar(&all, "all", false, "run all tests")
@@ -1267,6 +1269,7 @@ func main() {
 		}
 		log.SetLevel(ll)
 	}
+	configureLogging()
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)
 		if err == nil {

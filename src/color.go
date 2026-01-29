@@ -48,15 +48,20 @@ func shouldUseColor() bool {
 }
 
 func configureLogging() {
+	base := &log.TextFormatter{DisableQuote: true}
 	switch normalizeColorMode(colorMode) {
 	case colorModeAlways:
-		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+		base.ForceColors = true
+		log.SetFormatter(base)
 	case colorModeNever:
-		log.SetFormatter(&log.TextFormatter{DisableColors: true})
+		base.DisableColors = true
+		log.SetFormatter(base)
 	case colorModeAuto:
-		// Use logrus default auto behavior.
+		// Use logrus default auto behavior with DisableQuote enabled.
+		log.SetFormatter(base)
 	default:
-		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+		base.ForceColors = true
+		log.SetFormatter(base)
 	}
 }
 

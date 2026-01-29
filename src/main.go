@@ -976,6 +976,16 @@ func dumpToByteRows(rows *sql.Rows) ([]*byteRows, error) {
 				return nil, errors.Trace(err)
 			}
 
+			for i, col := range tmp {
+				if col == nil {
+					continue
+				}
+				// Defensive copy to avoid driver buffer reuse corrupting large results.
+				copied := make([]byte, len(col))
+				copy(copied, col)
+				tmp[i] = copied
+			}
+
 			data = append(data, byteRow{tmp})
 		}
 

@@ -1295,6 +1295,15 @@ func main() {
 		}
 		log.SetLevel(ll)
 	}
+	// Keep real newlines in error messages instead of escaped \n/\t.
+	formatter := &log.TextFormatter{
+		DisableQuote:  true,
+		DisableColors: false,
+	}
+	if os.Getenv("FORCE_COLOR") != "" {
+		formatter.ForceColors = true
+	}
+	log.SetFormatter(formatter)
 	if xmlPath != "" {
 		_, err := os.Stat(xmlPath)
 		if err == nil {

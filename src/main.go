@@ -16,6 +16,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -361,6 +362,23 @@ func (t *tester) addSuccess(testSuite *XUnitTestSuite, startTime *time.Time, cnt
 	})
 }
 
+func formatSQLForLog(sql string) string {
+	const maxLen = 1024
+	if len(sql) <= maxLen {
+		return sql
+	}
+	const headLen = 256
+	const tailLen = 256
+	sum := sha256.Sum256([]byte(sql))
+	head := sql[:headLen]
+	tail := sql[len(sql)-tailLen:]
+	head = strings.ReplaceAll(head, "\n", " ")
+	head = strings.ReplaceAll(head, "\r", " ")
+	tail = strings.ReplaceAll(tail, "\n", " ")
+	tail = strings.ReplaceAll(tail, "\r", " ")
+	return fmt.Sprintf("len=%d sha256=%x head=%q tail=%q", len(sql), sum, head, tail)
+}
+
 func (t *tester) Run() error {
 	t.preProcess()
 	defer t.postProcess()
@@ -443,7 +461,7 @@ func (t *tester) Run() error {
 			if t.enableConcurrent {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
-				err = errors.Annotate(err, fmt.Sprintf("sql:%v", q.Query))
+				err = errors.Annotate(err, fmt.Sprintf("sql:%s", formatSQLForLog(q.Query)))
 				t.addFailure(&testSuite, &err, testCnt)
 				return err
 			}

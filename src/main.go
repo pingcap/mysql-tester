@@ -211,7 +211,7 @@ func isTiDB(db *sql.DB) bool {
 	return true
 }
 
-func (t *tester) addConnection(connName, hostName, userName, password, db string) {
+func (t *tester) addConnection(q query, connName, hostName, userName, password, db string) {
 	var (
 		mdb *sql.DB
 		err error
@@ -233,7 +233,7 @@ func (t *tester) addConnection(connName, hostName, userName, password, db string
 	}
 	if err != nil {
 		if t.expectedErrs == nil {
-			log.Fatalf("Open db err %v", err)
+			log.Fatalf("addConnection line: %d connect(%s) Open db err %v", q.Line, q.Query, err)
 		}
 		t.expectedErrs = nil
 		return
@@ -480,7 +480,7 @@ func (t *tester) Run() error {
 			for i := 0; i < 4; i++ {
 				args = append(args, "")
 			}
-			t.addConnection(args[0], args[1], args[2], args[3], args[4])
+			t.addConnection(q, args[0], args[1], args[2], args[3], args[4])
 		case Q_CONNECTION:
 			q.Query = strings.TrimSuffix(strings.TrimSpace(q.Query), q.delimiter)
 			t.switchConnection(q.Query)

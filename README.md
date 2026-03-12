@@ -1,4 +1,6 @@
 # MySQL Tester
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpingcap%2Fmysql-tester.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpingcap%2Fmysql-tester?ref=badge_shield)
+
 
 This is a golang implementation of [MySQL Test Framework](https://github.com/mysql/mysql-server/tree/8.0/mysql-test).
 
@@ -76,3 +78,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 MySQL Tester is under the Apache 2.0 license. See the [LICENSE](./LICENSE) file for details.
 
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpingcap%2Fmysql-tester.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpingcap%2Fmysql-tester?ref=badge_large)

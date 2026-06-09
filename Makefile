@@ -1,11 +1,14 @@
-.PHONY: all build test tidy clean
+.PHONY: all build test tidy clean generate
 
 GO := go
 
 default: build
 
-build:
+build: generate
 	$(GO) build -o mysql-tester ./src
+
+generate: gen_perror
+	$(GO) generate ./src
 
 debug:
 	$(GO) build -gcflags="all=-N -l" -o mysql-tester ./src

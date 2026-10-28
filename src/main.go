@@ -439,7 +439,15 @@ func (t *tester) Run() error {
 
 			t.buf.WriteString(s)
 			t.buf.WriteString("\n")
-		case Q_QUERY:
+		case Q_QUERY, Q_EVAL:
+			if q.tp == Q_EVAL {
+				q, err = expandEvalQuery(q)
+				if err != nil {
+					err = errors.Annotate(err, fmt.Sprintf("eval at line %d", q.Line))
+					t.addFailure(&testSuite, &err, testCnt)
+					return err
+				}
+			}
 			if t.enableConcurrent {
 				concurrentQueue = append(concurrentQueue, q)
 			} else if err = t.execute(q); err != nil {
@@ -488,15 +496,8 @@ func (t *tester) Run() error {
 			q.Query = strings.TrimSuffix(strings.TrimSpace(q.Query), q.delimiter)
 			t.disconnect(q.Query)
 		case Q_LET:
-			q.Query = strings.TrimSpace(q.Query)
-			eqIdx := strings.Index(q.Query, "=")
-			if eqIdx > 1 {
-				start := 0
-				if q.Query[0] == '$' {
-					start = 1
-				}
-				varName := strings.TrimSpace(q.Query[start:eqIdx])
-				varValue := strings.TrimSpace(q.Query[eqIdx+1:])
+			varName, varValue, ok := parseLetAssignment(q.Query, q.delimiter)
+			if ok {
 				varSearch := regexp.MustCompile("`(.*)`")
 				varValue = varSearch.ReplaceAllStringFunc(varValue, func(s string) string {
 					s = strings.Trim(s, "`")
@@ -547,6 +548,96 @@ func (t *tester) Run() error {
 	}
 
 	return t.flushResult()
+}
+
+// parseLetAssignment parses a mysqltest --let assignment. The command
+// delimiter belongs to the --let command and must not become part of the
+// variable value used by a later --eval command.
+func parseLetAssignment(raw, delimiter string) (name, value string, ok bool) {
+	assignment := strings.TrimSpace(raw)
+	assignment = strings.TrimSuffix(assignment, delimiter)
+	assignment = strings.TrimSpace(assignment)
+	eqIdx := strings.Index(assignment, "=")
+	if eqIdx <= 1 {
+		return "", "", false
+	}
+
+	start := 0
+	if assignment[0] == '$' {
+		start = 1
+	}
+	return strings.TrimSpace(assignment[start:eqIdx]), strings.TrimSpace(assignment[eqIdx+1:]), true
+}
+
+// expandEvalQuery expands mysqltest variables in an eval command and turns it
+// into the same query representation used by a regular SQL statement. The
+// command delimiter is removed before expansion and added back afterwards so
+// a value assigned by --let may itself include the delimiter.
+func expandEvalQuery(q query) (query, error) {
+	queryText := strings.TrimSpace(q.Query)
+	queryText = strings.TrimSuffix(queryText, q.delimiter)
+
+	expanded, err := expandEvalVariables(queryText)
+	if err != nil {
+		return q, err
+	}
+	expanded = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(expanded), q.delimiter))
+	q.Query = expanded + q.delimiter
+	q.tp = Q_QUERY
+	return q, nil
+}
+
+// expandEvalVariables implements the variable and escaping subset used by
+// mysqltest's do_eval. Variable values are inserted verbatim; expansion does
+// not recurse into a value. A dollar sign used by a JSON path remains literal.
+func expandEvalVariables(input string) (string, error) {
+	var expanded strings.Builder
+	expanded.Grow(len(input))
+
+	for i := 0; i < len(input); {
+		switch input[i] {
+		case '\\':
+			if i+1 < len(input) && (input[i+1] == '\\' || input[i+1] == '$' || input[i+1] == '"') {
+				expanded.WriteByte(input[i+1])
+				i += 2
+				continue
+			}
+			expanded.WriteByte(input[i])
+			i++
+		case '$':
+			if i+1 < len(input) && (input[i+1] == '.' || input[i+1] == '[' || input[i+1] == '\'' || input[i+1] == '"') {
+				expanded.WriteByte(input[i])
+				i++
+				continue
+			}
+			start := i + 1
+			end := start
+			for end < len(input) && isEvalVariableChar(input[end]) {
+				end++
+			}
+			if end == start {
+				expanded.WriteByte(input[i])
+				i++
+				continue
+			}
+			name := input[start:end]
+			value, ok := os.LookupEnv(name)
+			if !ok {
+				return "", errors.Errorf("variable $%s is not set", name)
+			}
+			expanded.WriteString(value)
+			i = end
+		default:
+			expanded.WriteByte(input[i])
+			i++
+		}
+	}
+
+	return expanded.String(), nil
+}
+
+func isEvalVariableChar(c byte) bool {
+	return c == '_' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
 }
 
 func (t *tester) concurrentRun(concurrentQueue []query, concurrentSize int) error {
